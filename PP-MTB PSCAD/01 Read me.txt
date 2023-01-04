@@ -1,0 +1,11 @@
+Please make sure the following Python packages are installed beforehand to be able to use the PP-MTB successfully.
+
+
+numpy
+pandas
+openpyxl
+plotly
+python-docx
+pathlib
+shutil
+kaleido
