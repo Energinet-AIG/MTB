@@ -1,0 +1,671 @@
+############################################################
+Case 1:
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.2 of ION, three-phase-to-ground short-circuit with 0 p.u. residual voltage at PoC in all three phases.
+
+
+
+Text below figure:
+The RMS model does not deliver enough Iq as required during the fault.  The requirement is shown by the dotted red lines, between which the Iq is required to be delivered by the model.
+Inconsistence is observed in active power, reactive power and currents between RMS and EMT models.
+
+
+
+############################################################
+Case 2:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.3 of ION, two-phase-to-ground short-circuit with 0 p.u. residual voltage at PoC in the faulted two phases.
+
+
+
+Text below figure:
+
+Inconsistence is observed in active power, reactive power and currents between RMS and EMT models.
+
+
+
+############################################################
+Case 3:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.4 of ION, one-phase-to-ground short-circuit with 0 p.u. residual voltage at PoC in the faulted phase.
+
+
+
+Text below figure:
+
+Inconsistence is observed in active power, reactive power and currents between RMS and EMT models.
+
+
+############################################################
+Case 4:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.2 of ION, three-phase-to-ground short-circuit with 0.2 p.u. residual voltage at PoC in all three phases.
+
+
+
+Text below figure:
+
+Inconsistence is observed in active power, reactive power and currents between RMS and EMT models.
+
+
+
+############################################################
+Case 5:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.3 of ION, two-phase-to-ground short-circuit with 0.2 p.u. residual voltage at PoC in the faulted two phases.
+
+
+
+Text below figure:
+
+Inconsistence is observed in active power, reactive power and currents between RMS and EMT models.
+
+
+
+############################################################
+Case 6:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.4 of ION, one-phase-to-ground short-circuit with 0.2 p.u. residual voltage at PoC in the faulted phase.
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 7:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.2.2.2 of ION.
+
+
+
+Text below figure:
+
+The models function well.
+
+
+############################################################
+Case 8:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.2.1.1 of ION, in which the active power reference is changed from 0.5 to 0.7 p.u. at t=2 s.
+
+
+
+Text below figure:
+
+The models function well.
+
+
+############################################################
+Case 9:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.2.1.1 of ION, in which the active power reference is changed from 0.7 to 0.5 p.u. at t=2 s.
+
+
+
+Text below figure:
+
+The models function well.
+
+
+############################################################
+Case 10:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.2.1.1 of ION, in which the active power reference is changed from 0.7 to 1 p.u. at t=2 s.
+
+
+
+Text below figure:
+
+The models function well.
+
+
+############################################################
+Case 11:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.2.1.1 of ION, in which the active power reference is changed from 1 to 0.7 p.u. at t=2 s.
+
+
+
+Text below figure:
+
+The models function well.
+
+
+############################################################
+Case 12:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.2 of ION, three-phase-to-ground short-circuit with 0.4 p.u. residual voltage at PoC in all three phases.
+
+
+
+Text below figure:
+
+Inconsistence is observed in active power and currents between RMS and EMT models.
+
+
+############################################################
+Case 13:
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.3 of ION, two-phase-to-ground short-circuit with 0.4 p.u. residual voltage at PoC in the faulted two phases.
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 14:
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.4 of ION, one-phase-to-ground short-circuit with 0.4 p.u. residual voltage at PoC in the faulted phase.
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+############################################################
+Case 15:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.2 of ION, three-phase-to-ground short-circuit with 0.8 p.u. residual voltage at PoC in all three phases.
+
+
+
+Text below figure:
+
+The models function well.
+
+
+
+############################################################
+Case 16:
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.3 of ION, two-phase-to-ground short-circuit with 0.8 p.u. residual voltage at PoC in the faulted two phases.
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 17:
+
+
+
+Text above figure:
+This is the test case in Section 3.4.3.4 of ION, one-phase-to-ground short-circuit with 0.8 p.u. residual voltage at PoC in the faulted phase.
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 18:
+
+
+
+
+
+Text above figure:
+This is the test case in Section 3.4.2.1 of ION, in which 20 degree phase jumps are applied.
+
+
+
+Text below figure:
+
+The models function well.
+
+
+############################################################
+Case 19:
+
+
+
+Text above figure:
+This is the test case in Section 3.2.2.1 of ION, in which the grid frequency is changed.
+
+
+
+Text below figure:
+
+The models function well.
+
+
+
+############################################################
+Case 20:
+
+
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 21:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 22:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 23:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 24:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 25:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+############################################################
+Case 26:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 27:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 28:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 29:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 30:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 31:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 32:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 33:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 34:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 35:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 36:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+############################################################
+Case 37:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 38:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 39:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 40:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
+
+
+############################################################
+Case 41:
+
+
+
+Text above figure:
+Write something here!!
+
+
+
+Text below figure:
+
+Write something here!!
+
