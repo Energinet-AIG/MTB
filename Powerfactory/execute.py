@@ -14,6 +14,8 @@ import time
 from datetime import datetime
 from types import SimpleNamespace
 
+exit()
+
 forceNoSetup = False
 forceNoRun = False
 forceNoPlot = False
