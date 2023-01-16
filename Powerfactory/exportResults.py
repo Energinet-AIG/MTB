@@ -20,7 +20,7 @@ def exportResults(app, name, path, refName, refScale):
 
     export = networkData.SearchObject('PP-MTB\\exportResults\\graphExport.ComWr')     
     board = app.GetFromStudyCase('SetDesktop')
-    plots = board.GetContents('*.SetVipage',1)   
+    plots = board.GetContents('*.GrpPage',1)   
     comRes = app.GetFromStudyCase('ComRes')
     elmRes = app.GetFromStudyCase('ElmRes')
 
@@ -38,6 +38,7 @@ def exportResults(app, name, path, refName, refScale):
     comRes.SetAttribute('iopt_sep', 0)
     comRes.SetAttribute('ciopt_head', 1)
     comRes.SetAttribute('dec_Sep', ',')
+    comRes.SetAttribute('col_Sep', ';')
     comRes.SetAttribute('f_name', csvFileName)
     comRes.Execute()
     

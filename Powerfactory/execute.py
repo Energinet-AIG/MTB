@@ -14,10 +14,10 @@ import time
 from datetime import datetime
 from types import SimpleNamespace
 
-forceNoSetup = False
-forceNoRun = False
-forceNoPlot = False
-forceNoExport = False
+forceNoSetup : bool = False
+forceNoRun : bool = False
+forceNoPlot : bool = False
+forceNoExport : bool = False
 
 if getattr(sys, 'gettrace', None) is not None:
     sys.path.append('C:\\Program Files\\DIgSILENT\\PowerFactory 2022 SP3\\Python\\3.8')
@@ -70,12 +70,22 @@ options.PspScale : float = thisScript.GetInputParameterDouble('PspScale')[1]
 options.QspScale : float = thisScript.GetInputParameterDouble('QspScale')[1]
 options.QUspScale : float = thisScript.GetInputParameterDouble('QUspScale')[1]
 options.QPFspScale : float = thisScript.GetInputParameterDouble('QPFspScale')[1]
+options.QPFmode : int = 0 
+options.paraEventsOnly : bool = bool(thisScript.GetInputParameterInt('ParaEventsOnly')[1]) 
 
 # For the Pref and Qref tests
 options.PCtrl : PF.DataObject = thisScript.GetExternalObject('Pctrl')[1]
+if not (options.PCtrl.GetClassName() == 'ElmDsl' or options.PCtrl.GetClassName() == 'ElmComp'):
+  exit('Pctrl inputblock is not a ElmDsl or ElmComp object')
 options.QCtrl : PF.DataObject = thisScript.GetExternalObject('Qctrl')[1]
+if not (options.QCtrl.GetClassName() == 'ElmDsl' or options.QCtrl.GetClassName() == 'ElmComp'):
+  exit('QCtrl inputblock is not a ElmDsl or ElmComp object')
 options.QUCtrl : PF.DataObject = thisScript.GetExternalObject('QUctrl')[1]
+if not (options.QUCtrl.GetClassName() == 'ElmDsl' or options.QUCtrl.GetClassName() == 'ElmComp'):
+  exit('QUCtrl inputblock is not a ElmDsl or ElmComp object')
 options.QPFCtrl : PF.DataObject = thisScript.GetExternalObject('QPFctrl')[1]
+if not (options.QPFCtrl.GetClassName() == 'ElmDsl' or options.QPFCtrl.GetClassName() == 'ElmComp'):
+  exit('QPFCtrl inputblock is not a ElmDsl or ElmComp object')
 options.PspInputName : str = thisScript.GetInputParameterString('PspSignal')[1]
 options.QspInputName : str = thisScript.GetInputParameterString('QspSignal')[1]
 options.QUspInputName : str = thisScript.GetInputParameterString('QUspSignal')[1]
@@ -85,7 +95,7 @@ options.QUmodeVar : PF.DataObject = thisScript.GetExternalObject('QUmodeVar')[1]
 options.QPFmodeVar : PF.DataObject = thisScript.GetExternalObject('QPFmodeVar')[1]
 
 # Internal options
-options.studyTime = 2**32-1
+options.studyTime : int = 2**32-1
 
 # Check if any studycase is active
 currentStudycase = app.GetActiveStudyCase()
@@ -217,6 +227,8 @@ if options.setup and not forceNoSetup:
     term.SetAttribute('uknom', plantInfo.VN)
   grid.measurement.SetAttribute('ucn', plantInfo.VN)
   grid.measurement.SetAttribute('Sn', plantInfo.PN)
+
+  grid.sigGen.SetAttribute('e:outserv', True)
 
   for caseIndex in range(plantInfo.NofCases):
     # Load case

@@ -24,122 +24,120 @@ def setupPlots(app,eventPlot,faultPlot,phasePlot,uLim,ctrlMode,Qmode,symSim,inpu
     res.Load()
 
     board = app.GetFromStudyCase('SetDesktop')
-    plots = board.GetContents('*.SetVipage',1)
+    plots = board.GetContents('*.GrpPage',1)
     
-    board.SetAttribute('e:auto_xscl', 2)
-
     for p in plots:
-        p.Close()
-        p.Delete()
+        p.RemovePage()
 
+    # Event plot
     if eventPlot:
-        evPage = board.GetPage('PQuf', 1, 'SetVipage')
-        evPage.SetStyle('Paper')
-        evPage.SetAttribute('iopt_add', 'hor')
+        evPage = board.GetPage('PQuf', 1,'GrpPage')
 
         #Event - F/angle plot
         if ctrlMode == 2 or ctrlMode == 4:
-            Faplot = evPage.GetOrInsertPlot('F' if ctrlMode == 4 else 'Angle',  'VisPlot', 1)
-            Faplot.AddResVars(res, grid.poc if ctrlMode == 4 else grid.measurement, 'm:fehz' if ctrlMode == 4 else 'm:phiu1:bus2')
-            Faplot.SetAttribute('e:auto_yscl', 2)
+            Faplot = evPage.GetOrInsertCurvePlot('F' if ctrlMode == 4 else 'Angle')
+            (Faplot.GetDataSeries()).AddCurve(grid.poc if ctrlMode == 4 else grid.measurement, 'm:fehz' if ctrlMode == 4 else 'm:phiu1:bus2')
 
         #Event - P plot
-        Pplot = evPage.GetOrInsertPlot('PQ' if Qmode == 2 else 'P',  'VisPlot', 1)      
+        Pplot = evPage.GetOrInsertCurvePlot('PQ' if Qmode == 2 else 'P')
+        PplotDS = Pplot.GetDataSeries()  
         if ctrlMode == 0 and inputBlock is not None:
-            Pplot.AddResVars(res, inputBlock, inputSignal)
-            #Pplot.SetAttribute('e:userdesc:0', 'Reference')
-            Pplot.SetAttribute('e:dIsNom:0', 1)
-            Pplot.SetAttribute('e:dValNom:0', inputScaling)
-        Pplot.AddResVars(res, grid.PQmeasurement, 's:p')
+            PplotDS.AddCurve(inputBlock, inputSignal)
+            PplotDS.SetAttribute('e:enableDataTrafo', 1)
+            PplotDS.SetAttribute('e:curveTableNormalise:0', 1)
+            PplotDS.SetAttribute('e:curveTableNormValue:0', inputScaling)
+        PplotDS.AddCurve(grid.PQmeasurement, 's:p')
         if Qmode == 2:
-            Pplot.AddResVars(res, grid.PQmeasurement, 's:q')    
+            PplotDS.AddCurve(grid.PQmeasurement, 's:q')
         if not symSim:
-            Pplot.AddResVars(res, grid.PQmeasurement, 's:p2')
+            PplotDS.AddCurve(grid.PQmeasurement, 's:p2')
             if Qmode == 2:
-                Pplot.AddResVars(res, grid.PQmeasurement, 's:q2')
-        Pplot.SetAttribute('e:auto_yscl', 2)
-            
+                PplotDS.AddCurve(grid.PQmeasurement, 's:q2')
+       
         #Event - Q plot
         if Qmode == 2:
-            Qplot = evPage.GetOrInsertPlot('cos(phi)',  'VisPlot', 1)
-            Qplot.AddResVars(res, grid.measurement,'m:cosphisum:bus2')
+            Qplot = evPage.GetOrInsertCurvePlot('cos(phi)')
+            QplotDS = Qplot.GetDataSeries()
+            QplotDS.AddCurve(grid.measurement,'m:cosphisum:bus2')
         else:
-            Qplot = evPage.GetOrInsertPlot('Q',  'VisPlot', 1)
+            Qplot = evPage.GetOrInsertCurvePlot('Q')
+            QplotDS = Qplot.GetDataSeries()
             if ctrlMode == 1 and Qmode == 0 and inputBlock is not None:
-                Qplot.AddResVars(res, inputBlock, inputSignal)
-                #Qplot.SetAttribute('e:userdesc:0', 'Reference')
-                Qplot.SetAttribute('e:dIsNom:0', 1)
-                Qplot.SetAttribute('e:dValNom:0', inputScaling)
-            Qplot.AddResVars(res, grid.PQmeasurement, 's:q')
+                QplotDS.AddCurve(inputBlock, inputSignal)
+                QplotDS.SetAttribute('e:enableDataTrafo', 1)
+                QplotDS.SetAttribute('e:curveTableNormalise:0', 1)
+                QplotDS.SetAttribute('e:curveTableNormValue:0', inputScaling)
+            QplotDS.AddCurve(grid.PQmeasurement, 's:q')
             if not symSim:
-                Qplot.AddResVars(res, grid.PQmeasurement, 's:q2')
-        Qplot.SetAttribute('e:auto_yscl', 2)
+                QplotDS.AddCurve(grid.PQmeasurement, 's:q2')
 
         #Event - U plot
-        Uplot = evPage.GetOrInsertPlot('U',  'VisPlot', 1)
+        Uplot = evPage.GetOrInsertCurvePlot('U')
+        UplotDS = Uplot.GetDataSeries()
         if ctrlMode == 1 and Qmode == 1 and inputBlock is not None:
-            Uplot.AddResVars(res, inputBlock, inputSignal)
-            #Uplot.SetAttribute('e:userdesc:0', 'Reference')
-            Uplot.SetAttribute('e:dIsNom:0', 1)
-            Uplot.SetAttribute('e:dValNom:0', inputScaling)
-        Uplot.AddResVars(res, grid.measurement, 'm:u1:bus2')
+            UplotDS.AddCurve(inputBlock, inputSignal)
+            UplotDS.SetAttribute('e:curveTableNormalise:0', 1)
+            UplotDS.SetAttribute('e:curveTableNormValue:0', inputScaling)
+        UplotDS.AddCurve(grid.measurement, 'm:u1:bus2')
         if not symSim:
-            Uplot.AddResVars(res, grid.measurement, 'm:u2:bus2')
-        Uplot.SetAttribute('e:auto_yscl', 2)
-
-        evPage.DoAutoScaleX()
-        evPage.DoAutoScaleY()
+            UplotDS.AddCurve(grid.measurement, 'm:u2:bus2')
 
     volCol = res.FindColumn(grid.measurement, 'm:u1:bus2')
     minVoltage = res.FindMinInColumn(volCol)[1]
    
     # Fault plot
     if faultPlot or minVoltage <= uLim:
-        fPage = board.GetPage('Idq', 1, 'SetVipage')
-        fPage.SetStyle('Paper')
-        fPage.SetAttribute('iopt_add', 'hor')
-        
-        Uplot = fPage.GetOrInsertPlot('U',  'VisPlot', 1)
-        Uplot.AddResVars(res, grid.measurement, 'm:u1:bus2')
-        if not symSim:
-            Uplot.AddResVars(res, grid.measurement, 'm:u2:bus2')
-        Uplot.SetAttribute('e:auto_yscl', 2)
+        fPage = board.GetPage('Idq', 1, 'GrpPage')
 
-        iQplot = fPage.GetOrInsertPlot('Iq',  'VisPlot', 1)
-        iQplot.AddResVars(res, grid.measurement, 'm:i1Q:bus2')
+        #Fault - U plot
+        Uplot = fPage.GetOrInsertCurvePlot('U')
+        UplotDS = Uplot.GetDataSeries()
+        UplotDS.AddCurve(grid.measurement, 'm:u1:bus2')
         if not symSim:
-            iQplot.AddResVars(res, grid.measurement, 'm:i2Q:bus2')
-        iQplot.SetAttribute('e:auto_yscl', 2)
+            UplotDS.AddCurve(grid.measurement, 'm:u2:bus2')
 
-        iPplot = fPage.GetOrInsertPlot('Id',  'VisPlot', 1)
-        iPplot.AddResVars(res, grid.measurement, 'm:i1P:bus2')
+        #Fault - iQ plot
+        iQplot = fPage.GetOrInsertCurvePlot('Iq')
+        iQplotDS = iQplot.GetDataSeries()
+        iQplotDS.AddCurve(grid.measurement, 'm:i1Q:bus2')
         if not symSim:
-            iPplot.AddResVars(res, grid.measurement, 'm:i2P:bus2')
-        iPplot.SetAttribute('e:auto_yscl', 2)
+            iQplotDS.AddCurve(grid.measurement, 'm:i2Q:bus2')
 
-        fPage.DoAutoScaleX()
-        fPage.DoAutoScaleY()
+        #Fault - iP plot
+        iPplot = fPage.GetOrInsertCurvePlot('Id')
+        iPplotDS = iPplot.GetDataSeries()
+        iPplotDS.AddCurve(grid.measurement, 'm:i1P:bus2')
+        if not symSim:
+            iPplotDS.AddCurve(grid.measurement, 'm:i2P:bus2')
 
     # Phase voltage and current plot
     if phasePlot or minVoltage <= uLim:
-        pPage = board.GetPage('UI', 1, 'SetVipage')
-        pPage.SetStyle('Paper')
-        pPage.SetAttribute('iopt_add', 'hor')
+        pPage = board.GetPage('UI', 1, 'GrpPage')
 
-        Uplot = pPage.GetOrInsertPlot('U',  'VisPlot', 1)
-        Uplot.AddResVars(res, grid.measurement, 'm:u:bus2:A')
-        Uplot.AddResVars(res, grid.measurement, 'm:u:bus2:B')
-        Uplot.AddResVars(res, grid.measurement, 'm:u:bus2:C')
-        Uplot.SetAttribute('e:auto_yscl', 2)
+        #Phase - U plot
+        Uplot = pPage.GetOrInsertCurvePlot('U')
+        UplotDS = Uplot.GetDataSeries()
+        UplotDS.AddCurve(grid.measurement, 'm:u:bus2:A')
+        UplotDS.AddCurve(grid.measurement, 'm:u:bus2:B')
+        UplotDS.AddCurve(grid.measurement, 'm:u:bus2:C')
 
-        Iplot = pPage.GetOrInsertPlot('I',  'VisPlot', 1)
-        Iplot.AddResVars(res, grid.measurement, 'm:i:bus2:A')
-        Iplot.AddResVars(res, grid.measurement, 'm:i:bus2:B')
-        Iplot.AddResVars(res, grid.measurement, 'm:i:bus2:C')        
-        Iplot.SetAttribute('e:auto_yscl', 2)
+        #Phase - I plot
+        Iplot = pPage.GetOrInsertCurvePlot('I')
+        IplotDS = Iplot.GetDataSeries()
+        IplotDS.AddCurve(grid.measurement, 'm:i:bus2:A')
+        IplotDS.AddCurve(grid.measurement, 'm:i:bus2:B')
+        IplotDS.AddCurve(grid.measurement, 'm:i:bus2:C')
+    
+    # Plot scaling and settings
+    for page in board.GetContents('*.GrpPage',1):
+        for plot in page.GetContents('*.PltLinebarplot',1):
+            (plot.GetTitleObject()).SetAttribute('e:showTitle', 0)
+            (plot.GetAxisX()).SetAttribute('e:scaleOnDataChange', 1)
+            (plot.GetAxisY()).SetAttribute('e:scaleOnDataChange', 1)
+            (plot.GetAxisY()).SetAttribute('e:limitMinimumToOrigin', 0)
+        page.SetAttribute('e:autoLayoutMode', 1)
+        page.DoAutoScale()
 
-        pPage.DoAutoScaleX()
-        pPage.DoAutoScaleY()
 
 if __name__ == "__main__":
     import powerfactory as PF # type: ignore
