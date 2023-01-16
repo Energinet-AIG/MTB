@@ -71,7 +71,7 @@ options.QspScale : float = thisScript.GetInputParameterDouble('QspScale')[1]
 options.QUspScale : float = thisScript.GetInputParameterDouble('QUspScale')[1]
 options.QPFspScale : float = thisScript.GetInputParameterDouble('QPFspScale')[1]
 options.QPFmode : int = 0 
-options.paraEventsOnly : bool = bool(thisScript.GetInputParameterInt('ParaEventsOnly')[1]) 
+options.paraEventsOnly : bool = bool(thisScript.GetInputParameterInt('paraEventsOnly')[1]) 
 
 # For the Pref and Qref tests
 options.PCtrl : PF.DataObject = thisScript.GetExternalObject('Pctrl')[1]
