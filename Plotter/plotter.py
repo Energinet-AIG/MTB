@@ -17,38 +17,47 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 from configparser import ConfigParser
 from types import SimpleNamespace
+from typing import List, Dict, Union, Tuple, Set
 
-def idFile(fileName : str, typ : int) -> tuple:
-    h, f = split(fileName)
-    pat = re.compile(r'^(\w+?)_([0-9]+).' + (r'inf' if typ else r'csv') + r'$')
-    rem = re.match(pat, f.lower())
-    if rem:
-        projectName = rem.group(1)
-        caseId = int(rem.group(2))
-        return (projectName, caseId)
-    return None, None
+def idFile(filePath: str) -> Tuple[Union[int, None], Union[str, None], Union[int, None]]:
+    path, fileName = split(filePath)
+    match = re.match(r'^(\w+?)_([0-9]+).(inf|csv)$', fileName.lower())
+    if match:
+        caseId = int(match.group(2))
+        project = join(path, match.group(1))
+        with open(filePath, 'r') as file:
+            firstLine = file.readline()
+            if match.group(3) == 'inf' and firstLine.startswith('PGB(1)'):
+                fileType = 1
+                return (fileType, project, caseId)
+            elif match.group(3) == 'csv':
+                secondLine = file.readline()
+                if secondLine.startswith(r'"b:tnow in s"'):
+                    fileType = 0
+                    return (fileType, project, caseId)
+    return (None, None, None)
 
-def mapResultFiles(rmsRootDir : str, emtRootDir : str) -> dict:
-    resultFiles = []
-    resultFiles.append(listdir(rmsRootDir))
-    resultFiles.append(listdir(emtRootDir))
+def mapResultFiles(dirs: list) -> Tuple[Dict[int, List[Tuple[int, str, str]]], Set[str]]:
+    files = [join(dir, p) for dir in dirs for p in listdir(dir)]
 
-    projects = dict()
+    cases = {}
+    relevantProjects = set()
 
-    for typ in [0,1]:
-        for fn in resultFiles[typ]:
-            projectName, caseId = idFile(fn, typ)
-            if projectName is None:
-                continue
-            if not projectName in projects.keys():
-                projects[projectName] = dict()
-            if not caseId in projects[projectName].keys():
-                projects[projectName][caseId] = [None,None]
-            projects[projectName][caseId][typ] = join(rmsRootDir if not typ else emtRootDir, fn)
+    for file in files:
+        typ, project, id = idFile(file)
+        if typ is None:
+            continue
 
-    return projects
+        if typ == 0:
+            project = f"{project}_RMS"
+        elif typ == 1:
+            project = f"{project}_EMT"
 
-def readFigureSetup(setupFile : str) -> list:
+        cases.setdefault(id, []).append((typ, project, file))
+        relevantProjects.add(project)
+    return cases, relevantProjects
+
+def readFigureSetup(setupFile : str) -> List[Dict[str, Union[int, str]]]:
     setup = list()
     with open(setupFile, newline='') as setupFile:
         setupReader = csv.DictReader(setupFile, delimiter = ';')
@@ -56,94 +65,31 @@ def readFigureSetup(setupFile : str) -> list:
             setup.append(row)
     return setup
 
-def generateFigure(rmsResult : str, emtResult : str, figureSetup : list, figureName : str, startTime : float, ncolumns : int, genHtml : bool, genStatic : bool, consolPlotTyp : bool) -> None:
-    print('Generating figure: {}'.format(figureName))
+def initFigure(figureName : str, ncolumns : int, nrows : int):
+    figure = make_subplots(rows=nrows,cols=ncolumns)
+    figure.update_layout(title_text=figureName)
+    return figure
     
-    nfig = len(figureSetup)
-    colors = ['#ff0000', '#1bc41b', '#0000ff', '#808000','#00ffff','#ff00ff']
-    nrows = (nfig + ncolumns - nfig%ncolumns)//ncolumns
-    fig = make_subplots(rows=nrows,cols=ncolumns)
-
-    emtEndTime = max(emtResult['time']) if emtResult is not None else -1.0
-    rmsEndTime = max(rmsResult.iloc[:, 0]) if rmsResult is not None else -1.0
-
-    ntraces = 0
-    firstEMT = True
-    firstRMS = True
-    for fSetup in figureSetup:
-        fid = int(fSetup['figure'])
-        rowpos = (fid - 1)//ncolumns + 1
-        colpos = (fid - 1) % ncolumns + 1
-        for sig in range(1,4):
-            emtSigName = fSetup['emt_signal_{}'.format(sig)]
-            rmsSigName = fSetup['rms_signal_{}'.format(sig)]
-            if emtResult is not None:
-                if emtSigName in emtResult.columns:
-                    fig.append_trace(
-                        go.Scatter(
-                        x=emtResult['time'],
-                        y=emtResult[emtSigName],
-                        line_color=colors[ntraces] if not consolPlotTyp else '#1313ad', 
-                        name='EMT:{}'.format(emtSigName) if not consolPlotTyp else 'EMT',
-                        legendgroup='EMT',
-                        showlegend=firstEMT or (not consolPlotTyp)
-                    ),
-                    row=rowpos, col=colpos
-                    )
-                    ntraces += 1
-                    firstEMT = False
-                elif emtSigName != '':
-                    print('Signal \'{}\'not recognized in emt resultfile'.format(emtSigName))
-            if rmsResult is not None:
-                if rmsSigName in rmsResult.columns:
-                    fig.append_trace(
-                        go.Scatter(
-                        x=rmsResult.iloc[:, 0],
-                        y=rmsResult[rmsSigName],
-                        line_color=colors[ntraces] if not consolPlotTyp else '#ff6e00', 
-                        name='RMS:{}'.format(rmsSigName) if not consolPlotTyp else 'RMS',
-                        legendgroup='RMS',
-                        showlegend=firstRMS or (not consolPlotTyp)
-                    ),
-                    row=rowpos, col=colpos
-                    )
-                    ntraces += 1
-                    firstRMS = False
-                elif rmsSigName != '':
-                    print('Signal \'{}\' not recognized in rms resultfile'.format(rmsSigName))
-        fig.update_xaxes(
-            title_text='Time[s]',
-            range=[startTime, max(rmsEndTime,emtEndTime)],  
-            row=rowpos, col=colpos
-        )
-        fig.update_yaxes(
-            title_text='{}[{}]'.format(fSetup['title'],fSetup['units']),  
-            row=rowpos, col=colpos
-        )
-        ntraces = 0
-
-    fig.update_layout(title_text=figureName)
-    if genHtml:
-        fig.write_html('{}.html'.format(figureName))
-    if genStatic:
-        fig.write_image('{}.jpeg'.format(figureName), width=500*nrows, height=500*ncolumns)
-
 def readConfig() -> SimpleNamespace:
     cp = ConfigParser()
     cp.read('config.ini')
     parsedConf = cp['config']
     config = SimpleNamespace()
-    config.rmsDir = parsedConf['rmsDir']
-    config.emtDir = parsedConf['emtDir']
     config.resultsDir = parsedConf['resultsDir']
     config.figureSetupfilePath = parsedConf['figureSetupfilePath']
     config.columns = parsedConf.getint('columns')               
     config.startTime = parsedConf.getfloat('startTime')        
     config.genHTML = parsedConf.getboolean('genHTML')
     config.genJPEG = parsedConf.getboolean('genJPEG')
+   
+    config.simDataDirs = list()
+    simPaths = cp.items('Simulation data paths')
+    for _, path in simPaths:
+        config.simDataDirs.append(path)
+
     return config
 
-def emtColumns(file : str) -> dict:
+def emtColumns(file : str) -> Dict[int, str]:
     columns = dict()
     with open(file, 'r') as file:
         for line in file: 
@@ -192,36 +138,91 @@ def loadEMT(infFile : str) -> pd.DataFrame:
     df.rename(columns, inplace=True, axis=1)    
     return df
 
+def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, Union[int, str]]], figure, project: str, file: str, colors: Dict[str, List[str]], nColumns: int) -> None: 
+    for fSetup in figureSetup:
+        fid = int(fSetup['figure'])
+        rowPos = (fid - 1) // nColumns + 1
+        colPos = (fid - 1) % nColumns + 1
+        traces = 0
+
+        for sig in range(1,4):
+            signalKey = 'rms' if typ == 0 else 'emt'
+            sigName = fSetup.get(f"{signalKey}_signal_{sig}", "")
+            if sigName in result.columns:
+                figure.append_trace(
+                    go.Scatter(
+                    x=result['time' if typ == 1 else 'b:tnow in s'],
+                    y=result[sigName],
+                    line_color=colors[project][traces], 
+                    name=f"{file}:{sigName}",
+                    legendgroup=project,
+                    showlegend=True
+                ),
+                row=rowPos, col=colPos
+                )
+                traces += 1
+            elif sigName != '':
+                print(f"Signal '{sigName}' not recognized in resultfile '{file}'")
+        
+        figure.update_xaxes(
+            title_text='Time[s]',  
+            row=rowPos, col=colPos
+        )
+        figure.update_yaxes(
+            title_text=f"{fSetup['title']}[{fSetup['units']}]",  
+            row=rowPos, col=colPos
+        )
+
+def colorMap(projects: List[str]) -> Dict[str, List[str]]:
+    colors = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990', '#dcbeff', '#9A6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#a9a9a9', '#000000']
+    cMap = dict()
+    if len(projects) > 2:
+        i = 0
+        for p in projects:
+            cMap[p] = [colors[i % len(colors)]] * 3
+            i += 1
+        return cMap
+    else:
+        i = 0
+        for p in projects:
+            cMap[p] = colors[i:i+3]
+            i += 3
+    return cMap
+
 def main() -> None:
     config = readConfig()
     figureSetup = readFigureSetup(config.figureSetupfilePath)
-    projects = mapResultFiles(config.rmsDir, config.emtDir)
-    
-    for project in projects.keys():
-        pPath = join(config.resultsDir, project)
+    cases, allProjects = mapResultFiles(config.simDataDirs)
+    cMap = colorMap(allProjects)
+
+    nfig = len(figureSetup)
+    nrows = (nfig + config.columns - nfig%config.columns)//config.columns
+
+    for caseId in cases.keys():
+        pPath = config.resultsDir
         if not exists(pPath):
             makedirs(pPath)
-         
-        cases = list(projects[project].keys())
-        cases.sort()
 
-        for case in cases:
-            figureName = join(pPath, '{}_{}'.format(project,case))
-            rFiles = projects[project][case]
-            compareMode = True
-            if rFiles[0]: #RMS results present
-                rmsResult = pd.read_csv(rFiles[0],sep=';',decimal=',',header=1)
-            else:
-                rmsResult = None
-                compareMode = False
+        figurePath = join(pPath, str(caseId))
+        figure = initFigure(figurePath, config.columns, nrows)
 
-            if rFiles[1]: #EMT results present
-                emtResult = loadEMT(rFiles[1])
-            else:
-                emtResult = None
-                compareMode = False
-                
-            generateFigure(rmsResult, emtResult, figureSetup, figureName, config.startTime, config.columns, config.genHTML, config.genJPEG, compareMode)
+        for simData in cases[caseId]:
+            typ = simData[0]
+            project = simData[1]
+            path = simData[2]
+            print(f"Plotting {path} in case {caseId}.")
+
+            if typ == 0:
+                result = pd.read_csv(path,sep=';',decimal=',',header=1)
+            elif typ == 1:
+                result = loadEMT(path)
+            addResultToFig(typ, result, figureSetup, figure, project, path, cMap, config.columns)
+
+            if config.genHTML:
+                figure.write_html('{}.html'.format(figurePath))
+            
+            if config.genJPEG:
+                figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns)
 
 if __name__ == "__main__":
     main()
