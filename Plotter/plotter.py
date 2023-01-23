@@ -77,8 +77,7 @@ def readConfig() -> SimpleNamespace:
     config = SimpleNamespace()
     config.resultsDir = parsedConf['resultsDir']
     config.figureSetupfilePath = parsedConf['figureSetupfilePath']
-    config.columns = parsedConf.getint('columns')               
-    config.startTime = parsedConf.getfloat('startTime')        
+    config.columns = parsedConf.getint('columns')                 
     config.genHTML = parsedConf.getboolean('genHTML')
     config.genJPEG = parsedConf.getboolean('genJPEG')
    
