@@ -7,7 +7,7 @@ Energinet provides the Power Plant and Model Test Bench (PP-MTB) for the purpose
 -	Use of the PP-MTB are at the facility owners and the users own risk. Energinet is not responsible for any damage to hardware or software, including simulation models or computers.
 -	All intellectual property rights, including copyright to the PP-MTB remains at Energinet in accordance with applicable Danish law.
 """
-import pandas as pd
+
 import math
 import sys
 import time
