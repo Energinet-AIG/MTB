@@ -1,12 +1,3 @@
-"""
-Information concerning the use of Power Plant and Model Test Bench
-
-Energinet provides the Power Plant and Model Test Bench (PP-MTB) for the purpose of developing a prequalification test bench for production facility and simulation performance which the facility owner may use in its own simulation environment in order to pre-test compliance with the applicable technical requirements for simulation models. The PP-MTB are provided under the following considerations:
--	Use of the PP-MTB and its results are indicative and for informational purposes only. Energinet may only in its own simulation environment perform conclusive testing, performance and compliance of the simulation models developed and supplied by the facility owner.
--	Downloading the PP-MTB and updating the PP-MTB must only be done through a Energinet provided link. Users of the PP-MTB must not share the PP-MTB with other facility owners. The facility owner should always use the latest version of the PP-MTB in order to get the most correct results. 
--	Use of the PP-MTB are at the facility owners and the users own risk. Energinet is not responsible for any damage to hardware or software, including simulation models or computers.
--	All intellectual property rights, including copyright to the PP-MTB remains at Energinet in accordance with applicable Danish law.
-"""
 import pandas as pd
 import math
 import sys
