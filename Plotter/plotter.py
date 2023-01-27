@@ -217,11 +217,11 @@ def main() -> None:
                 result = loadEMT(path)
             addResultToFig(typ, result, figureSetup, figure, project, path, cMap, config.columns)
 
-            if config.genHTML:
-                figure.write_html('{}.html'.format(figurePath))
+        if config.genHTML:
+            figure.write_html('{}.html'.format(figurePath))
             
-            if config.genJPEG:
-                figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns)
+        if config.genJPEG:
+            figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns)
 
 if __name__ == "__main__":
     main()
