@@ -1,12 +1,10 @@
 # PP-MTB
-  Energinets [**PP-MTB**](https://github.com/Energinet-AIG/PP-MTB) **P**ower**P**lant and **M**odel **T**est **B**ench is a Python-based test bench for automation of custom simulations in both PowerFactory and PSCAD with external visualizing of results. The PP-MTB is meant as a tool to help guide facility owners in checking simulation performance of RMS- and EMT-models in regards to the danish grid code and the requirements for simulation models. A set of predefined cases are available with the option to add custom cases or remove exisiting ones.
-
-  Before using the PP-MTB, please take your time and read the [AGREEMENT](https://github.com/Energinet-AIG/PP-MTB/blob/main/AGREEMENT.txt).
+  Energinets [**PP-MTB**](https://github.com/Energinet-AIG/PP-MTB) **P**ower**P**lant and **M**odel **T**est **B**ench is a test bench for automation of custom simulations in both PowerFactory and PSCAD with external visualizing of results. The PP-MTB is meant as a tool to help guide facility owners in checking simulation and plant performance of RMS- and EMT-models in regards to the danish grid code and the requirements for simulation models. A set of predefined cases are available with the option to add custom cases or remove exisiting ones.
 
   Latest release notes can be found under [Releases](https://github.com/Energinet-AIG/PP-MTB/releases).
 
 ## Dependencies
-  Before starting, make sure your device has all dependencies are installed by running `pip install -r requirements.txt` in a terminal window navigated to the respective /PP-MTB subfolder for the tool you are using. Note that the PSCAD doesn't yet contain a "requirements.txt" file but rather a "01 Read me.txt" mentioning the required packages that you manually need
+  Dependencies are installed by running `pip install -r requirements.txt`  in the respective tool subfolder. Note that the PSCAD doesn't yet contain a "requirements.txt" file but rather a "01 Read me.txt" mentioning the required packages that you manually need.
 
 ## Getting Started
   To get started, follow the Quickstart Guides on the PP-MTB wiki [Home](https://github.com/Energinet-IG/PP-MTB/wiki) page of the [PP-MTB GitHub](https://github.com/Energinet-AIG/PP-MTB). Here you will find guides for the Excel-Sheet, PowerFactory, PSCAD and the plotter.
