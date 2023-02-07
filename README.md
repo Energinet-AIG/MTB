@@ -9,7 +9,7 @@
   Before starting, make sure your device has all dependencies are installed by running `pip install -r requirements.txt` in a terminal window navigated to the respective /PP-MTB subfolder for the tool you are using. Note that the PSCAD doesn't yet contain a "requirements.txt" file but rather a "01 Read me.txt" mentioning the required packages that you manually need
 
 ## Getting Started
-  To get started, follow the Quickstart Guides on the PP-MTB wikiA [Home](https://github.com/Energinet-IG/PP-MTB/wiki) page of the [PP-MTB GitHub](https://github.com/Energinet-AIG/PP-MTB). Here you will find guides for the Excel-Sheet, PowerFactory, PSCAD and the plotter.
+  To get started, follow the Quickstart Guides on the PP-MTB wiki [Home](https://github.com/Energinet-IG/PP-MTB/wiki) page of the [PP-MTB GitHub](https://github.com/Energinet-AIG/PP-MTB). Here you will find guides for the Excel-Sheet, PowerFactory, PSCAD and the plotter.
 
 ## Contribution
   If you are interested in contributing, please feel free to file an issue. This is done by using the PP-MTB [Issues](https://github.com/Energinet-AIG/PP-MTB/issues) tab. Here you can report bugs, feature requests or improvements, but please check for known issues beforehand. 
