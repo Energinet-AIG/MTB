@@ -1,7 +1,12 @@
 # PP-MTB
-  Energinets [**PP-MTB**](https://github.com/Energinet-AIG/PP-MTB) **P**ower**P**lant and **M**odel **T**est **B**ench is a test bench for automation of custom simulations in both PowerFactory and PSCAD with external visualizing of results. The PP-MTB is meant as a tool to help guide facility owners in checking simulation and plant performance of RMS- and EMT-models in regards to the danish grid code and the requirements for simulation models. A set of predefined cases are available with the option to add custom cases or remove exisiting ones.
+Connecting new electricity generation & demand facilities to the public transmission and distribution systems in Denmark requires grid compliance studies with both RMS/PDT and EMT models. The danish TSO Energinet conducts systemlevel RMS/PDT studies in [DIgSILENT Powerfactory](https://www.digsilent.de/en/powerfactory.html). EMT studies are done in [PSCAD](https://www.pscad.com/): 
+
+  Energinets PP-MTB (**P**ower**P**lant and **M**odel **T**est **B**ench) is a test bench for automation of studycase setup and simulation in both PowerFactory and PSCAD with external visualizing of results. The PP-MTB is meant as a tool to help guide in checking simulation and plant performance of RMS/PDT- and EMT-models in regards to the danish grid code and the requirements for simulation models. A set of predefined cases are available with the option to add custom cases or remove exisiting ones.
+  The PP-MTB, originally an internal Energinet tool, has been open-sourced as an strategic initiative to support the grid connecting parties. 
 
   Latest release notes can be found under [Releases](https://github.com/Energinet-AIG/PP-MTB/releases).
+  
+  Read more about the regulations for grid connection of new facilities here: [danish](https://energinet.dk/regler/el/nettilslutning) or [english](https://en.energinet.dk/electricity/rules-and-regulations/regulations-for-new-facilities).
 
 ## Dependencies
   Dependencies are installed by running `pip install -r requirements.txt`  in the respective tool subfolder. Note that the PSCAD doesn't yet contain a "requirements.txt" file but rather a "01 Read me.txt" mentioning the required packages that you manually need.
