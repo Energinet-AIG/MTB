@@ -23,7 +23,7 @@
     <param name="Warn" value="0" />
     <param name="Check" value="0" />
     <param name="description" value="" />
-    <param name="revisor" value="MKT, 1675883011" />
+    <param name="revisor" value="MKT, 1676291049" />
     <param name="labels" value="" />
     <param name="Preprocessor" value="" />
   </paramlist>
@@ -26160,7 +26160,7 @@ INTEGER EndCol11 = 11*nrows]]></segment>
         </Gfx>
       </graphics>
     </Definition>
-    <Definition classid="UserCmpDefn" name="VoltageSourceControl" build="" crc="120396302" view="false" instances="0" date="1675877094" id="2145123721" w="320" h="400" url="" group="">
+    <Definition classid="UserCmpDefn" name="VoltageSourceControl" build="" crc="77190415" view="false" instances="0" date="1675877094" id="2145123721" w="320" h="400" url="" group="">
       <paramlist>
         <param name="Description" value="" />
       </paramlist>
@@ -28605,7 +28605,7 @@ INTEGER EndCol11 = 11*nrows]]></segment>
         </User>
         <User classid="UserCmp" defn="master:compar" id="615232469" x="1530" y="72" w="85" h="64" z="570" orient="4" link="-1" layer="" q="4" disable="false">
           <paramlist link="-1" name="" crc="48149703">
-            <param name="Pulse" value="1" />
+            <param name="Pulse" value="0" />
             <param name="INTR" value="0" />
             <param name="OPos" value="1" />
             <param name="ONone" value="0" />
@@ -28619,31 +28619,31 @@ INTEGER EndCol11 = 11*nrows]]></segment>
         <User classid="UserCmp" name="master:time-sig" defn="master:time-sig" id="1521153816" x="1566" y="72" w="76" h="22" z="70" orient="4" link="-1" q="4" disable="false">
           <paramlist link="-1" name="" crc="20913136" />
         </User>
-        <User classid="UserCmp" id="813171787" name="master:consti" x="1566" y="108" w="76" h="22" z="80" orient="4" defn="master:consti" link="-1" q="4" disable="false">
-          <paramlist name="" link="-1" crc="74846674">
-            <param name="Name" value="" />
-            <param name="Value" value="3" />
-            <param name="Dim" value="1" />
-          </paramlist>
-        </User>
         <Wire classid="WireOrthogonal" id="149585927" name="" x="1458" y="72" w="28" h="82" orient="0" disable="false">
           <vertex x="0" y="0" />
           <vertex x="-18" y="0" />
           <vertex x="-18" y="72" />
         </Wire>
+        <User classid="UserCmp" id="373839860" name="master:const" x="1566" y="108" w="76" h="22" z="-1" orient="2" defn="master:const" link="-1" q="4" disable="false">
+          <paramlist name="" link="-1" crc="10628662">
+            <param name="Name" value="" />
+            <param name="Value" value="2.999" />
+            <param name="Dim" value="1" />
+          </paramlist>
+        </User>
       </schematic>
     </Definition>
   </definitions>
   <List classid="Resource">
   </List>
   <hierarchy>
-    <call link="1863454473" name="PPMTB_Library_Energinet:DS" z="-1" view="false" instance="0">
+    <call link="223374353" name="PPMTB_Library_Energinet:DS" z="-1" view="false" instance="0">
       <call link="501343300" name="PPMTB_Library_Energinet:Main" z="-1" view="false" instance="0">
-        <call link="1934571859" name="PPMTB_Library_Energinet:MTB" z="-1" view="true" instance="0">
-          <call link="1737990275" name="PPMTB_Library_Energinet:VoltageSourceControl" z="-1" view="false" instance="0" />
+        <call link="1934571859" name="PPMTB_Library_Energinet:MTB" z="-1" view="false" instance="0">
           <call link="1938456874" name="PPMTB_Library_Energinet:PlantCtrl" z="-1" view="false" instance="0" />
           <call link="269147347" name="PPMTB_Library_Energinet:PLL_YLI" z="-1" view="false" instance="0" />
           <call link="1625755630" name="PPMTB_Library_Energinet:GridImpedance" z="-1" view="false" instance="0" />
+          <call link="1737990275" name="PPMTB_Library_Energinet:VoltageSourceControl" z="-1" view="true" instance="0" />
         </call>
       </call>
     </call>
