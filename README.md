@@ -1,5 +1,5 @@
 # PP-MTB
-Connecting new electricity generation & demand facilities to the public transmission and distribution systems in Denmark requires grid compliance studies with both RMS/PDT and EMT models. The danish TSO Energinet conducts systemlevel RMS/PDT studies in [DIgSILENT Powerfactory](https://www.digsilent.de/en/powerfactory.html). EMT studies are done in [PSCAD](https://www.pscad.com/).
+Connecting new electricity generation & demand facilities to the public transmission and distribution systems in Denmark requires grid compliance studies with both RMS/PDT and EMT plant level models. The danish TSO Energinet requires RMS/PDT models in [DIgSILENT Powerfactory](https://www.digsilent.de/en/powerfactory.html) and EMT models in [PSCAD](https://www.pscad.com/).
 
   Energinets PP-MTB (**P**ower**P**lant and **M**odel **T**est **B**ench) is a test bench for automation of studycase setup and simulation in both PowerFactory and PSCAD with external visualizing of results. The PP-MTB is meant as a tool to help guide in checking simulation and plant performance of RMS/PDT- and EMT-models in regards to the danish grid code and the requirements for simulation models. A set of predefined cases are available with the option to add custom cases or remove exisiting ones.
   The PP-MTB, originally an internal Energinet tool, has been open-sourced as an strategic initiative to support the grid connecting parties. 
@@ -8,11 +8,12 @@ Connecting new electricity generation & demand facilities to the public transmis
   
   Read more about the regulations for grid connection of new facilities here: [danish](https://energinet.dk/regler/el/nettilslutning) or [english](https://en.energinet.dk/electricity/rules-and-regulations/regulations-for-new-facilities).
 
-## Dependencies
-  Dependencies are installed by running `pip install -r requirements.txt`  in the respective tool subfolder. Note that the PSCAD doesn't yet contain a "requirements.txt" file but rather a "01 Read me.txt" mentioning the required packages that you manually need.
-
 ## Getting Started
   To get started, follow the Quickstart Guides on the PP-MTB wiki [Home](https://github.com/Energinet-IG/PP-MTB/wiki) page of the [PP-MTB GitHub](https://github.com/Energinet-AIG/PP-MTB). Here you will find guides for the Excel-Sheet, PowerFactory, PSCAD and the plotter.
+
+## Requirements
+
+  Dependencies are installed by running `pip install -r requirements.txt`  in the respective tool subfolder. Note that the PSCAD doesn't yet contain a "requirements.txt" file but rather a "01 Read me.txt" mentioning the required packages that you manually need.
 
 ## Contribution
   If you are interested in contributing, please feel free to file an issue. This is done by using the PP-MTB [Issues](https://github.com/Energinet-AIG/PP-MTB/issues) tab. Here you can report bugs, feature requests or improvements, but please check for known issues beforehand. 
