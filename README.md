@@ -12,8 +12,7 @@ Connecting new electricity generation & demand facilities to the public transmis
   To get started, follow the Quickstart Guides on the PP-MTB wiki [Home](https://github.com/Energinet-IG/PP-MTB/wiki) page of the [PP-MTB GitHub](https://github.com/Energinet-AIG/PP-MTB). Here you will find guides for the Excel-Sheet, PowerFactory, PSCAD and the plotter.
 
 ## Requirements
-
-  Dependencies are installed by running `pip install -r requirements.txt`  in the respective tool subfolder. Note that the PSCAD doesn't yet contain a "requirements.txt" file but rather a "01 Read me.txt" mentioning the required packages that you manually need.
+  Dependencies are installed by running `pip install -r requirements.txt`.
 
 ## Contribution
   If you are interested in contributing, please feel free to file an issue. This is done by using the PP-MTB [Issues](https://github.com/Energinet-AIG/PP-MTB/issues) tab. Here you can report bugs, feature requests or improvements, but please check for known issues beforehand. 
