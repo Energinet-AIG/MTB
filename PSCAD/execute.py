@@ -121,11 +121,12 @@ for file in listdir(tempFolder):
 # Move desired files to an 'Output' folder in the current working directory
 outputFolder = join(projectFolder, 'output')
 
-if exists(outputFolder):
-    shutil.rmtree(outputFolder)
+if not exists(outputFolder):
+    mkdir(outputFolder)
 
-mkdir(outputFolder)
-moveFiles(tempFolder, outputFolder, ['.csv', '.inf'])
+simoutFolder = join(outputFolder, 'MTB_{}'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
+mkdir(simoutFolder)
+moveFiles(tempFolder, simoutFolder, ['.csv', '.inf'])
 
 #Move .out file away from build folder
 runFolder = join(tempFolder, 'MTB_{}'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
