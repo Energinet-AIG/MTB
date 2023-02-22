@@ -1,3 +1,0 @@
-pandas==1.5.2
-plotly==5.11.0
-kaleido
