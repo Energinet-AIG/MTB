@@ -84,6 +84,20 @@ options.QPFspInputName : str = thisScript.GetInputParameterString('QPFspSignal')
 options.QmodeVar : PF.DataObject = thisScript.GetExternalObject('QmodeVar')[1]
 options.QUmodeVar : PF.DataObject = thisScript.GetExternalObject('QUmodeVar')[1]
 options.QPFmodeVar : PF.DataObject = thisScript.GetExternalObject('QPFmodeVar')[1]
+    
+#Check script Input parameters
+ErrPspSignal = (options.PspInputName=="")
+if ErrPspSignal==True:
+  app.PrintWarn('The name of the Plant P setpoint signal/parameter name (PspSignal) is empty')
+ErrQspSignal = (options.QspInputName=="")
+if ErrQspSignal==True:
+  app.PrintWarn('The name of the Plant Q setpoint signal/parameter name (QspSignal) is empty')
+ErrQUspSignal = (options.QUspInputName=="")
+if ErrQUspSignal==True:
+  app.PrintWarn('The name of the Plant Q(u) setpoint signal/parameter name (QUspSignal) is empty')
+ErrQPFspSignal = (options.QPFspInputName=="")
+if ErrQPFspSignal==True:
+  app.PrintWarn('The name of the Plant powerfactor setpoint signal/parameter name (QPFspSignal) is empty')
 
 # Internal options
 options.studyTime : int = 2**32-1
@@ -274,8 +288,16 @@ if options.setup and not forceNoSetup:
       evLastEvent = evStart
       case.events.append([evStart,evSp,evRp])
       eIndex += 1
-
-    setupCase(app, subScripts, options, plantInfo, grid, activeGrids, case, studyCaseSet, studyCaseFolder, baseVar, baseStage, varFolder, taskAuto)
+    if ErrPspSignal == True and case.PrefCtrl == 1:
+      app.PrintWarn('Study case: '+case.TestType+' will be ignored. No PspSignal entered in script.')  
+    elif ErrQspSignal == True and case.QrefCtrl == 1:
+      app.PrintWarn('Study case: '+case.TestType+' will be ignored. No QspSignal entered in script.')
+    elif ErrQUspSignal == True and case.internalQmode == 1:
+      app.PrintWarn('Study case: '+case.TestType+' will be ignored. No QUspSignal entered in script.') 
+    elif ErrQPFspSignal == True and case.internalQmode == 2:
+      app.PrintWarn('Study case: '+case.TestType+' will be ignored. No QPFspSignal entered in script.')     
+    else:
+      setupCase(app, subScripts, options, plantInfo, grid, activeGrids, case, studyCaseSet, studyCaseFolder, baseVar, baseStage, varFolder, taskAuto)
 
 app.EchoOn()
 if options.run and not forceNoRun:
