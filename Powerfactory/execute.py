@@ -87,16 +87,16 @@ options.QPFmodeVar : PF.DataObject = thisScript.GetExternalObject('QPFmodeVar')[
     
 #Check script Input parameters
 ErrPspSignal = (options.PspInputName=="")
-if ErrPspSignal==True:
+if ErrPspSignal:
   app.PrintWarn('The name of the Plant P setpoint signal/parameter name (PspSignal) is empty')
 ErrQspSignal = (options.QspInputName=="")
-if ErrQspSignal==True:
+if ErrQspSignal:
   app.PrintWarn('The name of the Plant Q setpoint signal/parameter name (QspSignal) is empty')
 ErrQUspSignal = (options.QUspInputName=="")
-if ErrQUspSignal==True:
+if ErrQUspSignal:
   app.PrintWarn('The name of the Plant Q(u) setpoint signal/parameter name (QUspSignal) is empty')
 ErrQPFspSignal = (options.QPFspInputName=="")
-if ErrQPFspSignal==True:
+if ErrQPFspSignal:
   app.PrintWarn('The name of the Plant powerfactor setpoint signal/parameter name (QPFspSignal) is empty')
 
 # Internal options
@@ -288,13 +288,14 @@ if options.setup and not forceNoSetup:
       evLastEvent = evStart
       case.events.append([evStart,evSp,evRp])
       eIndex += 1
-    if ErrPspSignal == True and case.PrefCtrl == 1:
+
+    if ErrPspSignal and case.PrefCtrl == 1:
       app.PrintWarn('Study case: '+case.TestType+' will be ignored. No PspSignal entered in script.')  
-    elif ErrQspSignal == True and case.QrefCtrl == 1:
+    elif ErrQspSignal and case.QrefCtrl == 1:
       app.PrintWarn('Study case: '+case.TestType+' will be ignored. No QspSignal entered in script.')
-    elif ErrQUspSignal == True and case.internalQmode == 1:
+    elif ErrQUspSignal and case.internalQmode == 1:
       app.PrintWarn('Study case: '+case.TestType+' will be ignored. No QUspSignal entered in script.') 
-    elif ErrQPFspSignal == True and case.internalQmode == 2:
+    elif ErrQPFspSignal and case.internalQmode == 2:
       app.PrintWarn('Study case: '+case.TestType+' will be ignored. No QPFspSignal entered in script.')     
     else:
       setupCase(app, subScripts, options, plantInfo, grid, activeGrids, case, studyCaseSet, studyCaseFolder, baseVar, baseStage, varFolder, taskAuto)
