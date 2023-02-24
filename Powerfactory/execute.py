@@ -63,6 +63,7 @@ options.QUspScale : float = thisScript.GetInputParameterDouble('QUspScale')[1]
 options.QPFspScale : float = thisScript.GetInputParameterDouble('QPFspScale')[1]
 options.QPFmode : int = 0 
 options.paraEventsOnly : bool = bool(thisScript.GetInputParameterInt('paraEventsOnly')[1]) 
+options.consolidate : bool = bool(thisScript.GetInputParameterInt('consolidate')[1])
 
 # For the Pref and Qref tests
 options.PCtrl : PF.DataObject = thisScript.GetExternalObject('Pctrl')[1]
@@ -200,40 +201,12 @@ if options.setup and not forceNoSetup:
   taskAuto.SetAttribute('parMethod', 0)
   (taskAuto.GetAttribute('parallelSetting')).SetAttribute('procTimeOut', 3600) 
   
-  currentStudycase.Consolidate()
-
-  # Statgen dispatch
-  # Find the relevant generators for dispatch
-  if options.autoGen:               
-    generatorSet.Clear()
-    for g in activeGrids:    
-      generatorSet.AddRef(g.GetContents('*.ElmGenstat', 1))
-  
-  statGens  = generatorSet.All()
-
-  baseVar = varFolder.CreateObject('IntScheme', 'MTB-BaseSetup')
-  baseStage = baseVar.CreateObject('IntSstage', 'MTB-BaseSetup')
-  baseStage.SetAttribute('e:tAcTime', options.studyTime - 2)
-  baseVar.Activate()
-  baseStage.Activate()
-
-  for gen in statGens:
-    gen.SetAttribute('pgini', 0)
-    gen.SetAttribute('qgini', 0)
-    gen.SetAttribute('c_pstac', grid.qCtrl)          
-    gen.SetAttribute('c_psecc', grid.pCtrl)   
-
-  grid.impedance.SetAttribute('ucn', plantInfo.VN)
-  grid.impedance.SetAttribute('Sn', plantInfo.PN)
-  grid.voltageSource.SetAttribute('Unom', plantInfo.VN)
-  grid.voltageSource.SetAttribute('phisetp', 0) 
-  grid.voltageSource.SetAttribute('contbar', grid.poc) 
-  for term in grid.terminals:
-    term.SetAttribute('uknom', plantInfo.VN)
-  grid.measurement.SetAttribute('ucn', plantInfo.VN)
-  grid.measurement.SetAttribute('Sn', plantInfo.PN)
-
-  grid.sigGen.SetAttribute('e:outserv', True)
+  if(options.consolidate):
+    currentStudycase.Consolidate() 
+  else:
+    for s in app.GetActiveStages():
+      if s.GetAttribute('e:tAcTime') == options.studyTime - 1:
+        exit('Active variation stage "{}" conflicts with PP-MTB setup.'.format(s.GetAttribute('b:loc_name')))
 
   for caseIndex in range(plantInfo.NofCases):
     # Load case
@@ -298,7 +271,7 @@ if options.setup and not forceNoSetup:
     elif ErrQPFspSignal and case.internalQmode == 2:
       app.PrintWarn('Study case: '+case.TestType+' will be ignored. No QPFspSignal entered in script.')     
     else:
-      setupCase(app, subScripts, options, plantInfo, grid, activeGrids, case, studyCaseSet, studyCaseFolder, baseVar, baseStage, varFolder, taskAuto)
+      setupCase(app, subScripts, options, plantInfo, grid, activeGrids, activeVars, case, generatorSet, studyCaseSet, studyCaseFolder, varFolder, taskAuto)
 
 app.EchoOn()
 if options.run and not forceNoRun:

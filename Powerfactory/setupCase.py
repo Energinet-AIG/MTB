@@ -211,7 +211,20 @@ def setDynQmode(case : PF.DataObject, options : SimpleNamespace) -> None:
         if not options.QPFmodeVar is None:
             options.QPFmodeVar.Activate() 
 
-def staticDispatch(case : SimpleNamespace, grid : SimpleNamespace, plantInfo : SimpleNamespace) -> None:
+def staticDispatch(case : SimpleNamespace, options : SimpleNamespace, grid : SimpleNamespace, activeGrids : SimpleNamespace, plantInfo : SimpleNamespace, generatorSet : PF.DataObject) -> None:
+    # Statgen dispatch
+    if options.autoGen:
+        generatorSet.Clear()
+        for g in activeGrids:
+            generatorSet.AddRef(g.GetContents('*.ElmGenstat', 1))
+  
+
+    for gen in generatorSet.All():
+        gen.SetAttribute('pgini', 0)
+        gen.SetAttribute('qgini', 0)
+        gen.SetAttribute('c_pstac', grid.qCtrl)          
+        gen.SetAttribute('c_psecc', grid.pCtrl)  
+
     # Reactive power dispatch
     if case.internalQmode == 0:
         Q0 = case.InitValue * plantInfo.PN # Mvar
@@ -296,7 +309,18 @@ def setupGrid(case : SimpleNamespace, grid : SimpleNamespace, plantInfo : Simple
 
     grid.impedance.SetAttribute('rrea', Rgrid)
     grid.impedance.SetAttribute('lrea', Lgrid*1000)  # mH
-    grid.voltageSource.SetAttribute('usetp', case.U0)     
+    grid.impedance.SetAttribute('ucn',plantInfo.VN)
+    grid.impedance.SetAttribute('Sn', plantInfo.PN)
+    for term in grid.terminals:
+        term.SetAttribute('uknom', plantInfo.VN)
+    grid.voltageSource.SetAttribute('usetp', case.U0)
+    grid.voltageSource.SetAttribute('Unom', plantInfo.VN)
+    grid.voltageSource.SetAttribute('phisetp', 0) 
+    grid.voltageSource.SetAttribute('contbar', grid.poc)  
+    grid.measurement.SetAttribute('ucn', plantInfo.VN)
+    grid.measurement.SetAttribute('Sn', plantInfo.PN)   
+
+    grid.sigGen.SetAttribute('e:outserv',True) 
 
 def setupCase(app : PF.DataObject,
      subScripts : SimpleNamespace, 
@@ -304,11 +328,11 @@ def setupCase(app : PF.DataObject,
      plantInfo : SimpleNamespace,
      grid : SimpleNamespace,
      activeGrids : list,
+     activeVars : list,
      case : SimpleNamespace,
+     generatorSet : PF.DataObject,
      studyCaseSet : PF.DataObject,
      studyCaseFolder : PF.DataObject,
-     baseVar : PF.DataObject,
-     baseStage : PF.DataObject,
      varFolder : PF.DataObject,
      taskAuto : PF.DataObject) -> None:
 
@@ -322,9 +346,10 @@ def setupCase(app : PF.DataObject,
     for g in activeGrids:
         g.Activate()
 
-    if baseVar and baseStage:
-        baseVar.Activate()
-        baseStage.Activate()
+    if(not options.consolidate):
+        # Activate the relevant variations 
+        for v in activeVars:
+            v.Activate()
 
     newVar = varFolder.CreateObject('IntScheme', caseName)
     newStage = newVar.CreateObject('IntSstage', caseName)
@@ -338,7 +363,7 @@ def setupCase(app : PF.DataObject,
     inputBlock, inputSignal, inputScaling, ctrlMode = createStepRamp(app, case, grid, options)
     refName = ''
     setupStaticCalc(app, options, symSim)
-    staticDispatch(case, grid, plantInfo)
+    staticDispatch(case, options, grid, activeGrids, plantInfo, generatorSet)
     setDynQmode(case, options)
     setupResFile(app, grid, inputBlock, inputSignal)
 
