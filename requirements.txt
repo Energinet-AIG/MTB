@@ -1,8 +1,8 @@
-docx==0.2.4
-numpy==1.19.5
-python_docx==0.8.11
-xlrd==2.0.1
+docx
+numpy
+python_docx
+xlrd
 openpyxl
-pandas==1.5.2
-plotly==5.11.0
+pandas
+plotly
 kaleido
