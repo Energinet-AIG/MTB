@@ -195,6 +195,13 @@ if options.setup and not forceNoSetup:
     studyCaseFolder = project.CreateObject('IntPrjfolder', 'Study Cases')
     studyCaseFolder.SetAttribute('iopt_typ', 'study')
 
+  if(not options.consolidate):
+    for s in app.GetActiveStages():
+      if s.GetAttribute('e:tAcTime') == options.studyTime - 1:
+        exit('Active variation stage {} conflicts with PP-MTB setup.'.format(s.GetFullName(0))) 
+    for var in activeVars:
+      var.Deactivate() 
+
   taskAuto = studyCaseFolder.CreateObject('ComTasks')
   taskAutoRef.SetAttribute('obj_id', taskAuto)
   taskAuto.SetAttribute('iEnableParal', 1)
@@ -204,9 +211,8 @@ if options.setup and not forceNoSetup:
   if(options.consolidate):
     currentStudycase.Consolidate() 
   else:
-    for s in app.GetActiveStages():
-      if s.GetAttribute('e:tAcTime') == options.studyTime - 1:
-        exit('Active variation stage "{}" conflicts with PP-MTB setup.'.format(s.GetAttribute('b:loc_name')))
+    for var in activeVars:
+      var.Activate()
 
   for caseIndex in range(plantInfo.NofCases):
     # Load case
