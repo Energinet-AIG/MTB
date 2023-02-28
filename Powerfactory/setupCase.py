@@ -353,7 +353,7 @@ def setupCase(app : PF.DataObject,
 
     newVar = varFolder.CreateObject('IntScheme', caseName)
     newStage = newVar.CreateObject('IntSstage', caseName)
-    newStage.SetAttribute('e:tAcTime', case.studyTime - 1)
+    newStage.SetAttribute('e:tAcTime', case.studyTime)
     newVar.Activate()
     newStage.Activate()
 

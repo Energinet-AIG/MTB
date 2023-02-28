@@ -100,17 +100,21 @@ ErrQPFspSignal = (options.QPFspInputName=="")
 if ErrQPFspSignal:
   app.PrintWarn('The name of the Plant powerfactor setpoint signal/parameter name (QPFspSignal) is empty')
 
-# Internal options
-options.studyTime : int = 2**32-1
-
 # Check if any studycase is active
-currentStudycase = app.GetActiveStudyCase()
-if currentStudycase is None and options.setup:
+currentStudyCase = app.GetActiveStudyCase()
+if currentStudyCase is None and options.setup:
   exit('Please activate studycase.')
+
+# Get study time
+studyTime : int = currentStudyCase.GetAttribute('iStudyTime')
 
 activeVars = app.GetActiveNetworkVariations()
 if int(options.QmodeVar in activeVars) + int(options.QUmodeVar in activeVars) + int(options.QPFmodeVar in activeVars) > 1 and options.setup:
   exit('Atmost one Qmode variation can be active in MTB basecase.')
+
+for Qvar in (options.QmodeVar, options.QUmodeVar, options.QPFmodeVar):
+  if Qvar.GetAttribute('e:tToAc') >= studyTime:
+    exit('The Q control mode variation {} is active after or at the same time, as the base case.'.format(Qvar.GetFullName(0)))
 
 # Get currently active grids
 grids = networkData.GetContents('.ElmNet', 1)
@@ -195,10 +199,11 @@ if options.setup and not forceNoSetup:
     studyCaseFolder = project.CreateObject('IntPrjfolder', 'Study Cases')
     studyCaseFolder.SetAttribute('iopt_typ', 'study')
 
+  recordingStage = app.GetRecordingStage()
+
   if(not options.consolidate):
-    for s in app.GetActiveStages():
-      if s.GetAttribute('e:tAcTime') == options.studyTime - 1:
-        exit('Active variation stage {} conflicts with PP-MTB setup.'.format(s.GetFullName(0))) 
+    if recordingStage.GetAttribute('e:tAcTime') == studyTime:
+        exit('Recording stage {} conflicts with PP-MTB setup.'.format(recordingStage.GetFullName(0))) 
     for var in activeVars:
       var.Deactivate() 
 
@@ -209,7 +214,7 @@ if options.setup and not forceNoSetup:
   (taskAuto.GetAttribute('parallelSetting')).SetAttribute('procTimeOut', 3600) 
   
   if(options.consolidate):
-    currentStudycase.Consolidate() 
+    currentStudyCase.Consolidate() 
   else:
     for var in activeVars:
       var.Activate()
@@ -250,7 +255,7 @@ if options.setup and not forceNoSetup:
     case.FaultPeriod : float = float(pdCases['FaultPeriod'][caseIndex])
     case.FaultDepth : float = float(pdCases['FaultDepth'][caseIndex]) #Misleading name. Residual voltage.
     case.maxRank : int = int(maxRank)
-    case.studyTime : int = int(options.studyTime)
+    case.studyTime : int = int(studyTime)
     case.events = list()
     evLastEvent = -math.inf
     eIndex = 1
