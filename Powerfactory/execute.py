@@ -63,6 +63,7 @@ options.QUspScale : float = thisScript.GetInputParameterDouble('QUspScale')[1]
 options.QPFspScale : float = thisScript.GetInputParameterDouble('QPFspScale')[1]
 options.QPFmode : int = 0 
 options.paraEventsOnly : bool = bool(thisScript.GetInputParameterInt('paraEventsOnly')[1]) 
+options.parallelComp : bool = bool(thisScript.GetInputParameterInt('parallelComp')[1])
 
 # For the Pref and Qref tests
 options.PCtrl : PF.DataObject = thisScript.GetExternalObject('Pctrl')[1]
@@ -304,6 +305,7 @@ app.EchoOn()
 if options.run and not forceNoRun:
   taskAuto = taskAutoRef.GetAttribute('obj_id')
   if taskAuto:
+    taskAuto.iEnableParal = options.parallelComp    
     taskAuto.Execute()
   else:
     exit('No setup to run.')
