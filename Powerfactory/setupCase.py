@@ -2,7 +2,7 @@ import math
 import powerfactory as PF # type: ignore
 from types import SimpleNamespace
 
-def createFault(app : PF.DataObject, case : SimpleNamespace, grid : SimpleNamespace, plantInfo : SimpleNamespace) -> bool:
+def createFault(app : PF.DataObject, case : SimpleNamespace, grid : SimpleNamespace, plantInfo : SimpleNamespace, options) -> bool:
     if case.FaultType != 0:
         currentStudycase = app.GetActiveStudyCase()
         if not currentStudycase:
@@ -14,7 +14,7 @@ def createFault(app : PF.DataObject, case : SimpleNamespace, grid : SimpleNamesp
             eventFolder = currentStudycase.CreateObject('IntEvt')
 
         faultType = 3 - math.ceil(case.FaultType/3) # Map from EMT-lile fault numbering to PF numbering
-        faultStart = 3 # All faults happen at t = 3s
+        faultStart = options.faultStartTime # All faults happen at the fault starting time input on the ComPython 
         faultStop = faultStart + case.FaultPeriod
 
         case.FaultDepth = min(case.FaultDepth, case.U0 - 0.001)
@@ -333,7 +333,7 @@ def setupCase(app : PF.DataObject,
     newStage.Activate()
 
     setupGrid(case, grid, plantInfo)
-    symFault = createFault(app, case, grid, plantInfo)
+    symFault = createFault(app, case, grid, plantInfo, options)
     symSim = symFault and not options.asymSim
     inputBlock, inputSignal, inputScaling, ctrlMode = createStepRamp(app, case, grid, options)
     refName = ''
@@ -345,7 +345,10 @@ def setupCase(app : PF.DataObject,
     # setup simulation and loadflow
     inc = app.GetFromStudyCase('ComInc')
     sim = app.GetFromStudyCase('ComSim')
-    sim.SetAttribute('tstop', case.Tstop) 
+    if case.FaultType != 0:
+        sim.SetAttribute('tstop', case.Tstop + options.faultStartTime - 3)
+    else:
+        sim.SetAttribute('tstop', case.Tstop) 
 
     # Setup plot setup script
     subScripts.setupPlots.SetInputParameterInt('eventPlot', ctrlMode is not None or options.eventPlot)
