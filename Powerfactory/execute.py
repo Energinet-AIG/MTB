@@ -63,6 +63,8 @@ options.QUspScale : float = thisScript.GetInputParameterDouble('QUspScale')[1]
 options.QPFspScale : float = thisScript.GetInputParameterDouble('QPFspScale')[1]
 options.QPFmode : int = 0 
 options.paraEventsOnly : bool = bool(thisScript.GetInputParameterInt('paraEventsOnly')[1]) 
+options.parallelComp : bool = bool(thisScript.GetInputParameterInt('parallelComp')[1])
+options.faultStartTime : float = thisScript.GetInputParameterDouble('faultStartTime')[1]
 
 # For the Pref and Qref tests
 options.PCtrl : PF.DataObject = thisScript.GetExternalObject('Pctrl')[1]
@@ -196,7 +198,7 @@ if options.setup and not forceNoSetup:
 
   taskAuto = studyCaseFolder.CreateObject('ComTasks')
   taskAutoRef.SetAttribute('obj_id', taskAuto)
-  taskAuto.SetAttribute('iEnableParal', 1)
+  taskAuto.SetAttribute('iEnableParal', options.parallelComp)
   taskAuto.SetAttribute('parMethod', 0)
   (taskAuto.GetAttribute('parallelSetting')).SetAttribute('procTimeOut', 3600) 
   
