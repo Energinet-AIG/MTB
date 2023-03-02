@@ -198,7 +198,7 @@ if options.setup and not forceNoSetup:
   taskAuto = studyCaseFolder.CreateObject('ComTasks')
   taskAutoRef.SetAttribute('obj_id', taskAuto)
   taskAuto.SetAttribute('iEnableParal', 1)
-  taskAuto.SetAttribute('parMethod', 0)
+  taskAuto.SetAttribute('parMethod', options.parallelComp)
   (taskAuto.GetAttribute('parallelSetting')).SetAttribute('procTimeOut', 3600) 
   
   currentStudycase.Consolidate()
@@ -304,8 +304,7 @@ if options.setup and not forceNoSetup:
 app.EchoOn()
 if options.run and not forceNoRun:
   taskAuto = taskAutoRef.GetAttribute('obj_id')
-  if taskAuto:
-    taskAuto.iEnableParal = options.parallelComp    
+  if taskAuto:    
     taskAuto.Execute()
   else:
     exit('No setup to run.')
