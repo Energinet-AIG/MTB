@@ -30,7 +30,7 @@ Connecting new electricity generation & demand facilities to the public transmis
 
 ### Tested PSCAD versions
 
-* PSCAD release 5.0.1.0 &emsp; & &nbsp; Python 3.7.2
+* PSCAD release 5.0.1.0 &emsp; & &nbsp; Python 3.7.2 (embedded)
 
 ### Tested Fortran Compilers
 * Intel(R) Visual Fortran Compiler XE 12.1.7.371
