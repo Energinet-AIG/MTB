@@ -14,7 +14,7 @@ def createFault(app : PF.DataObject, case : SimpleNamespace, grid : SimpleNamesp
             eventFolder = currentStudycase.CreateObject('IntEvt')
 
         faultType = 3 - math.ceil(case.FaultType/3) # Map from EMT-lile fault numbering to PF numbering
-        faultStart = 3 # All faults happen at t = 3s
+        faultStart = 3
         faultStop = faultStart + case.FaultPeriod
 
         case.FaultDepth = min(case.FaultDepth, case.U0 - 0.001)
@@ -334,26 +334,44 @@ def setupCase(app : PF.DataObject,
      studyCaseSet : PF.DataObject,
      studyCaseFolder : PF.DataObject,
      varFolder : PF.DataObject,
-     taskAuto : PF.DataObject) -> None:
+     taskAuto : PF.DataObject,
+     maxRank : int,
+     studyTime : int) -> None:
+    
+    #Pre checks
+    if options.PspInputName == '' and case.PrefCtrl == 1:
+        app.PrintWarn('Study case: {} will be ignored. PspSignal is empty and PrefCtrl == 1.'.format(case.TestType))
+        return 
+
+    if options.QspInputName == '' and case.QrefCtrl == 1 and case.internalQmode == 0:
+        app.PrintWarn('Study case: {} will be ignored. QspSignal is empty and Qmode is active and controlled.'.format(case.TestType))
+        return     
+
+    if options.QUspInputName == '' and case.QrefCtrl == 1 and case.internalQmode == 1:
+        app.PrintWarn('Study case: {} will be ignored. QUspSignal is empty and QUmode is active and controlled.'.format(case.TestType))
+        return 
+
+    if options.QPFspInputName == '' and case.QrefCtrl == 1 and case.internalQmode == 2:
+        app.PrintWarn('Study case: {} will be ignored. QPFspSignal is empty and QPFmode is active and controlled.'.format(case.TestType))
+        return 
 
     # Set-up studycase, variation and balance      
-    caseName = '{}_{}_{}'.format(str(case.Rank).zfill(len(str(case.maxRank))), case.ION, case.TestType).replace('.', '')
+    caseName = '{}_{}_{}'.format(str(case.Rank).zfill(len(str(maxRank))), case.ION, case.TestType).replace('.', '')
     newStudycase = studyCaseFolder.CreateObject('IntCase', caseName)
     newStudycase.Activate()      
-    newStudycase.SetStudyTime(case.studyTime)
+    newStudycase.SetStudyTime(studyTime)
 
     # Activate the relevant networks
     for g in activeGrids:
         g.Activate()
 
-    if(not options.consolidate):
-        # Activate the relevant variations 
-        for v in activeVars:
-            v.Activate()
+    # Activate the relevant variations 
+    for v in activeVars:
+        v.Activate()
 
     newVar = varFolder.CreateObject('IntScheme', caseName)
     newStage = newVar.CreateObject('IntSstage', caseName)
-    newStage.SetAttribute('e:tAcTime', case.studyTime)
+    newStage.SetAttribute('e:tAcTime', studyTime)
     newVar.Activate()
     newStage.Activate()
 
