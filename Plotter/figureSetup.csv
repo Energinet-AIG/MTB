@@ -1,5 +1,5 @@
 figure;title;units;emt_signal_1;emt_signal_2;emt_signal_3;rms_signal_1;rms_signal_2;rms_signal_3
-1;Vpp;pu;V_A_RMS_pu_PoC_ENDK;V_B_RMS_pu_PoC_ENDK;V_B_RMS_pu_PoC_ENDK;m:u:bus2:A in p.u.;m:u:bus2:B in p.u.;m:u:bus2:C in p.u.
+1;Vpp;pu;V_A_RMS_pu_PoC_ENDK;V_B_RMS_pu_PoC_ENDK;V_C_RMS_pu_PoC_ENDK;m:u:bus2:A in p.u.;m:u:bus2:B in p.u.;m:u:bus2:C in p.u.
 2;Vpos;pu;V_pos_pu_PoC_ENDK;;;m:u1:bus2 in p.u.;;
 3;Vneg;pu;V_neg_pu_PoC_ENDK;;;m:u2:bus2 in p.u.;;
 4;Idpos;pu;Id_pos_pu_PoC_ENDK;;;m:i1P:bus2 in p.u.;;
