@@ -16,13 +16,13 @@ Connecting new electricity generation & demand facilities to the public transmis
 
 ### Tested PowerFactory versions
 
-* PowerFactory 2021 SP6  &nbsp; & &nbsp; Python 3.8.8<sup>1)</sup>
-* PowerFactory 2022 &emsp; &emsp; & &nbsp; Python 3.8.8 
-* PowerFactory 2022 SP1  &nbsp; & &nbsp; Python 3.8.8 
-* PowerFactory 2022 SP3  &nbsp; & &nbsp; Python 3.8.8
-* PowerFactory 2022 SP4  &nbsp; & &nbsp; Python 3.8.8 
-* PowerFactory 2023 &emsp; &emsp; & &nbsp; Python 3.8.8<sup>2)</sup> 
-* PowerFactory 2023 &emsp; &emsp; & &nbsp; Python 3.11.1<sup>2)</sup> 
+* 2021 SP6  &nbsp; with &nbsp; Python 3.8.8<sup>1)</sup>
+* 2022 &emsp; &emsp; with &nbsp; Python 3.8.8 
+* 2022 SP1  &nbsp; with &nbsp; Python 3.8.8 
+* 2022 SP3  &nbsp; with &nbsp; Python 3.8.8
+* 2022 SP4  &nbsp; with &nbsp; Python 3.8.8 
+* 2023 &emsp; &emsp; with &nbsp; Python 3.8.8<sup>2)</sup> 
+* 2023 &emsp; &emsp; with &nbsp; Python 3.11.1<sup>2)</sup> 
 
  <sup>1)</sup> _The PQ measurement object (StPqmea) does not support measurement of negative-sequence active and reactive power and are therefore not plotted._
  
@@ -30,14 +30,15 @@ Connecting new electricity generation & demand facilities to the public transmis
 
 ### Tested PSCAD versions
 
-* PSCAD release 5.0.1.0 &emsp; & &nbsp; Python 3.7.2 (embedded)
+* 5.0.1.0 with Python 3.7.2 (embedded)
 
 ### Tested Fortran Compilers
-* Intel(R) Visual Fortran Compiler XE 12.1.7.371
-* Intel(R) Visual Fortran Compiler XE 15.0.1.148
-* Intel(R) Visual Fortran Compiler XE 15.0.1.148 (64-bit)
-* Intel(R) Visual Fortran Compiler XE 15.0.5.280
-* Intel(R) Visual Fortran Compiler XE 15.0.5.280 (64-bit)
+Intel(R) Visual Fortran Compiler XE:
+* 12.1.7.371
+* 15.0.1.148
+* 15.0.1.148 (64-bit)
+* 15.0.5.280
+* 15.0.5.280 (64-bit)
 
 ## Contribution
   If you are interested in contributing, please feel free to file an issue. This is done by using the PP-MTB [Issues](https://github.com/Energinet-AIG/PP-MTB/issues) tab. Here you can report bugs, feature requests or improvements, but please check for known issues beforehand. 
