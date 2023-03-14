@@ -1,6 +1,9 @@
 import pandas as pd
 import math
 import sys
+if getattr(sys, 'gettrace', None) is not None:
+  sys.path.append('C:\\Program Files\\DIgSILENT\\PowerFactory 2022 SP3\\Python\\3.8')
+import powerfactory as PF # type: ignore
 import time
 from datetime import datetime
 from types import SimpleNamespace
@@ -15,30 +18,27 @@ forceNoExport : bool = False
 
 def connectPF():
   if getattr(sys, 'gettrace', None) is not None:
-      sys.path.append('C:\\Program Files\\DIgSILENT\\PowerFactory 2022 SP3\\Python\\3.8')
-      import powerfactory as PF # type: ignore
-      app : PF.Application = PF.GetApplicationExt()
-      if not app:
-        raise Exception('No connection to powerfactory application')
-      app.Show()
-      app.ClearOutputWindow()
+    app : PF.Application = PF.GetApplicationExt()
+    if not app:
+      raise Exception('No connection to powerfactory application')
+    app.Show()
+    app.ClearOutputWindow()
 
-      project : PF.DataObject = app.GetActiveProject()
-      while project is None:
-          time.sleep(1)
-          project = app.GetActiveProject() 
-      networkData = app.GetProjectFolder('netdat')
-      thisScript : PF.DataObject = networkData.SearchObject('PP-MTB\\execute.ComPython')
+    project : PF.DataObject = app.GetActiveProject()
+    while project is None:
+        time.sleep(1)
+        project = app.GetActiveProject() 
+    networkData = app.GetProjectFolder('netdat')
+    thisScript : PF.DataObject = networkData.SearchObject('PP-MTB\\execute.ComPython')
   else:
-      import powerfactory as PF # type: ignore
-      app : PF.Application = PF.GetApplication()
-      if not app:
-        raise Exception('No connection to powerfactory application')
-      app.ClearOutputWindow()
-      project : PF.DataObject = app.GetActiveProject()
-      if not project:
-        raise Exception('No project activated')
-      thisScript = app.GetCurrentScript()
+    app : PF.Application = PF.GetApplication()
+    if not app:
+      raise Exception('No connection to powerfactory application')
+    app.ClearOutputWindow()
+    project : PF.DataObject = app.GetActiveProject()
+    if not project:
+      raise Exception('No project activated')
+    thisScript = app.GetCurrentScript()
 
   return app, project, thisScript
 
