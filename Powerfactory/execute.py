@@ -69,17 +69,17 @@ def readScriptOptions(thisScript) -> SimpleNamespace:
 
   # For the Pref and Qref tests
   options.PCtrl = thisScript.GetExternalObject('Pctrl')[1]
-  if not (options.PCtrl.GetClassName() == 'ElmDsl' or options.PCtrl.GetClassName() == 'ElmComp'):
-    exit('Pctrl inputblock is not a ElmDsl or ElmComp object')
+  if options.PCtrl == None or not (options.PCtrl.GetClassName() == 'ElmDsl' or options.PCtrl.GetClassName() == 'ElmComp'):
+    exit('Pctrl inputblock is not a ElmDsl or ElmComp object.')
   options.QCtrl = thisScript.GetExternalObject('Qctrl')[1]
-  if not (options.QCtrl.GetClassName() == 'ElmDsl' or options.QCtrl.GetClassName() == 'ElmComp'):
-    exit('QCtrl inputblock is not a ElmDsl or ElmComp object')
+  if options.QCtrl == None or not (options.QCtrl.GetClassName() == 'ElmDsl' or options.QCtrl.GetClassName() == 'ElmComp'):
+    exit('QCtrl inputblock is not a ElmDsl or ElmComp object.')
   options.QUCtrl = thisScript.GetExternalObject('QUctrl')[1]
-  if not (options.QUCtrl.GetClassName() == 'ElmDsl' or options.QUCtrl.GetClassName() == 'ElmComp'):
-    exit('QUCtrl inputblock is not a ElmDsl or ElmComp object')
+  if options.QUCtrl == None or not (options.QUCtrl.GetClassName() == 'ElmDsl' or options.QUCtrl.GetClassName() == 'ElmComp'):
+    exit('QUCtrl inputblock is not a ElmDsl or ElmComp object.')
   options.QPFCtrl = thisScript.GetExternalObject('QPFctrl')[1]
-  if not (options.QPFCtrl.GetClassName() == 'ElmDsl' or options.QPFCtrl.GetClassName() == 'ElmComp'):
-    exit('QPFCtrl inputblock is not a ElmDsl or ElmComp object')
+  if options.QPFCtrl == None or not (options.QPFCtrl.GetClassName() == 'ElmDsl' or options.QPFCtrl.GetClassName() == 'ElmComp'):
+    exit('QPFCtrl inputblock is not a ElmDsl or ElmComp object.')
   options.PspInputName : str = thisScript.GetInputParameterString('PspSignal')[1]
   options.QspInputName : str = thisScript.GetInputParameterString('QspSignal')[1]
   options.QUspInputName : str = thisScript.GetInputParameterString('QUspSignal')[1]
@@ -217,19 +217,21 @@ def setup(app, thisScript, options, subScripts, grid, project):
   for qvar in (options.QmodeVar, options.QUmodeVar, options.QPFmodeVar):
     if qvar is not None and qvar.GetAttribute('e:tToAc') >= studyTime:
       app.PrintWarn('The Q control mode variation {} is active after or at the same time as the base case.'.format(qvar.GetFullName(0)))
+    if not options.consolidate and qvar is not None:
+      for qstage in qvar.GetContents('*.IntSstage'):
+        if qstage.GetAttribute('e:tAcTime') == studyTime:
+          exit('The Q control mode variation stage {} is active at the same time as the the base case.'.format(qstage.GetFullName(0)))
 
   recordingStage = app.GetRecordingStage()
 
   if not options.consolidate and recordingStage is not None and recordingStage.GetAttribute('e:tAcTime') == studyTime:
     exit('Expansionstage {} conflicts with PP-MTB setup.'.format(recordingStage.GetFullName(0))) 
 
-  #### CHECK IF ANY OF THE QVARS HAVE STAGES AT STUDYTIME IF CONSOLIDATION IS DISABLED
-
   # Create version
   if options.backup:
     project.CreateVersion('MTB_{}'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
 
-  resetProjectUnits()
+  resetProjectUnits(app)
 
   netFolder = app.GetProjectFolder('netmod')
   varFolder = app.GetProjectFolder('scheme')
@@ -276,7 +278,8 @@ def setup(app, thisScript, options, subScripts, grid, project):
 
   for caseIndex in range(len(cases)):
     case = readCase(app, plantInfo, cases, caseIndex)
-    setupCase(app, subScripts, options, plantInfo, grid, activeGrids, activeVars, case, generatorSet, studyCaseSet, studyCaseFolder, varFolder, taskAuto, maxRank, studyTime)
+    if case.Included:
+      setupCase(app, subScripts, options, plantInfo, grid, activeGrids, activeVars, case, generatorSet, studyCaseSet, studyCaseFolder, varFolder, taskAuto, maxRank, studyTime)
   
   app.EchoOn()
 
@@ -326,10 +329,10 @@ def main():
     studycase.Activate()
 
     if options.plot and not forceNoPlot:
-      plot()
+      plot(app, subScripts)
 
     if options.export and not forceNoExport:
-      export()
+      export(app, subScripts)
 
     studycase.Deactivate()
   app.EchoOn()
