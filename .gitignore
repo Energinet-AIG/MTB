@@ -1,8 +1,9 @@
 .vscode/
 *.code-workspace
-Plotter/emt*/*
-Plotter/rms*/*
-Plotter/results/*
+emt*
+rms*
+results
+export
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
