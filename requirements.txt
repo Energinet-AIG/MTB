@@ -1,8 +1,0 @@
-docx
-numpy
-python_docx
-xlrd
-openpyxl
-pandas
-plotly
-kaleido
