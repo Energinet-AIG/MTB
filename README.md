@@ -15,7 +15,7 @@ Connecting new electricity generation & demand facilities to the public transmis
   Dependencies are installed by running `pip install -r requirements.txt`. Each tool subfolder contains a requirements.txt file.
 
 ### Tested PowerFactory environments
-The Powerfactory tool has been tested in the following environments and dependency versions as listed in "requirements.txt":
+The Powerfactory tool has been tested in the following environments and dependency versions as listed in requirements.txt:
 * 2021 SP6  &nbsp; with &nbsp; Python 3.8.8<sup>1)</sup>
 * 2022 &emsp; &emsp; with &nbsp; Python 3.8.8 
 * 2022 SP1  &nbsp; with &nbsp; Python 3.8.8 
@@ -29,7 +29,7 @@ The Powerfactory tool has been tested in the following environments and dependen
  <sup>2)</sup> _Exporting results as .png sometimes plots graphs with unavailable signals, however the .csv file is still exported correctly and results can be plotted with the Plotter tool._
 
 ### Tested PSCAD environments
-The PSCAD tool has been tested with in following environments and dependency versions as listed in "requirements.txt":
+The PSCAD tool has been tested with in following environments and dependency versions as listed in requirements.txt:
 * 5.0.1.0 with Python 3.7.2 (embedded python)
 #### Tested Fortran Compilers
 Intel(R) Visual Fortran Compiler XE:
@@ -41,7 +41,7 @@ Intel(R) Visual Fortran Compiler XE:
 
 ### Tested python environments for Plotter
 
-The Plotter tool has been tested with the following python versions and dependency versions as listed in "requirements.txt":
+The Plotter tool has been tested with the following python versions and dependency versions as listed in requirements.txt:
 * 3.7.16 (in anaconda environment)
 * 3.8.8
 * 3.9.16 (in anaconda environment)
