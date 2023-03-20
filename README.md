@@ -14,8 +14,8 @@ Connecting new electricity generation & demand facilities to the public transmis
 ## Requirements
   Dependencies are installed by running `pip install -r requirements.txt`. Each tool subfolder contains a requirements.txt file.
 
-### Tested PowerFactory versions
-
+### Tested PowerFactory environments
+The Powerfactory tool has been tested in the following environments and dependency versions as listed in "requirements.txt":
 * 2021 SP6  &nbsp; with &nbsp; Python 3.8.8<sup>1)</sup>
 * 2022 &emsp; &emsp; with &nbsp; Python 3.8.8 
 * 2022 SP1  &nbsp; with &nbsp; Python 3.8.8 
@@ -28,17 +28,25 @@ Connecting new electricity generation & demand facilities to the public transmis
  
  <sup>2)</sup> _Exporting results as .png sometimes plots graphs with unavailable signals, however the .csv file is still exported correctly and results can be plotted with the Plotter tool._
 
-### Tested PSCAD versions
-
-* 5.0.1.0 with Python 3.7.2 (embedded)
-
-### Tested Fortran Compilers
+### Tested PSCAD environments
+The PSCAD tool has been tested with in following environments and dependency versions as listed in "requirements.txt":
+* 5.0.1.0 with Python 3.7.2 (embedded python)
+#### Tested Fortran Compilers
 Intel(R) Visual Fortran Compiler XE:
 * 12.1.7.371
 * 15.0.1.148
 * 15.0.1.148 (64-bit)
 * 15.0.5.280
 * 15.0.5.280 (64-bit)
+
+### Tested python environments for Plotter
+
+The Plotter tool has been tested with the following python versions and dependency versions as listed in "requirements.txt":
+* 3.7.16 (in anaconda environment)
+* 3.8.8
+* 3.9.16 (in anaconda environment)
+* 3.11.0 (in anaconda environment)
+* 3.11.1
 
 ## Contribution
   If you are interested in contributing, please feel free to file an issue. This is done by using the PP-MTB [Issues](https://github.com/Energinet-AIG/PP-MTB/issues) tab. Here you can report bugs, feature requests or improvements, but please check for known issues beforehand. 
