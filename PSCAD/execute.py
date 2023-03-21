@@ -27,7 +27,9 @@ testCases = pd.ExcelFile(join(projectFolder, 'TestCases.xlsx'))
 
 # Generate the TestCases.txt file from the TestCases.xlsx file
 cases = pd.read_excel(testCases, sheet_name='Cases', usecols = 'C:AL')
-cases.to_csv(join(projectFolder, 'TestCases.txt'), header=False, index=False)
+caseMatrixPath = join(projectFolder, 'TestCases.txt')
+cases.to_csv(caseMatrixPath, header=False, index=False)
+print('{} saved'.format(caseMatrixPath))
 
 # Read model-specific information from the TestCases.xlsx file
 options = SimpleNamespace()
