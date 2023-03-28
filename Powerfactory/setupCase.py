@@ -307,6 +307,7 @@ def setupGrid(case : SimpleNamespace, grid : SimpleNamespace, plantInfo : Simple
     Xgrid = case.GridImped * Rgrid * plantInfo.XRRATIO # ohm
     Lgrid = Xgrid/2/50/math.pi # H 
 
+    grid.impedance.SetAttribute('iopt_uz', 'rl')
     grid.impedance.SetAttribute('rrea', Rgrid)
     grid.impedance.SetAttribute('lrea', Lgrid*1000)  # mH
     grid.impedance.SetAttribute('ucn',plantInfo.VN)
