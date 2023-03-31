@@ -296,7 +296,7 @@ def setupStaticCalc(app : PF.DataObject, options : SimpleNamespace, symSim : boo
     inc.SetAttribute('dtgrd', 0.001)
     inc.SetAttribute('dtgrd_max', 0.01)
     inc.SetAttribute('tstart', 0)
-    inc.SetAttribute('iopt_sync', options.enforcedSynch)
+    inc.SetAttribute('iopt_sync', options.enforcedSync)
     inc.SetAttribute('syncperiod', 0.001)
     inc.SetAttribute('iopt_adapt', options.varStep)
     inc.SetAttribute('iopt_lt', 0) #A-stable per element
