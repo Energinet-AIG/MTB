@@ -67,7 +67,8 @@ def readScriptOptions(thisScript) -> SimpleNamespace:
   options.paraEventsOnly : bool = bool(thisScript.GetInputParameterInt('paraEventsOnly')[1]) 
   options.consolidate : bool = bool(thisScript.GetInputParameterInt('consolidate')[1]) 
   options.parallelComp : bool = bool(thisScript.GetInputParameterInt('parallelComp')[1])
-
+  options.enforcedSynch : bool = bool(thisScript.GetInputParameterInt('enforcedSynch')[1])
+    
   # For the Pref and Qref tests
   options.PCtrl = thisScript.GetExternalObject('Pctrl')[1]
   if options.PCtrl == None or not (options.PCtrl.GetClassName() == 'ElmDsl' or options.PCtrl.GetClassName() == 'ElmComp'):
