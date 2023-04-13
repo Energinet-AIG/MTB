@@ -46,7 +46,8 @@ def readScriptOptions(thisScript) -> SimpleNamespace:
   # Read the script options
   options = SimpleNamespace()
   options.file : str =  thisScript.GetInputParameterString('file')[1]
-  options.backup : bool = bool(thisScript.GetInputParameterInt('backup')[1]) 
+  options.preBackup : bool = bool(thisScript.GetInputParameterInt('preBackup')[1])
+  options.postBackup : bool = bool(thisScript.GetInputParameterInt('postBackup')[1]) 
   options.setup  : bool = bool(thisScript.GetInputParameterInt('setup')[1])
   options.run : bool = bool(thisScript.GetInputParameterInt('run')[1])
   options.plot : bool = bool(thisScript.GetInputParameterInt('plot')[1])
@@ -229,9 +230,9 @@ def setup(app, thisScript, options, subScripts, grid, project):
   if not options.consolidate and recordingStage is not None and recordingStage.GetAttribute('e:tAcTime') == studyTime:
     exit('Expansionstage {} conflicts with PP-MTB setup.'.format(recordingStage.GetFullName(0))) 
 
-  # Create version
-  if options.backup:
-    project.CreateVersion('MTB_{}'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
+  # Create version pre-run
+  if options.preBackup:
+    project.CreateVersion('MTB_{}_pre-setup'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
 
   resetProjectUnits(app)
 
@@ -338,6 +339,9 @@ def main():
 
     studycase.Deactivate()
   app.EchoOn()
+
+  if options.postBackup:
+    project.CreateVersion('MTB_{}_post-setup'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
 
 if __name__ == "__main__":
   main()
