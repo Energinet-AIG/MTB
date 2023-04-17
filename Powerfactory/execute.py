@@ -232,7 +232,7 @@ def setup(app, thisScript, options, subScripts, grid, project):
 
   # Create version pre-run
   if options.preBackup:
-    project.CreateVersion('MTB_{}_pre-setup'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
+    project.CreateVersion('pre_PP-MTB_{}'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
 
   resetProjectUnits(app)
 
@@ -341,7 +341,7 @@ def main():
   app.EchoOn()
 
   if options.postBackup:
-    project.CreateVersion('MTB_{}_post-setup'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
+    project.CreateVersion('post_PP-MTB_{}'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
 
 if __name__ == "__main__":
   main()
