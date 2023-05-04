@@ -226,19 +226,24 @@ def staticDispatch(case : SimpleNamespace, options : SimpleNamespace, grid : Sim
         gen.SetAttribute('c_psecc', grid.pCtrl)  
 
     # Reactive power dispatch
-    if case.internalQmode == 0:
-        Q0 = case.InitValue * plantInfo.PN # Mvar
-    elif case.internalQmode == 1:
-        Q0 = 0 # Mvar
+    if case.internalQmode == 1:
+        grid.qCtrl.SetAttribute('i_ctrl', 0)
+        grid.qCtrl.SetAttribute('uset_mode', 1)
+        grid.qCtrl.SetAttribute('i_droop', 1)
+        grid.qCtrl.SetAttribute('Srated', plantInfo.PN * 0.33)
+        grid.qCtrl.SetAttribute('ddroop', plantInfo.droop)
+        grid.qCtrl.SetAttribute('pQmeas', grid.cub)
     else:
-        Q0 =  case.P0 * math.sqrt(1/case.InitValue**2 - 1) * plantInfo.PN # Mvar
-
-    grid.qCtrl.SetAttribute('qsetp', Q0) 
-    grid.qCtrl.SetAttribute('imode', 1) # Distribute Q demand according to rated power
-    grid.qCtrl.SetAttribute('consQdisp', 0) 
-    grid.qCtrl.SetAttribute('iQorient', 0)     # 0 = +Q
-    grid.qCtrl.SetAttribute('p_cub', grid.cub)  
-    grid.qCtrl.SetAttribute('i_ctrl', 1)
+        if case.internalQmode == 0:
+            Q0 = case.InitValue * plantInfo.PN # Mvar
+        else:
+            Q0 =  case.P0 * math.sqrt(1/case.InitValue**2 - 1) * plantInfo.PN # Mvar   
+        grid.qCtrl.SetAttribute('qsetp', Q0) 
+        grid.qCtrl.SetAttribute('imode', 1) # Distribute Q demand according to rated power
+        grid.qCtrl.SetAttribute('consQdisp', 0) 
+        grid.qCtrl.SetAttribute('iQorient', 0)     # 0 = +Q
+        grid.qCtrl.SetAttribute('p_cub', grid.cub)  
+        grid.qCtrl.SetAttribute('i_ctrl', 1)
         
     # Active power dispatch 
     grid.pCtrl.SetAttribute('psetp', case.P0 * plantInfo.PN)    # P0 at PCC 

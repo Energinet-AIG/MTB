@@ -119,6 +119,7 @@ def loadPlantInfo(options) -> SimpleNamespace:
   plantInfo.IN : float = plantInfo.PN/math.sqrt(3)/plantInfo.VN
   plantInfo.SCR : float = pdInput['SCR'][0] # Minimum SCR at PoC
   plantInfo.XRRATIO : float = pdInput['X/R'][0] # XR ratio               
+  plantInfo.droop : float = pdInput['droop (%)'][0] # Voltage droop
   plantInfo.PROJECTNAME : str = pdInput['ProjectName'][0] # Project name
   plantInfo.Qmode : int = pdInput['Qmode_Q'][0]
   plantInfo.QUmode : int = pdInput['Qmode_V'][0]
