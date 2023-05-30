@@ -3,55 +3,74 @@ import powerfactory as PF # type: ignore
 from types import SimpleNamespace
 
 def createFault(app : PF.DataObject, case : SimpleNamespace, grid : SimpleNamespace, plantInfo : SimpleNamespace) -> bool:
-    if case.FaultType != 0:
+    if case.VoltageMeas != 'nan':
+        app.PrintInfo('CODE MISSING')
+
+    elif any('fault' in item[0] for item in case.events):
         currentStudycase = app.GetActiveStudyCase()
         if not currentStudycase:
             exit('No studycase active. Cannot create faultevent.')
 
-         # Check if eventfolder exists
+        # Check if eventfolder exists
         eventFolder = app.GetFromStudyCase('IntEvt')
         if not eventFolder:
             eventFolder = currentStudycase.CreateObject('IntEvt')
 
-        faultType = 3 - math.ceil(case.FaultType/3) # Map from EMT-lile fault numbering to PF numbering
-        faultStart = 3
-        faultStop = faultStart + case.FaultPeriod
+        prevEvent = 'nan'
 
-        case.FaultDepth = min(case.FaultDepth, case.U0 - 0.001)
-        Rgrid = case.GridImped * plantInfo.VN * plantInfo.VN/(plantInfo.SCR*plantInfo.PN)/math.sqrt(plantInfo.XRRATIO*plantInfo.XRRATIO+1) # ohm
-        Xgrid = case.GridImped * Rgrid * plantInfo.XRRATIO # ohm
-        Rf = case.FaultDepth/(case.U0 - case.FaultDepth) * Rgrid
-        Xf = case.FaultDepth/(case.U0 - case.FaultDepth) * Xgrid
+        for event in case.events:
+            if 'fault' in event[0] or 'fault' in prevEvent: # event[0]: type
+                if 'fault' in event[0]:
+                    faultType = str(event[0]) 
+                    prevEvent = faultType
+                elif event[0] == 'nan' and event[2] != 'nan': # event[2]: Sp or res. U
+                    faultType = prevEvent
+                else:
+                    continue
 
-        scEvent = eventFolder.CreateObject('EvtShc', 'fault') 
-        scEvent.SetAttribute('p_target', grid.poc)
-        scEvent.SetAttribute('time', faultStart)
-        scEvent.SetAttribute('R_f', Rf)
-        scEvent.SetAttribute('X_f', Xf)
+                faultStart = float(event[1]) + plantInfo.OFFSET # event[1]: time
+                faultStop = faultStart + float(event[3]) # event[3]: ramp/periode
 
-        symFault = False
+                faultDepth = min(float(event[2]), 0.999) 
+                Rgrid = case.GridImped * plantInfo.UN * plantInfo.UN/(case.SCR*plantInfo.PN)/math.sqrt(case.XRRATIO*case.XRRATIO+1) # ohm
+                Xgrid = case.GridImped * Rgrid * case.XRRATIO # ohm
+                Rf = faultDepth/(1 - faultDepth) * Rgrid
+                Xf = faultDepth/(1 - faultDepth) * Xgrid
 
-        if faultType == 0:
-            faultTypeName = 'ABC-G'
-            scEvent.SetAttribute('i_shc', 0)
-            scEvent.SetAttribute('loc_name', faultTypeName)
-            symFault = True
-        elif faultType == 1:
-            faultTypeName = 'AB-G'
-            scEvent.SetAttribute('i_shc', 3)
-            scEvent.SetAttribute('i_p2pgf', 0)
-            scEvent.SetAttribute('loc_name', faultTypeName)
+                scEvent = eventFolder.CreateObject('EvtShc', 'fault') 
+                scEvent.SetAttribute('p_target', grid.poc)
+                scEvent.SetAttribute('time', faultStart)
+                scEvent.SetAttribute('R_f', Rf)
+                scEvent.SetAttribute('X_f', Xf)
+
+                if faultType == '3p fault': 
+                    faultTypeName = 'ABC-G'
+                    scEvent.SetAttribute('i_shc', 0)
+                    scEvent.SetAttribute('loc_name', faultTypeName)
+                elif faultType == '2p-g fault':
+                    faultTypeName = 'AB-G'
+                    scEvent.SetAttribute('i_shc', 3)
+                    scEvent.SetAttribute('i_p2pgf', 0)
+                    scEvent.SetAttribute('loc_name', faultTypeName)
+                elif faultType == '1p fault':
+                    faultTypeName = 'A-G'
+                    scEvent.SetAttribute('i_shc', 2)
+                    scEvent.SetAttribute('i_pspgf', 0) # A-G
+                    scEvent.SetAttribute('loc_name', faultTypeName)
+
+                cEvent = eventFolder.CreateObject('EvtShc', '{} clear'.format(faultTypeName))  
+                cEvent.SetAttribute('p_target', grid.poc)
+                cEvent.SetAttribute('time', faultStop)
+                cEvent.SetAttribute('i_shc', 4)
+            else:
+                prevEvent = 'nan'
+                continue
+
+        if any('3p fault' in item[0] for item in case.events):
+            return True # Contains SymFault
         else:
-            faultTypeName = 'A-G'
-            scEvent.SetAttribute('i_shc', 2)
-            scEvent.SetAttribute('i_pspgf', 0) # A-G
-            scEvent.SetAttribute('loc_name', faultTypeName)
-
-        cEvent = eventFolder.CreateObject('EvtShc', '{} clear'.format(faultTypeName))  
-        cEvent.SetAttribute('p_target', grid.poc)
-        cEvent.SetAttribute('time', faultStop)
-        cEvent.SetAttribute('i_shc', 4)
-        return symFault
+            return False # Doesn't contain SymFault
+        
     else:
         return True
 
@@ -226,19 +245,24 @@ def staticDispatch(case : SimpleNamespace, options : SimpleNamespace, grid : Sim
         gen.SetAttribute('c_psecc', grid.pCtrl)  
 
     # Reactive power dispatch
-    if case.internalQmode == 0:
-        Q0 = case.InitValue * plantInfo.PN # Mvar
-    elif case.internalQmode == 1:
-        Q0 = 0 # Mvar
+    if case.internalQmode == 1:
+        grid.qCtrl.SetAttribute('i_ctrl', 0)
+        grid.qCtrl.SetAttribute('uset_mode', 1)
+        grid.qCtrl.SetAttribute('i_droop', 1)
+        grid.qCtrl.SetAttribute('Srated', plantInfo.PN * 0.33)
+        grid.qCtrl.SetAttribute('ddroop', plantInfo.droop)
+        grid.qCtrl.SetAttribute('pQmeas', grid.cub)
     else:
-        Q0 =  case.P0 * math.sqrt(1/case.InitValue**2 - 1) * plantInfo.PN # Mvar
-
-    grid.qCtrl.SetAttribute('qsetp', Q0) 
-    grid.qCtrl.SetAttribute('imode', 1) # Distribute Q demand according to rated power
-    grid.qCtrl.SetAttribute('consQdisp', 0) 
-    grid.qCtrl.SetAttribute('iQorient', 0)     # 0 = +Q
-    grid.qCtrl.SetAttribute('p_cub', grid.cub)  
-    grid.qCtrl.SetAttribute('i_ctrl', 1)
+        if case.internalQmode == 0:
+            Q0 = case.InitValue * plantInfo.PN # Mvar
+        else:
+            Q0 =  case.P0 * math.sqrt(1/case.InitValue**2 - 1) * plantInfo.PN # Mvar   
+        grid.qCtrl.SetAttribute('qsetp', Q0) 
+        grid.qCtrl.SetAttribute('imode', 1) # Distribute Q demand according to rated power
+        grid.qCtrl.SetAttribute('consQdisp', 0) 
+        grid.qCtrl.SetAttribute('iQorient', 0)     # 0 = +Q
+        grid.qCtrl.SetAttribute('p_cub', grid.cub)  
+        grid.qCtrl.SetAttribute('i_ctrl', 1)
         
     # Active power dispatch 
     grid.pCtrl.SetAttribute('psetp', case.P0 * plantInfo.PN)    # P0 at PCC 
@@ -303,21 +327,21 @@ def setupStaticCalc(app : PF.DataObject, options : SimpleNamespace, symSim : boo
 
 def setupGrid(case : SimpleNamespace, grid : SimpleNamespace, plantInfo : SimpleNamespace) -> None:
     #Setup grid  
-    Rgrid = case.GridImped * plantInfo.VN * plantInfo.VN/(plantInfo.SCR*plantInfo.PN)/math.sqrt(plantInfo.XRRATIO*plantInfo.XRRATIO+1) # ohm
-    Xgrid = case.GridImped * Rgrid * plantInfo.XRRATIO # ohm
+    Rgrid = case.GridImped * plantInfo.UN * plantInfo.UN/(case.SCR*plantInfo.PN)/math.sqrt(case.XRRATIO*case.XRRATIO+1) # ohm
+    Xgrid = case.GridImped * Rgrid * case.XRRATIO # ohm
     Lgrid = Xgrid/2/50/math.pi # H 
 
-    grid.impedance.SetAttribute('ucn',plantInfo.VN)
+    grid.impedance.SetAttribute('ucn',plantInfo.UN)
     grid.impedance.SetAttribute('Sn', plantInfo.PN)
     grid.impedance.SetAttribute('rrea', Rgrid)
     grid.impedance.SetAttribute('lrea', Lgrid*1000)  # mH
     for term in grid.terminals:
-        term.SetAttribute('uknom', plantInfo.VN)
+        term.SetAttribute('uknom', plantInfo.UN)
     grid.voltageSource.SetAttribute('usetp', case.U0)
-    grid.voltageSource.SetAttribute('Unom', plantInfo.VN)
+    grid.voltageSource.SetAttribute('Unom', plantInfo.UN)
     grid.voltageSource.SetAttribute('phisetp', 0) 
     grid.voltageSource.SetAttribute('contbar', grid.poc)  
-    grid.measurement.SetAttribute('ucn', plantInfo.VN)
+    grid.measurement.SetAttribute('ucn', plantInfo.UN)
     grid.measurement.SetAttribute('Sn', plantInfo.PN)   
 
     grid.sigGen.SetAttribute('e:outserv',True) 
@@ -339,24 +363,25 @@ def setupCase(app : PF.DataObject,
      studyTime : int) -> None:
     
     #Pre checks
-    if options.PspInputName == '' and case.PrefCtrl == 1:
-        app.PrintWarn('Study case: {} will be ignored. PspSignal is empty and PrefCtrl == 1.'.format(case.TestType))
+    eventTypes = [item[0] for item in case.events]
+    if options.PspInputName == '' and 'Pctrl ref.' in eventTypes:
+        app.PrintWarn('Study case: {} will be ignored. PspSignal is empty and PrefCtrl == 1.'.format(case.Name))
         return 
 
-    if options.QspInputName == '' and case.QrefCtrl == 1 and case.internalQmode == 0:
-        app.PrintWarn('Study case: {} will be ignored. QspSignal is empty and Qmode is active and controlled.'.format(case.TestType))
+    if options.QspInputName == '' and 'Qctrl ref.' in eventTypes and case.internalQmode == 0:
+        app.PrintWarn('Study case: {} will be ignored. QspSignal is empty and Qmode is active and controlled.'.format(case.Name))
         return     
 
-    if options.QUspInputName == '' and case.QrefCtrl == 1 and case.internalQmode == 1:
-        app.PrintWarn('Study case: {} will be ignored. QUspSignal is empty and QUmode is active and controlled.'.format(case.TestType))
+    if options.QUspInputName == '' and 'Qctrl ref.' in eventTypes and case.internalQmode == 1:
+        app.PrintWarn('Study case: {} will be ignored. QUspSignal is empty and QUmode is active and controlled.'.format(case.Name))
         return 
 
-    if options.QPFspInputName == '' and case.QrefCtrl == 1 and case.internalQmode == 2:
-        app.PrintWarn('Study case: {} will be ignored. QPFspSignal is empty and QPFmode is active and controlled.'.format(case.TestType))
+    if options.QPFspInputName == '' and 'Qctrl ref.' in eventTypes and case.internalQmode == 2:
+        app.PrintWarn('Study case: {} will be ignored. QPFspSignal is empty and QPFmode is active and controlled.'.format(case.Name))
         return 
 
     # Set-up studycase, variation and balance      
-    caseName = '{}_{}_{}'.format(str(case.Rank).zfill(len(str(maxRank))), case.ION, case.TestType).replace('.', '')
+    caseName = '{}_{}'.format(str(case.Rank).zfill(len(str(maxRank))), case.Name).replace('.', '')
     newStudycase = studyCaseFolder.CreateObject('IntCase', caseName)
     newStudycase.Activate()      
     newStudycase.SetStudyTime(studyTime)
@@ -388,7 +413,7 @@ def setupCase(app : PF.DataObject,
     # setup simulation and loadflow
     inc = app.GetFromStudyCase('ComInc')
     sim = app.GetFromStudyCase('ComSim')
-    sim.SetAttribute('tstop', case.Tstop) 
+    sim.SetAttribute('tstop', case.SimTime) 
 
     # Setup plot setup script
     subScripts.setupPlots.SetInputParameterInt('eventPlot', ctrlMode is not None or options.eventPlot)

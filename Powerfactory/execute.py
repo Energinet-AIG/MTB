@@ -112,17 +112,43 @@ def parseGrid(app) -> SimpleNamespace:
   return grid
 
 def loadPlantInfo(options) -> SimpleNamespace:
-  pdInput = pd.read_excel(open(options.file,'rb'), sheet_name='Input', header = 0, index_col=None, usecols=lambda x: 'Unnamed' not in x)
+  pdInput = pd.read_excel(open(options.file,'rb'), sheet_name='Input', header = None, index_col = 0, usecols = 'A:B')
   plantInfo = SimpleNamespace()
-  plantInfo.PN : float = pdInput['Pn (MW)'][0] # Nominal active power (MW)
-  plantInfo.VN : float = pdInput['Vn_PoC (kV)'][0] # PoC nominal voltage (LL, RMS, kV)
-  plantInfo.IN : float = plantInfo.PN/math.sqrt(3)/plantInfo.VN
-  plantInfo.SCR : float = pdInput['SCR'][0] # Minimum SCR at PoC
-  plantInfo.XRRATIO : float = pdInput['X/R'][0] # XR ratio               
-  plantInfo.PROJECTNAME : str = pdInput['ProjectName'][0] # Project name
-  plantInfo.Qmode : int = pdInput['Qmode_Q'][0]
-  plantInfo.QUmode : int = pdInput['Qmode_V'][0]
-  plantInfo.QPFmode : int = pdInput['Qmode_PF'][0]
+  plantInfo.PROJECTNAME : str = pdInput[1]['ProjectName'] # Project name
+  plantInfo.PN : float = pdInput[1]['Pn'] # Nominal active power (MW)
+  plantInfo.UC : float = pdInput[1]['Uc'] # PoC nominal operating voltage (LL, RMS, kV)
+  plantInfo.UN : float = pdInput[1]['Un'] # PoC nominal voltage (LL, RMS, kV)
+  plantInfo.IN : float = plantInfo.PN/math.sqrt(3)/plantInfo.UN
+  plantInfo.AREA : str = pdInput[1]['Area'] # DK1 or DK2
+  plantInfo.SCRMIN : float = pdInput[1]['SCR min']
+  plantInfo.SCRTUN : float = pdInput[1]['SCR tuning']
+  plantInfo.SCRMAX : float = pdInput[1]['SCR max']
+  plantInfo.XRRATIOMIN : float = pdInput[1]['X/R SCR min']
+  plantInfo.XRRATIOTUN : float = pdInput[1]['X/R SCR tuning']
+  plantInfo.XRRATIOMAX : float = pdInput[1]['X/R SCR max']
+  plantInfo.R0 : float = pdInput[1]['R0'] # (p.u.)
+  plantInfo.X0 : float = pdInput[1]['X0'] # (p.u.)
+  plantInfo.DEFQMODE : str = pdInput[1]['Default Q mode'] # Q, Q(U) or PF
+  plantInfo.QUDROOP : float = pdInput[1]['Q(u) droop'] # (%)
+  plantInfo.OFFSET : float = pdInput[1]['Case time offset'] # (s)
+
+  # Protection
+  plantInfo.Uo1 : float = pdInput[1]['U>'] # p.u. voltage
+  plantInfo.Uo1_t : float = pdInput[1]['U> time'] # s
+  plantInfo.Uo2 : float = pdInput[1]['U>>'] # p.u. voltage
+  plantInfo.Uo2_t : float = pdInput[1]['U>> time'] # s
+  plantInfo.Uo3 : float = pdInput[1]['U>>>'] # p.u. voltage
+  plantInfo.Uo3_t : float = pdInput[1]['U>>> time'] # s
+  plantInfo.Uu : float = pdInput[1]['U<'] # p.u. voltage
+  plantInfo.Uu_t : float = pdInput[1]['U< time'] # s
+  plantInfo.Fo : float = pdInput[1]['f>'] # Hz
+  plantInfo.Fo_t : float = pdInput[1]['f> time'] # s
+  plantInfo.Fu : float = pdInput[1]['f<'] # Hz
+  plantInfo.Fu_t : float = pdInput[1]['f< time'] # s
+  plantInfo.dFpos : float = pdInput[1]['df/dt pos'] # Hz/s
+  plantInfo.dFpos_t : float = pdInput[1]['df/dt pos time'] # s
+  plantInfo.dFneg : float = pdInput[1]['df/dt neg'] # Hz/s
+  plantInfo.dFneg_t : float = pdInput[1]['df/dt neg time'] # s
 
   return plantInfo
 
@@ -146,60 +172,88 @@ def resetProjectUnits(app) -> None:
   project.Activate()
 
 def readCase(app, plantInfo, pdCases, caseIndex) -> SimpleNamespace:
-   # Load case  
+  # Load case
   case = SimpleNamespace()
-  case.Included = bool(pdCases['Included'][caseIndex])
-  case.ION : str = str(pdCases['ION'][caseIndex])
-  case.Rank : int = int(pdCases['Rank'][caseIndex])
-  case.TestType : str = str(pdCases['TestType'][caseIndex])
-  case.P0 : float = float(pdCases['P0'][caseIndex])
-  case.InitValue : float = float(pdCases['InitValue'][caseIndex])
-  case.Qmode : int = int(pdCases['Qmode'][caseIndex]) 
-  
-  if case.Qmode == plantInfo.Qmode:
-    case.internalQmode = 0
-  elif case.Qmode == plantInfo.QUmode:
-    case.internalQmode = 1
-  elif case.Qmode == plantInfo.QPFmode:
-    case.internalQmode = 2
-  else:
-    app.PrintWarn('Invalid Qmode: {}. Assuming Q control.'.format(case.Qmode))
-    case.internalQmode = 0
+  case.Rank : int = int(pdCases['Rank/Id'][caseIndex])
+  case.Included = bool(pdCases['RMS'][caseIndex])
+  case.Name : str = str(pdCases['Name'][caseIndex])
+
   try:
     case.U0 : float = float(pdCases['U0'][caseIndex])
   except:
     case.U0 : float = 1.0
-  case.GridImped : float = float(pdCases['GridImped'][caseIndex])
-  case.Tstop : float = float(pdCases['Tstop (s)'][caseIndex])
-  case.PrefCtrl : bool = bool(pdCases['PrefCtrl'][caseIndex])
-  case.QrefCtrl : bool = bool(pdCases['QrefCtrl'][caseIndex])
-  case.VSPhaseCtrl : bool = bool(pdCases['VSPhaseCtrl'][caseIndex])
-  case.VSVoltCtrl : bool = bool(pdCases['VSVoltCtrl'][caseIndex])
-  case.VSFreqCtrl : bool = bool(pdCases['VSFreqCtrl'][caseIndex])
-  case.FaultType : int = int(pdCases['FaultType'][caseIndex])
-  case.FaultPeriod : float = float(pdCases['FaultPeriod'][caseIndex])
-  case.FaultDepth : float = float(pdCases['FaultDepth'][caseIndex]) #Misleading name. Residual voltage.
+
+  case.P0 : float = float(pdCases['P0'][caseIndex])
+  case.FSMenabled = bool(pdCases['FSM enabled'][caseIndex])
+  case.Qmode : str = str(pdCases['Qmode'][caseIndex]) 
+
+  if case.Qmode == 'Default':
+    case.Qmode == plantInfo.DEFQMODE
+
+  if case.Qmode == 'Q':
+    case.internalQmode = 0
+  elif case.Qmode == 'Q(U)':
+    case.internalQmode = 1
+  elif case.Qmode == 'PF':
+    case.internalQmode = 2
+  else:
+    app.PrintWarn('Invalid Qmode: {}. Assuming Q control mode.'.format(case.Qmode))
+    case.internalQmode = 0
+
+  case.Qref : float = float(pdCases['Q ref. Initial'][caseIndex])
+  case.SimTime : float = float(pdCases['Simulationtime'][caseIndex])
+  strSCR = str(pdCases['SCR'][caseIndex])
+  if strSCR == 'Ideal':
+    case.GridImped = 0
+    case.SCR = plantInfo.SCRMIN
+    case.XRRATIO = plantInfo.XRRATIOMIN
+  else:
+    case.GridImped = 1
+    if strSCR == 'Min':
+      case.SCR = plantInfo.SCRMIN
+      case.XRRATIO = plantInfo.XRRATIOMIN
+    elif strSCR == 'Max':
+      case.SCR = plantInfo.SCRMAX
+      case.XRRATIO = plantInfo.XRRATIOMAX
+    else: # strSCR == 'Tuning'
+      case.SCR = plantInfo.SCRTUN
+      case.XRRATIO = plantInfo.XRRATIOTUN
+    
+  case.PctrlMeas : str = str(pdCases['Pctrl meas. File'][caseIndex])
+  case.QctrlMeas : str = str(pdCases['Qctrl meas. File'][caseIndex])
+  case.VoltageMeas : str = str(pdCases['Voltage meas. File'][caseIndex])
+  case.PhaseMeas : str = str(pdCases['Phase meas. File'][caseIndex])
+  case.FreqMeas : str = str(pdCases['Frequency meas. File'][caseIndex])
+  
   case.events = list()
   evLastEvent = -math.inf
-  eIndex = 1
+  eIndex = 0
   while True:
-    startLabel = 'C{}start'.format(eIndex)
-    spLabel = 'C{}setpoint'.format(eIndex)
-    rpLabel = 'C{}ramp'.format(eIndex)
-    if {startLabel, spLabel, rpLabel}.issubset(pdCases.columns):
-      evStart = float(pdCases[startLabel][caseIndex])
+    typeLabel = 'type.{}'.format(eIndex)
+    timeLabel = 'time.{}'.format(eIndex)
+    spLabel = 'Sp or res. U.{}'.format(eIndex)
+    rpLabel = 'ramp/periode.{}'.format(eIndex)
+    if {typeLabel, timeLabel, spLabel, rpLabel}.issubset(pdCases.columns):
+      evType = str(pdCases[typeLabel][caseIndex])
+      evTime = float(pdCases[timeLabel][caseIndex])
       evSp = float(pdCases[spLabel][caseIndex])
       evRp = float(pdCases[rpLabel][caseIndex])
-    if math.isnan(evStart) or math.isnan(evSp) or math.isnan(evRp) or evStart >= case.Tstop or evStart <= evLastEvent:
+    if math.isnan(evTime) or math.isnan(evSp) or math.isnan(evRp) or evTime >= case.SimTime or evTime <= evLastEvent:
       break
-    evLastEvent = evStart
-    case.events.append([evStart,evSp,evRp])
+    evLastEvent = evTime
+    case.events.append([evType,evTime,evSp,evRp])
     eIndex += 1
   return case
 
 def loadCases(app, options) -> pd.DataFrame:
   app.PrintPlain('Read Test Matrix: {}'.format(options.file)) 
-  return pd.read_excel(open(options.file,'rb'), sheet_name='Cases', header = 0, index_col=None, usecols=lambda x: 'Unnamed' not in x)
+  cases = pd.read_excel(open(options.file,'rb'), sheet_name='Cases', header = 1, index_col=None, usecols=lambda x: 'Unnamed' not in x)
+  for i in range(len(cases.get('Rank/Id'))):
+    if type(cases['Rank/Id'][i]) == str:
+      cases.drop(i, inplace=True)
+  cases.rename(columns = {'type':'type.0', 'time':'time.0', 'Sp or res. U':'Sp or res. U.0', 'ramp/periode':'ramp/periode.0'}, inplace = True)
+  cases.reset_index(drop=True, inplace=True)
+  return cases
 
 def setup(app, thisScript, options, subScripts, grid, project):
   # Check if any studycase is active
@@ -275,7 +329,7 @@ def setup(app, thisScript, options, subScripts, grid, project):
 
   plantInfo = loadPlantInfo(options)
   cases = loadCases(app, options)
-  maxRank = max(cases['Rank'])
+  maxRank = max(i for i in cases['Rank/Id'] if isinstance(i, int))
   
   app.EchoOff()
 
