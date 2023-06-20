@@ -47,7 +47,7 @@ def readScriptOptions(thisScript) -> SimpleNamespace:
   options = SimpleNamespace()
   options.file : str =  thisScript.GetInputParameterString('file')[1]
   options.preBackup : bool = bool(thisScript.GetInputParameterInt('preBackup')[1])
-  options.postBackup : bool = bool(thisScript.GetInputParameterInt('postBackup')[1]) 
+  options.postBackup : bool = bool(thisScript.GetInputParameterInt('postBackup')[1])
   options.setup  : bool = bool(thisScript.GetInputParameterInt('setup')[1])
   options.run : bool = bool(thisScript.GetInputParameterInt('run')[1])
   options.plot : bool = bool(thisScript.GetInputParameterInt('plot')[1])
@@ -59,17 +59,33 @@ def readScriptOptions(thisScript) -> SimpleNamespace:
   options.varStep : bool = bool(thisScript.GetInputParameterInt('variableStep')[1])
   options.asymSim : bool = bool(thisScript.GetInputParameterInt('asymSim')[1])
   options.autoGen : bool = bool(thisScript.GetInputParameterInt('autoFindGen')[1])
-  options.fpath : str = thisScript.GetInputParameterString('fpath')[1]
+  options.paraEventsOnly : bool = bool(thisScript.GetInputParameterInt('paraEventsOnly')[1])
+  options.consolidate : bool = bool(thisScript.GetInputParameterInt('consolidate')[1]) 
+  options.parallelComp : bool = bool(thisScript.GetInputParameterInt('parallelComp')[1])
+  options.enforcedSync : bool = bool(thisScript.GetInputParameterInt('enforcedSync')[1])
+  options.rfpath : str = thisScript.GetInputParameterString('rfpath')[1]
+  options.mfpath : str = thisScript.GetInputParameterString('mfpath')[1]
   options.PspScale : float = thisScript.GetInputParameterDouble('PspScale')[1]
   options.QspScale : float = thisScript.GetInputParameterDouble('QspScale')[1]
   options.QUspScale : float = thisScript.GetInputParameterDouble('QUspScale')[1]
   options.QPFspScale : float = thisScript.GetInputParameterDouble('QPFspScale')[1]
-  options.QPFmode : int = 0 
-  options.paraEventsOnly : bool = bool(thisScript.GetInputParameterInt('paraEventsOnly')[1]) 
-  options.consolidate : bool = bool(thisScript.GetInputParameterInt('consolidate')[1]) 
-  options.parallelComp : bool = bool(thisScript.GetInputParameterInt('parallelComp')[1])
-  options.enforcedSync : bool = bool(thisScript.GetInputParameterInt('enforcedSync')[1])
-    
+  options.QPFmode : int = 0
+  options.scaleP : float = thisScript.GetInputParameterDouble('PctrlMeasScale')[1]
+  options.offsetP : float = thisScript.GetInputParameterDouble('PctrlMeasOffset')[1]
+  options.scaleQ : float = thisScript.GetInputParameterDouble('QctrlMeasScale')[1]
+  options.offsetQ : float = thisScript.GetInputParameterDouble('QctrlMeasOffset')[1]
+  options.scaleU : float = thisScript.GetInputParameterDouble('VoltageMeasScale')[1]
+  options.offsetU : float = thisScript.GetInputParameterDouble('VoltageMeasOffset')[1]
+  options.scalePh : float = thisScript.GetInputParameterDouble('PhaseMeasScale')[1]
+  options.offsetPh : float = thisScript.GetInputParameterDouble('PhaseMeasOffset')[1]
+  options.scaleF : float = thisScript.GetInputParameterDouble('FreqMeasScale')[1]
+  options.offsetF : float = thisScript.GetInputParameterDouble('FreqMeasOffset')[1]
+  options.scale_offset = [[options.scaleP,options.offsetP],
+                          [options.scaleQ,options.offsetQ],
+                          [options.scaleU,options.offsetU],
+                          [options.scalePh,options.offsetPh],
+                          [options.scaleF,options.offsetF]]
+
   # For the Pref and Qref tests
   options.PCtrl = thisScript.GetExternalObject('Pctrl')[1]
   if options.PCtrl == None or not (options.PCtrl.GetClassName() == 'ElmDsl' or options.PCtrl.GetClassName() == 'ElmComp'):
@@ -104,11 +120,20 @@ def parseGrid(app) -> SimpleNamespace:
   grid.terminals = grid.grid.GetContents('*.ElmTerm')
   grid.poc = networkData.SearchObject('PP-MTB\\pcc.ElmTerm') 
   grid.cub = networkData.SearchObject('PP-MTB\\pcc\\cubZ.StaCubic')
+  grid.cubmeas = networkData.SearchObject('PP-MTB\\pcc\\cubmeas.StaCubic')
   grid.pCtrl = networkData.SearchObject('PP-MTB\\pCtrl.ElmSecctrl')
   grid.qCtrl = networkData.SearchObject('PP-MTB\\qCtrl.ElmStactrl') 
   grid.sigGen = networkData.SearchObject('PP-MTB\\signalGenerator.ElmDsl')
   grid.connector = networkData.SearchObject('PP-MTB\\connector.ElmComp')
-  grid.sink = networkData.SearchObject('PP-MTB\\lib\\connector\\sink.BlkSlot')
+  grid.sinkP = networkData.SearchObject('PP-MTB\\lib\\connector\\sinkP.BlkSlot')
+  grid.sinkQ = networkData.SearchObject('PP-MTB\\lib\\connector\\sinkQ.BlkSlot')
+  grid.sinkVac = networkData.SearchObject('PP-MTB\\lib\\connector\\sinkVac.BlkSlot')
+  grid.pctrlmeas = networkData.SearchObject('PP-MTB\\PctrlMeas.ElmFile')
+  grid.qctrlmeas = networkData.SearchObject('PP-MTB\\QctrlMeas.ElmFile')
+  grid.voltagemeas = networkData.SearchObject('PP-MTB\\VoltageMeas.ElmFile')
+  grid.phasemeas = networkData.SearchObject('PP-MTB\\PhaseMeas.ElmFile')
+  grid.freqmeas = networkData.SearchObject('PP-MTB\\FreqMeas.ElmFile')
+  grid.measfiles = [grid.pctrlmeas, grid.qctrlmeas, grid.voltagemeas, grid.phasemeas, grid.freqmeas]
   return grid
 
 def loadPlantInfo(options) -> SimpleNamespace:
@@ -185,10 +210,10 @@ def readCase(app, plantInfo, pdCases, caseIndex) -> SimpleNamespace:
 
   case.P0 : float = float(pdCases['P0'][caseIndex])
   case.FSMenabled = bool(pdCases['FSM enabled'][caseIndex])
-  case.Qmode : str = str(pdCases['Qmode'][caseIndex]) 
+  case.Qmode : str = str(pdCases['Qmode'][caseIndex])
 
   if case.Qmode == 'Default':
-    case.Qmode == plantInfo.DEFQMODE
+    case.Qmode = plantInfo.DEFQMODE
 
   if case.Qmode == 'Q':
     case.internalQmode = 0
@@ -200,7 +225,7 @@ def readCase(app, plantInfo, pdCases, caseIndex) -> SimpleNamespace:
     app.PrintWarn('Invalid Qmode: {}. Assuming Q control mode.'.format(case.Qmode))
     case.internalQmode = 0
 
-  case.Qref : float = float(pdCases['Q ref. Initial'][caseIndex])
+  case.Qinit : float = float(pdCases['Q ref. Initial'][caseIndex])
   case.SimTime : float = float(pdCases['Simulationtime'][caseIndex])
   strSCR = str(pdCases['SCR'][caseIndex])
   if strSCR == 'Ideal':
@@ -218,15 +243,16 @@ def readCase(app, plantInfo, pdCases, caseIndex) -> SimpleNamespace:
     else: # strSCR == 'Tuning'
       case.SCR = plantInfo.SCRTUN
       case.XRRATIO = plantInfo.XRRATIOTUN
-    
+
   case.PctrlMeas : str = str(pdCases['Pctrl meas. File'][caseIndex])
   case.QctrlMeas : str = str(pdCases['Qctrl meas. File'][caseIndex])
   case.VoltageMeas : str = str(pdCases['Voltage meas. File'][caseIndex])
   case.PhaseMeas : str = str(pdCases['Phase meas. File'][caseIndex])
   case.FreqMeas : str = str(pdCases['Frequency meas. File'][caseIndex])
-  
+  case.MeasFiles : list = [case.PctrlMeas, case.QctrlMeas, case.VoltageMeas, case.PhaseMeas, case.FreqMeas]
+
   case.events = list()
-  evLastEvent = -math.inf
+
   eIndex = 0
   while True:
     typeLabel = 'type.{}'.format(eIndex)
@@ -238,11 +264,12 @@ def readCase(app, plantInfo, pdCases, caseIndex) -> SimpleNamespace:
       evTime = float(pdCases[timeLabel][caseIndex])
       evSp = float(pdCases[spLabel][caseIndex])
       evRp = float(pdCases[rpLabel][caseIndex])
-    if math.isnan(evTime) or math.isnan(evSp) or math.isnan(evRp) or evTime >= case.SimTime or evTime <= evLastEvent:
+    else:
       break
-    evLastEvent = evTime
-    case.events.append([evType,evTime,evSp,evRp])
     eIndex += 1
+    if (math.isnan(evTime) and math.isnan(evSp) and math.isnan(evRp)) or evTime >= case.SimTime:
+      continue
+    case.events.append([evType,evTime,evSp,evRp])
   return case
 
 def loadCases(app, options) -> pd.DataFrame:
@@ -282,7 +309,7 @@ def setup(app, thisScript, options, subScripts, grid, project):
   recordingStage = app.GetRecordingStage()
 
   if not options.consolidate and recordingStage is not None and recordingStage.GetAttribute('e:tAcTime') == studyTime:
-    exit('Expansionstage {} conflicts with PP-MTB setup.'.format(recordingStage.GetFullName(0))) 
+    exit('Expansionstage {} conflicts with PP-MTB setup.'.format(recordingStage.GetFullName(0)))
 
   # Create version pre-run
   if options.preBackup:
@@ -308,21 +335,20 @@ def setup(app, thisScript, options, subScripts, grid, project):
     studyCaseFolder = project.CreateObject('IntPrjfolder', 'Study Cases')
     studyCaseFolder.SetAttribute('iopt_typ', 'study')
 
-  
   activeVars = app.GetActiveNetworkVariations()
   if options.consolidate:
     currentStudyCase.Consolidate()
     activeVars = []
   else:
     for var in activeVars:
-      var.Deactivate() 
+      var.Deactivate()
 
   # Create task automation
   taskAuto = studyCaseFolder.CreateObject('ComTasks')
   taskAutoRef.SetAttribute('obj_id', taskAuto)
   taskAuto.SetAttribute('iEnableParal', options.parallelComp)
   taskAuto.SetAttribute('parMethod', 0)
-  (taskAuto.GetAttribute('parallelSetting')).SetAttribute('procTimeOut', 3600) 
+  (taskAuto.GetAttribute('parallelSetting')).SetAttribute('procTimeOut', 3600)
 
   for var in activeVars:
     var.Activate()
