@@ -80,11 +80,11 @@ def readScriptOptions(thisScript) -> SimpleNamespace:
   options.offsetPh : float = thisScript.GetInputParameterDouble('PhaseMeasOffset')[1]
   options.scaleF : float = thisScript.GetInputParameterDouble('FreqMeasScale')[1]
   options.offsetF : float = thisScript.GetInputParameterDouble('FreqMeasOffset')[1]
-  options.scale_offset = [[options.scaleP,options.offsetP],
-                          [options.scaleQ,options.offsetQ],
-                          [options.scaleU,options.offsetU],
-                          [options.scalePh,options.offsetPh],
-                          [options.scaleF,options.offsetF]]
+  options.scale_offset : list = [[options.scaleP,options.offsetP],     # options.scale_offset[0]: P
+                                 [options.scaleQ,options.offsetQ],     # options.scale_offset[1]: Q
+                                 [options.scaleU,options.offsetU],     # options.scale_offset[2]: U
+                                 [options.scalePh,options.offsetPh],   # options.scale_offset[3]: Ph
+                                 [options.scaleF,options.offsetF]]     # options.scale_offset[4]: F
 
   # For the Pref and Qref tests
   options.PCtrl = thisScript.GetExternalObject('Pctrl')[1]
@@ -133,7 +133,11 @@ def parseGrid(app) -> SimpleNamespace:
   grid.voltagemeas = networkData.SearchObject('PP-MTB\\VoltageMeas.ElmFile')
   grid.phasemeas = networkData.SearchObject('PP-MTB\\PhaseMeas.ElmFile')
   grid.freqmeas = networkData.SearchObject('PP-MTB\\FreqMeas.ElmFile')
-  grid.measfiles = [grid.pctrlmeas, grid.qctrlmeas, grid.voltagemeas, grid.phasemeas, grid.freqmeas]
+  grid.measfiles : list = [grid.pctrlmeas,     # grid.measfiles[0]: P
+                           grid.qctrlmeas,     # grid.measfiles[1]: Q
+                           grid.voltagemeas,   # grid.measfiles[2]: U
+                           grid.phasemeas,     # grid.measfiles[3]: Ph
+                           grid.freqmeas]      # grid.measfiles[4]: F
   return grid
 
 def loadPlantInfo(options) -> SimpleNamespace:
@@ -249,7 +253,11 @@ def readCase(app, plantInfo, pdCases, caseIndex) -> SimpleNamespace:
   case.VoltageMeas : str = str(pdCases['Voltage meas. File'][caseIndex])
   case.PhaseMeas : str = str(pdCases['Phase meas. File'][caseIndex])
   case.FreqMeas : str = str(pdCases['Frequency meas. File'][caseIndex])
-  case.MeasFiles : list = [case.PctrlMeas, case.QctrlMeas, case.VoltageMeas, case.PhaseMeas, case.FreqMeas]
+  case.MeasFiles : list = [case.PctrlMeas,    # case.MeasFiles[0]: P
+                           case.QctrlMeas,    # case.MeasFiles[1]: Q
+                           case.VoltageMeas,  # case.MeasFiles[2]: U
+                           case.PhaseMeas,    # case.MeasFiles[3]: Ph
+                           case.FreqMeas]     # case.MeasFiles[4]: F
 
   case.events = list()
 
