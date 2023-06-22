@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-def setupPlots(app,eventPlot,faultPlot,phasePlot,uLim,ctrlMode,Qmode,symSim,inputBlock,inputSignal,inputScaling):
+def setupPlots(app,eventPlot,faultPlot,phasePlot,uLim,Qmode,symSim):
     project = app.GetActiveProject()
     networkData = app.GetProjectFolder('netdat')
     if not project:

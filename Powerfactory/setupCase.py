@@ -157,6 +157,8 @@ def createStepRamp(app : PF.DataObject, case  : SimpleNamespace, grid : SimpleNa
         eventFolder = currentStudycase.CreateObject('IntEvt')
     
     usedMeasFiles = setupMeasFiles(app, grid, case, options)
+
+    P = Q = U = Ph = F = False
         
     if any('e' in item[0] for item in case.events): # Create Step/Ramp from Event (All event types contain letter 'e' except faults and 'nan')
         prevEvent = 'nan'
@@ -171,7 +173,6 @@ def createStepRamp(app : PF.DataObject, case  : SimpleNamespace, grid : SimpleNa
             inputSig = ''
             inputSel = ''
             inputBlc = None
-            CtrlMode = None
             refName = 'nan' #Currently not in use
 
             # Get event type
@@ -202,6 +203,7 @@ def createStepRamp(app : PF.DataObject, case  : SimpleNamespace, grid : SimpleNa
             sigGenEvent = True
 
             if evType == 'Pctrl ref.': 
+                P = True
                 if usedMeasFiles[0]: # PCtrl ref. measurement used
                     app.PrintWarn('Active power ref. measurement used. Pctrl ref. event ignored.')
                     continue
@@ -213,6 +215,7 @@ def createStepRamp(app : PF.DataObject, case  : SimpleNamespace, grid : SimpleNa
                 inputConvRp = None
                 refName = 'Pref[pu]'
             elif evType == 'Qctrl ref.':
+                Q = True
                 if usedMeasFiles[1]: # QCtrl ref. measurement used
                     app.PrintWarn('Reactive power ref. measurement used. Qctrl ref. event ignored.')
                     continue
@@ -239,6 +242,7 @@ def createStepRamp(app : PF.DataObject, case  : SimpleNamespace, grid : SimpleNa
 
             inputBlcIsDsl = inputBlc.GetClassName() == 'ElmDsl'
             if evType == 'Phase':
+                Ph = True
                 if usedMeasFiles[3]: # Phase measurement used
                     app.PrintWarn('Phase measurement used. Phase event ignored.')
                     continue
@@ -247,6 +251,7 @@ def createStepRamp(app : PF.DataObject, case  : SimpleNamespace, grid : SimpleNa
                 inputSel = 'Ph'
                 refName = 'Phiref[deg]'
             elif str(evType) == 'Voltage':
+                U = True
                 if usedMeasFiles[2]: # Voltage measurement used
                     app.PrintWarn('Voltage measurement used. Voltage event ignored.')
                     continue
@@ -254,6 +259,7 @@ def createStepRamp(app : PF.DataObject, case  : SimpleNamespace, grid : SimpleNa
                 inputSel = 'U'
                 refName = 'Vref[pu]'
             elif evType == 'dVoltage':
+                U = True
                 if usedMeasFiles[2]: # Voltage measurement used
                     app.PrintWarn('Voltage measurement used. dVoltage event ignored.')
                     continue
@@ -261,6 +267,7 @@ def createStepRamp(app : PF.DataObject, case  : SimpleNamespace, grid : SimpleNa
                 inputSel = 'U'
                 refName = 'dVref[dpu]'
             elif evType == 'Frequency':
+                F = True
                 if usedMeasFiles[4]: # Frequency measurement used 
                     app.PrintWarn('Frequecny measurement used. Frequency event ignored.')
                     continue
@@ -350,9 +357,8 @@ def createStepRamp(app : PF.DataObject, case  : SimpleNamespace, grid : SimpleNa
             grid.sigGen.SetAttribute('e:outserv', False)
         elif not inputBlcIsDsl:
             app.PrintWarn('Parameter event cannot be applied to composite-frame.')
-        return (inputBlc, inputSigFixed, inputScaling, CtrlMode)
-    else:
-        return (None, None, None, None)
+    
+    return(P, Q, U, Ph, F)
 
 def setDynQmode(case : PF.DataObject, options : SimpleNamespace) -> None:
     # Reactive power dispatch
@@ -405,7 +411,7 @@ def staticDispatch(case : SimpleNamespace, options : SimpleNamespace, grid : Sim
     grid.pCtrl.SetAttribute('e:rembar', grid.poc)
     grid.pCtrl.SetAttribute('e:imode', 0) # Distribute P demand according to rated power    
 
-def setupResFile(app : PF.DataObject, grid : SimpleNamespace, inputBlock : PF.DataObject, inputSignal : str) -> None:
+def setupResFile(app : PF.DataObject, grid : SimpleNamespace, events : list) -> None:
     # Add resultvariables 
     res = app.GetFromStudyCase('ElmRes')
 
@@ -437,6 +443,12 @@ def setupResFile(app : PF.DataObject, grid : SimpleNamespace, inputBlock : PF.Da
     # Other
     res.AddVariable(grid.poc, 'm:fehz')
     res.AddVariable(grid.measurement, 'm:cosphisum:bus2')
+
+    if events[0]:
+
+    if events[1]:
+
+    if events[2] or events[3] or events [4]:
     if not inputBlock is None:
         res.AddVariable(inputBlock, inputSignal)
 
@@ -538,12 +550,12 @@ def setupCase(app : PF.DataObject,
     setupGrid(case, grid, plantInfo)
     symFault = createFault(app, case, grid, plantInfo, options)
     symSim = symFault and not options.asymSim
-    inputBlock, inputSignal, inputScaling, ctrlMode = createStepRamp(app, case, grid, plantInfo, options)
+    P, Q, U, Ph, F = createStepRamp(app, case, grid, plantInfo, options)
     refName = ''
     setupStaticCalc(app, options, symSim)
     staticDispatch(case, options, grid, activeGrids, plantInfo, generatorSet)
     setDynQmode(case, options)
-    setupResFile(app, grid, inputBlock, inputSignal)
+    setupResFile(app, grid, [P, Q, U, Ph, F])
 
     # setup simulation and loadflow
     inc = app.GetFromStudyCase('ComInc')
