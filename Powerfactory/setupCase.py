@@ -348,15 +348,14 @@ def createStepRamp(app : PF.DataObject, case  : SimpleNamespace, grid : SimpleNa
                 evSpEvent.SetAttribute('e:time', evStart)
                 evSpEvent.SetAttribute('e:variable', inputSigFixed)
                 evSpEvent.SetAttribute('e:value', str(inputScaling * evSpConv))
+            elif not inputBlcIsDsl:
+                app.PrintWarn('Parameter event cannot be applied to composite-frame.')
 
         # Conect block
-        if sigGenEvent:
-            grid.sinkP.SetAttribute('e:sInput',['{},{}'.format(*inputP)])
-            grid.sinkQ.SetAttribute('e:sInput',['{},{}'.format(*inputQ)])
-            grid.sinkVac.SetAttribute('e:sInput',['{},{},{},{},{},{}'.format(*inputVac)])
-            grid.sigGen.SetAttribute('e:outserv', False)
-        elif not inputBlcIsDsl:
-            app.PrintWarn('Parameter event cannot be applied to composite-frame.')
+        grid.sinkP.SetAttribute('e:sInput',['{},{}'.format(*inputP)])
+        grid.sinkQ.SetAttribute('e:sInput',['{},{}'.format(*inputQ)])
+        grid.sinkVac.SetAttribute('e:sInput',['{},{},{},{},{},{}'.format(*inputVac)])
+        grid.sigGen.SetAttribute('e:outserv', False) 
     
     return(P, Q, U, Ph, F)
 
@@ -411,7 +410,7 @@ def staticDispatch(case : SimpleNamespace, options : SimpleNamespace, grid : Sim
     grid.pCtrl.SetAttribute('e:rembar', grid.poc)
     grid.pCtrl.SetAttribute('e:imode', 0) # Distribute P demand according to rated power    
 
-def setupResFile(app : PF.DataObject, grid : SimpleNamespace, events : list) -> None:
+def setupResFile(app : PF.DataObject, grid : SimpleNamespace, options : SimpleNamespace, case : SimpleNamespace, events : list) -> None:
     # Add resultvariables 
     res = app.GetFromStudyCase('ElmRes')
 
@@ -444,13 +443,21 @@ def setupResFile(app : PF.DataObject, grid : SimpleNamespace, events : list) -> 
     res.AddVariable(grid.poc, 'm:fehz')
     res.AddVariable(grid.measurement, 'm:cosphisum:bus2')
 
-    if events[0]:
-
-    if events[1]:
-
-    if events[2] or events[3] or events [4]:
-    if not inputBlock is None:
-        res.AddVariable(inputBlock, inputSignal)
+    if events[0]: # P ref.
+        res.AddVariable(options.PCtrl, options.PspInputName)
+    if events[1]: # Q ref.
+        if case.internalQmode == 0: # Reactive power setpoint
+            res.AddVariable(options.QCtrl, options.QspInputName)
+        elif case.internalQmode == 1: # Voltage droop
+            res.AddVariable(options.QUCtrl, options.QUspInputName)
+        else: # Power factor
+            res.AddVariable(options.QPFCtrl, options.QPFspInputName)
+    if events[2]: # U 
+        res.AddVariable(grid.voltageSource, 's:u0')
+    if events[3]: # Ph 
+        res.AddVariable(grid.voltageSource, 's:dphiu')
+    if events[4]: # F
+        res.AddVariable(grid.voltageSource, 's:F0Hz')
 
 def setupStaticCalc(app : PF.DataObject, options : SimpleNamespace, symSim : bool) -> None:
     inc = app.GetFromStudyCase('ComInc')
@@ -550,12 +557,12 @@ def setupCase(app : PF.DataObject,
     setupGrid(case, grid, plantInfo)
     symFault = createFault(app, case, grid, plantInfo, options)
     symSim = symFault and not options.asymSim
-    P, Q, U, Ph, F = createStepRamp(app, case, grid, plantInfo, options)
+    events = createStepRamp(app, case, grid, plantInfo, options)
     refName = ''
     setupStaticCalc(app, options, symSim)
     staticDispatch(case, options, grid, activeGrids, plantInfo, generatorSet)
     setDynQmode(case, options)
-    setupResFile(app, grid, [P, Q, U, Ph, F])
+    setupResFile(app, grid, options, case, events)
 
     # setup simulation and loadflow
     inc = app.GetFromStudyCase('ComInc')
@@ -563,16 +570,23 @@ def setupCase(app : PF.DataObject,
     sim.SetAttribute('e:tstop', case.SimTime) 
     
     # Setup plot setup script
-    subScripts.setupPlots.SetInputParameterInt('eventPlot', ctrlMode is not None or options.eventPlot)
+    subScripts.setupPlots.SetInputParameterInt('eventPlot', options.eventPlot)
     subScripts.setupPlots.SetInputParameterInt('faultPlot', not any('1p fault' in item[0] for item in case.events) or options.faultPlot)
     subScripts.setupPlots.SetInputParameterInt('phasePlot', not any('1p fault' in item[0] for item in case.events) or options.phasePlot)
-    subScripts.setupPlots.SetInputParameterInt('ctrlMode', -1 if ctrlMode is None else ctrlMode)
     subScripts.setupPlots.SetInputParameterInt('Qmode', case.internalQmode)
     subScripts.setupPlots.SetInputParameterInt('symSim', symSim)
-    subScripts.setupPlots.SetInputParameterDouble('PN', 1)
-    subScripts.setupPlots.SetInputParameterString('inputSignal', '' if inputSignal is None else inputSignal)
-    subScripts.setupPlots.SetInputParameterDouble('inputScaling', 1 if inputScaling is None else inputScaling)
-    subScripts.setupPlots.SetExternalObject('inputBlock', inputBlock)
+    subScripts.setupPlots.SetInputParameterString('sigP', str(options.PspInputName) if events[0] else '')
+    subScripts.setupPlots.SetInputParameterDouble('scaleP', options.PspScale if events[0] else 1.0)
+    subScripts.setupPlots.SetInputParameterString('sigQ', options.QspInputName if events[1] and case.internalQmode == 0 else 
+                                                       options.QUspInputName if events[1] and case.internalQmode == 1 else 
+                                                       options.QPFspInputName if events[1] and case.internalQmode == 2 else '')
+    subScripts.setupPlots.SetInputParameterDouble('scaleQ', options.Qspscale if events[1] and case.internalQmode == 0 else 
+                                                         options.QUspScale if events[1] and case.internalQmode == 1 else 
+                                                         options.QPFspScale if events[1] and case.internalQmode == 2 else 1.0)
+    subScripts.setupPlots.SetInputParameterInt('Ph', 1 if events[3] else 0)
+    subScripts.setupPlots.SetInputParameterInt('F', 1 if events[4] else 0)
+    subScripts.setupPlots.SetExternalObject('blockP', options.PCtrl)
+    subScripts.setupPlots.SetExternalObject('blockQ', options.QCtrl if case.internalQmode == 0 else options.QUCtrl if case.internalQmode == 1 else options.QPFCtrl)
 
     # Setup export plots
     if options.nameByRank:
@@ -583,7 +597,7 @@ def setupCase(app : PF.DataObject,
     subScripts.exportResults.SetInputParameterString('name', exportName)
     subScripts.exportResults.SetInputParameterString('path', options.rfpath)
     subScripts.exportResults.SetInputParameterString('refName', refName)
-    subScripts.exportResults.SetInputParameterDouble('refScale', 1 if inputScaling is None else inputScaling)
+    subScripts.exportResults.SetInputParameterDouble('refScale', 1) # Scaling is disabled, previously: ...('refScale', 1 if inputScaling is None else inputScaling)
 
     # Add to taskautomation
     taskAuto.AppendStudyCase(newStudycase)

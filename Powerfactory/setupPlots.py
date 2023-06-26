@@ -1,10 +1,16 @@
 from types import SimpleNamespace
 
-def setupPlots(app,eventPlot,faultPlot,phasePlot,uLim,Qmode,symSim):
+def setupPlots(app,eventPlot,faultPlot,phasePlot,uLim,Qmode,symSim,sigP,scaleP,sigQ,scaleQ,Ph,F,blockP,blockQ):
     project = app.GetActiveProject()
     networkData = app.GetProjectFolder('netdat')
     if not project:
         raise Exception('No project activated')
+    
+    events = (True if sigP != '' else False, 
+              True if sigQ != '' else False,
+              False, # Slot for U
+              True if Ph == 1 else False,
+              True if F == 1 else False)
 
     grid = SimpleNamespace()
     grid.measurement = networkData.SearchObject('PP-MTB\\meas.ElmSind')
@@ -24,19 +30,24 @@ def setupPlots(app,eventPlot,faultPlot,phasePlot,uLim,Qmode,symSim):
     if eventPlot:
         evPage = board.GetPage('PQuf', 1,'GrpPage')
 
-        #Event - F/angle plot
-        if ctrlMode == 2 or ctrlMode == 4:
-            Faplot = evPage.GetOrInsertCurvePlot('F' if ctrlMode == 4 else 'Angle')
-            (Faplot.GetDataSeries()).AddCurve(grid.poc if ctrlMode == 4 else grid.measurement, 'm:fehz' if ctrlMode == 4 else 'm:phiu1:bus2')
+        #Event - F plot
+        if events[4]:
+            Fplot = evPage.GetOrInsertCurvePlot('F')
+            (Fplot.GetDataSeries()).AddCurve(grid.poc, 'm:fehz')
+
+        #Event - Angle plot
+        if events[3]:
+            Phplot = evPage.GetOrInsertCurvePlot('Angle')
+            (Phplot.GetDataSeries()).AddCurve(grid.measurement, 'm:phiu1:bus2')
 
         #Event - P plot
         Pplot = evPage.GetOrInsertCurvePlot('PQ' if Qmode == 2 else 'P')
         PplotDS = Pplot.GetDataSeries()  
-        if ctrlMode == 0 and inputBlock is not None:
-            PplotDS.AddCurve(inputBlock, inputSignal)
+        if events[0] and blockP is not None:
+            PplotDS.AddCurve(blockP, sigP)
             PplotDS.SetAttribute('e:enableDataTrafo', 1)
             PplotDS.SetAttribute('e:curveTableNormalise:0', 1)
-            PplotDS.SetAttribute('e:curveTableNormValue:0', inputScaling)
+            PplotDS.SetAttribute('e:curveTableNormValue:0', scaleP)
         PplotDS.AddCurve(grid.PQmeasurement, 's:p')
         if Qmode == 2:
             PplotDS.AddCurve(grid.PQmeasurement, 's:q')
@@ -53,11 +64,11 @@ def setupPlots(app,eventPlot,faultPlot,phasePlot,uLim,Qmode,symSim):
         else:
             Qplot = evPage.GetOrInsertCurvePlot('Q')
             QplotDS = Qplot.GetDataSeries()
-            if ctrlMode == 1 and Qmode == 0 and inputBlock is not None:
-                QplotDS.AddCurve(inputBlock, inputSignal)
+            if events[1] and Qmode == 0 and blockQ is not None:
+                QplotDS.AddCurve(blockQ, sigQ)
                 QplotDS.SetAttribute('e:enableDataTrafo', 1)
                 QplotDS.SetAttribute('e:curveTableNormalise:0', 1)
-                QplotDS.SetAttribute('e:curveTableNormValue:0', inputScaling)
+                QplotDS.SetAttribute('e:curveTableNormValue:0', scaleQ)
             QplotDS.AddCurve(grid.PQmeasurement, 's:q')
             if not symSim:
                 QplotDS.AddCurve(grid.PQmeasurement, 's:q2')
@@ -65,10 +76,10 @@ def setupPlots(app,eventPlot,faultPlot,phasePlot,uLim,Qmode,symSim):
         #Event - U plot
         Uplot = evPage.GetOrInsertCurvePlot('U')
         UplotDS = Uplot.GetDataSeries()
-        if ctrlMode == 1 and Qmode == 1 and inputBlock is not None:
-            UplotDS.AddCurve(inputBlock, inputSignal)
+        if events[1] and Qmode == 1 and blockQ is not None:
+            UplotDS.AddCurve(blockQ, sigQ)
             UplotDS.SetAttribute('e:curveTableNormalise:0', 1)
-            UplotDS.SetAttribute('e:curveTableNormValue:0', inputScaling)
+            UplotDS.SetAttribute('e:curveTableNormValue:0', scaleQ)
         UplotDS.AddCurve(grid.measurement, 'm:u1:bus2')
         if not symSim:
             UplotDS.AddCurve(grid.measurement, 'm:u2:bus2')
@@ -142,11 +153,15 @@ if __name__ == "__main__":
     faultPlot : bool = bool(thisScript.GetInputParameterInt('faultPlot')[1])
     phasePlot : bool = bool(thisScript.GetInputParameterInt('phasePlot')[1])
     uLim : float = float(thisScript.GetInputParameterDouble('uLim')[1])
-    ctrlMode : int = int(thisScript.GetInputParameterInt('ctrlMode')[1])
     Qmode : int = int(thisScript.GetInputParameterInt('Qmode')[1])
     symSim : bool = bool(thisScript.GetInputParameterInt('symSim')[1])
-    inputSignal : str = str(thisScript.GetInputParameterString('inputSignal')[1])
-    inputScaling : float = float(thisScript.GetInputParameterDouble('inputScaling')[1])
-    inputBlock : PF.DataObject = thisScript.GetExternalObject('inputBlock')[1]
+    sigP : str = str(thisScript.GetInputParameterString('sigP')[1])
+    scaleP : float = float(thisScript.GetInputParameterDouble('scaleP')[1])
+    sigQ : str = str(thisScript.GetInputParameterString('sigQ')[1])
+    scaleQ : float = float(thisScript.GetInputParameterDouble('scaleQ')[1])
+    Ph : int = int(thisScript.GetInputParameterInt('Ph')[1])
+    F : int = int(thisScript.GetInputParameterInt('F')[1])
+    blockP : PF.DataObject = thisScript.GetExternalObject('blockP')[1]
+    blockQ : PF.DataObject = thisScript.GetExternalObject('blockQ')[1]
 
-    setupPlots(app, eventPlot, faultPlot, phasePlot, uLim, ctrlMode, Qmode, symSim, inputBlock, inputSignal, inputScaling)
+    setupPlots(app, eventPlot, faultPlot, phasePlot, uLim, Qmode, symSim, sigP, scaleP, sigQ, scaleQ, Ph, F, blockP, blockQ)

@@ -379,14 +379,18 @@ def plot(app, subScripts):
   faultPlot : bool = bool(subScripts.setupPlots.GetInputParameterInt('faultPlot')[1])
   phasePlot : bool = bool(subScripts.setupPlots.GetInputParameterInt('phasePlot')[1])
   uLim : float = float(subScripts.setupPlots.GetInputParameterDouble('uLim')[1])
-  ctrlMode : int = int(subScripts.setupPlots.GetInputParameterInt('ctrlMode')[1])
   Qmode : int = int(subScripts.setupPlots.GetInputParameterInt('Qmode')[1])
   symSim : bool = bool(subScripts.setupPlots.GetInputParameterInt('symSim')[1])
-  inputSignal : str = str(subScripts.setupPlots.GetInputParameterString('inputSignal')[1])
-  inputScaling : float = float(subScripts.setupPlots.GetInputParameterDouble('inputScaling')[1])
-  inputBlock = subScripts.setupPlots.GetExternalObject('inputBlock')[1]
+  sigP : str = str(subScripts.setupPlots.GetInputParameterString('sigP')[1])
+  scaleP : float = float(subScripts.setupPlots.GetInputParameterDouble('scaleP')[1])
+  sigQ : str = str(subScripts.setupPlots.GetInputParameterString('sigQ')[1])
+  scaleQ : float = float(subScripts.setupPlots.GetInputParameterDouble('scaleQ')[1])
+  Ph : int = int(subScripts.setupPlots.GetInputParameterInt('Ph')[1])
+  F : int = int(subScripts.setupPlots.GetInputParameterInt('F')[1])
+  blockP = subScripts.setupPlots.GetExternalObject('blockP')[1]
+  blockQ = subScripts.setupPlots.GetExternalObject('blockQ')[1]
 
-  setupPlots(app, eventPlot, faultPlot, phasePlot, uLim, ctrlMode, Qmode, symSim, inputBlock, inputSignal, inputScaling)
+  setupPlots(app, eventPlot, faultPlot, phasePlot, uLim, Qmode, symSim, sigP, scaleP, sigQ, scaleQ, Ph, F, blockP, blockQ)
 
 def export(app, subScripts):
   name : str = str(subScripts.exportResults.GetInputParameterString('name')[1])
