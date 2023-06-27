@@ -567,7 +567,7 @@ def setupCase(app : PF.DataObject,
     # setup simulation and loadflow
     inc = app.GetFromStudyCase('ComInc')
     sim = app.GetFromStudyCase('ComSim')
-    sim.SetAttribute('e:tstop', case.SimTime) 
+    sim.SetAttribute('e:tstop', case.SimTime + plantInfo.OFFSET) 
     
     # Setup plot setup script
     subScripts.setupPlots.SetInputParameterInt('eventPlot', options.eventPlot)
