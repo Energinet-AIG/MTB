@@ -580,7 +580,7 @@ def setupCase(app : PF.DataObject,
     subScripts.setupPlots.SetInputParameterString('sigQ', options.QspInputName if events[1] and case.internalQmode == 0 else 
                                                        options.QUspInputName if events[1] and case.internalQmode == 1 else 
                                                        options.QPFspInputName if events[1] and case.internalQmode == 2 else '')
-    subScripts.setupPlots.SetInputParameterDouble('scaleQ', options.Qspscale if events[1] and case.internalQmode == 0 else 
+    subScripts.setupPlots.SetInputParameterDouble('scaleQ', options.QspScale if events[1] and case.internalQmode == 0 else 
                                                          options.QUspScale if events[1] and case.internalQmode == 1 else 
                                                          options.QPFspScale if events[1] and case.internalQmode == 2 else 1.0)
     subScripts.setupPlots.SetInputParameterInt('Ph', 1 if events[3] else 0)
