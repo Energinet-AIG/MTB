@@ -106,6 +106,7 @@ def readScriptOptions(thisScript) -> SimpleNamespace:
   options.QmodeVar = thisScript.GetExternalObject('QmodeVar')[1]
   options.QUmodeVar = thisScript.GetExternalObject('QUmodeVar')[1]
   options.QPFmodeVar = thisScript.GetExternalObject('QPFmodeVar')[1]
+  options.FSMmodeVar = thisScript.GetExternalObject('FSMmodeVar')[1]
 
   return options
 
@@ -306,13 +307,13 @@ def setup(app, thisScript, options, subScripts, grid, project):
 
   studyTime : int = currentStudyCase.GetAttribute('iStudyTime')
 
-  for qvar in (options.QmodeVar, options.QUmodeVar, options.QPFmodeVar):
-    if qvar is not None and qvar.GetAttribute('e:tToAc') >= studyTime:
-      app.PrintWarn('The Q control mode variation {} is active after or at the same time as the base case.'.format(qvar.GetFullName(0)))
-    if not options.consolidate and qvar is not None:
-      for qstage in qvar.GetContents('*.IntSstage'):
-        if qstage.GetAttribute('e:tAcTime') == studyTime:
-          exit('The Q control mode variation stage {} is active at the same time as the the base case.'.format(qstage.GetFullName(0)))
+  for var in (options.QmodeVar, options.QUmodeVar, options.QPFmodeVar, options.FSMmodeVar):
+    if var is not None and var.GetAttribute('e:tToAc') >= studyTime:
+      app.PrintWarn('The variation {} is active after or at the same time as the base case.'.format(var.GetFullName(0)))
+    if not options.consolidate and var is not None:
+      for stage in var.GetContents('*.IntSstage'):
+        if stage.GetAttribute('e:tAcTime') == studyTime:
+          exit('The variation stage {} is active at the same time as the the base case.'.format(stage.GetFullName(0)))
 
   recordingStage = app.GetRecordingStage()
 

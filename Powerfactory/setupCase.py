@@ -371,6 +371,13 @@ def setDynQmode(case : PF.DataObject, options : SimpleNamespace) -> None:
         if not options.QPFmodeVar is None:
             options.QPFmodeVar.Activate() 
 
+def setFSMmode(case : PF.DataObject, options : SimpleNamespace) -> None:
+    if case.FSMenabled == 1:
+        if not options.FSMmodeVar is None:
+            options.FSMmodeVar.Activate()
+        else:
+            options.PrintWarn('No variation for activating FSM mode. FSM mode is assumed to be active in the default setup.')
+
 def staticDispatch(case : SimpleNamespace, options : SimpleNamespace, grid : SimpleNamespace, activeGrids : SimpleNamespace, plantInfo : SimpleNamespace, generatorSet : PF.DataObject) -> None:
     # Statgen dispatch
     if options.autoGen:
@@ -562,6 +569,7 @@ def setupCase(app : PF.DataObject,
     setupStaticCalc(app, options, symSim)
     staticDispatch(case, options, grid, activeGrids, plantInfo, generatorSet)
     setDynQmode(case, options)
+    setFSMmode(case, options)
     setupResFile(app, grid, options, case, events)
 
     # setup simulation and loadflow
