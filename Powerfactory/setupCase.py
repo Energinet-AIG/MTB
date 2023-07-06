@@ -3,7 +3,7 @@ import powerfactory as PF # type: ignore
 from types import SimpleNamespace
 
 def setupMeasFiles(app : PF.DataObject, grid : SimpleNamespace, case : PF.DataObject, options : SimpleNamespace) -> tuple:
-    usedMeasFiles = []
+    usedMeasFiles = [] # Indexing of MeasFiles, [0]: Pctrl ref. | [1]: Qctrl ref. | [2]: U ref. | [3]: Ph ref. | [4]: F ref.
 
     if all(item is 'nan' for item in case.MeasFiles):
         return (False, False, False, False, False)
@@ -46,7 +46,7 @@ def setupMeasFiles(app : PF.DataObject, grid : SimpleNamespace, case : PF.DataOb
             app.PrintError('A measurement files is specified for case ' + case.Rank + ', however a path for measurement files is not defined in the execute.py script. The measurement file is ignored.')
         usedMeasFiles = [False, False, False, False, False]
 
-    # Connect block
+    # Connect blocks
     if usedMeasFiles[0]:
         grid.connector.SetAttribute('pelm:1', options.PCtrl)
         grid.sinkP.SetAttribute('e:sInput', ['sigP', options.PspInputName])
@@ -359,8 +359,8 @@ def createStepRamp(app : PF.DataObject, case  : SimpleNamespace, grid : SimpleNa
     
     return(P, Q, U, Ph, F)
 
-def setDynQmode(case : PF.DataObject, options : SimpleNamespace) -> None:
-    # Reactive power dispatch
+def setControlVariations(app : PF.DataObject, case : PF.DataObject, options : SimpleNamespace) -> None:
+    # Reactive power control mode
     if case.internalQmode == 0:
         if not options.QmodeVar is None:
             options.QmodeVar.Activate() 
@@ -370,13 +370,13 @@ def setDynQmode(case : PF.DataObject, options : SimpleNamespace) -> None:
     else:
         if not options.QPFmodeVar is None:
             options.QPFmodeVar.Activate() 
-
-def setFSMmode(case : PF.DataObject, options : SimpleNamespace) -> None:
+    
+    # Frequency sensitive mode
     if case.FSMenabled == 1:
         if not options.FSMmodeVar is None:
             options.FSMmodeVar.Activate()
         else:
-            options.PrintWarn('No variation for activating FSM mode. FSM mode is assumed to be active in the default setup.')
+            app.PrintWarn('No variation for activating FSM mode. FSM mode is assumed to be active in the default setup.')
 
 def staticDispatch(case : SimpleNamespace, options : SimpleNamespace, grid : SimpleNamespace, activeGrids : SimpleNamespace, plantInfo : SimpleNamespace, generatorSet : PF.DataObject) -> None:
     # Statgen dispatch
@@ -384,7 +384,6 @@ def staticDispatch(case : SimpleNamespace, options : SimpleNamespace, grid : Sim
         generatorSet.Clear()
         for g in activeGrids:
             generatorSet.AddRef(g.GetContents('*.ElmGenstat', 1))
-  
 
     for gen in generatorSet.All():
         gen.SetAttribute('e:pgini', 0)
@@ -568,8 +567,7 @@ def setupCase(app : PF.DataObject,
     refName = ''
     setupStaticCalc(app, options, symSim)
     staticDispatch(case, options, grid, activeGrids, plantInfo, generatorSet)
-    setDynQmode(case, options)
-    setFSMmode(case, options)
+    setControlVariations(app, case, options)
     setupResFile(app, grid, options, case, events)
 
     # setup simulation and loadflow
