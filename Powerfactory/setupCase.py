@@ -7,12 +7,12 @@ def setupMeasFiles(app : PF.DataObject, grid : SimpleNamespace, case : PF.DataOb
 
     if all(item is 'nan' for item in case.MeasFiles):
         return (False, False, False, False, False)
-    elif options.mfpath is not None:
+    elif options.mfpath != '':
         for i, fileName in enumerate(case.MeasFiles):
             if fileName not in 'nan':
                 measFile = grid.measfiles[i]
                 measFile.SetAttribute('e:outserv', False)
-                if options.mfpath[len(options.mfpath)-1] is not '\\':
+                if options.mfpath[len(options.mfpath)-1] != '\\':
                     filePath = options.mfpath + '\\' + fileName
                 else:
                     filePath = options.mfpath + fileName
@@ -39,11 +39,11 @@ def setupMeasFiles(app : PF.DataObject, grid : SimpleNamespace, case : PF.DataOb
             else:
                 usedMeasFiles.append(False)
         for event in case.events:
-            if event[1] > case.SimTime and event[1] is not 'nan':
+            if event[1] > case.SimTime and event[1] != 'nan':
                 case.SimTime = event[1]
     else:
-        if any(item is not 'nan' for item in case.MeasFiles):
-            app.PrintError('A measurement files is specified for case ' + case.Rank + ', however a path for measurement files is not defined in the execute.py script. The measurement file is ignored.')
+        if any(item != 'nan' for item in case.MeasFiles):
+            app.PrintError('A measurement files is specified for case ' + str(case.Rank) + ', however a path for measurement files is not defined in the execute.py script. The measurement file is ignored.')
         usedMeasFiles = [False, False, False, False, False]
 
     # Connect blocks
@@ -95,7 +95,7 @@ def createFault(app : PF.DataObject, case : SimpleNamespace, grid : SimpleNamesp
                 if 'fault' in event[0]:
                     faultType = str(event[0]) 
                     prevEvent = faultType
-                elif event[0] in 'nan' and event[2] is not 'nan': # event[2]: Sp or res. U
+                elif event[0] in 'nan' and event[2] != 'nan': # event[2]: Sp or res. U
                     faultType = prevEvent
                 else:
                     continue
