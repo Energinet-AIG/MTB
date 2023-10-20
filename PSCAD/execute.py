@@ -109,6 +109,11 @@ project_pmr.parameters(ammunition = options.totalRuns, volley = options.volleySi
 
 pscad.run_simulation_sets('PMR')    
 
+# Reenable all the output channels in the model
+outputchannels = project.find_all('master:pgb')
+for output in outputchannels:
+    output.enable()
+
 # Get the build folder of the project
 tempFolder = project.temp_folder
 
