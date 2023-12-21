@@ -1,0 +1,5 @@
+pandas
+openpyxl
+jinja2
+plotly
+kaleido

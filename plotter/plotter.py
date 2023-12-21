@@ -1,18 +1,44 @@
+'''
+Minimal script to plot simulation results from PSCAD and PowerFactory.
+'''
 from os import listdir, makedirs
 from os.path import join, split, splitext, exists
 import re
 import csv
 import pandas as pd
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
+from plotly.subplots import make_subplots #type: ignore
+import plotly.graph_objects as go #type: ignore
 from configparser import ConfigParser
-from types import SimpleNamespace
 from typing import List, Dict, Union, Tuple, Set
 
 from threading import Thread
 import time
 
+class ReadConfig:
+    def __init__(self) -> None:
+        cp = ConfigParser()
+        cp.read('config.ini')
+        parsedConf = cp['config']
+        self.resultsDir = parsedConf['resultsDir']
+        self.figureSetupfilePath = parsedConf['figureSetupfilePath']
+        self.columns = parsedConf.getint('columns')                 
+        self.genHTML = parsedConf.getboolean('genHTML')
+        self.genJPEG = parsedConf.getboolean('genJPEG')
+        self.emtAndRms = parsedConf.getboolean('emtAndRms') 
+        self.emtMinTime = parsedConf.getfloat('emtMinTime')
+        self.threads = parsedConf.getint('threads')
+        self.pfFlatTIme = parsedConf.getfloat('pfFlatTime')
+        self.pscadInitTime = parsedConf.getfloat('pscadInitTime')
+
+        self.simDataDirs : List[str] = list()
+        simPaths = cp.items('Simulation data paths')
+        for _, path in simPaths:
+            self.simDataDirs.append(path)
+
 def idFile(filePath: str) -> Tuple[Union[int, None], Union[str, None], Union[int, None]]:
+    '''
+    Identifies the type (EMT or RMS), project and case id of a given file. If the file is not recognized, a none tuple is returned.
+    '''
     path, fileName = split(filePath)
     match = re.match(r'^(\w+?)_([0-9]+).(inf|csv)$', fileName.lower())
     if match:
@@ -30,16 +56,22 @@ def idFile(filePath: str) -> Tuple[Union[int, None], Union[str, None], Union[int
                     return (fileType, project, caseId)
     return (None, None, None)
 
-def mapResultFiles(dirs: list) -> Tuple[Dict[int, List[Tuple[int, str, str]]], Set[str]]:
+def mapResultFiles(dirs: List[str]) -> Tuple[Dict[int, List[Tuple[int, str, str]]], Set[str]]:
+    '''
+    Goes through all files in the given directories and maps them to a dictionary of cases.
+    '''
     files = [join(dir, p) for dir in dirs for p in listdir(dir)]
 
-    cases = {}
-    relevantProjects = set()
+    cases : Dict[int, List[Tuple[int, str, str]]] = {}
+    relevantProjects : Set[str] = set()
 
     for file in files:
         typ, project, id = idFile(file)
         if typ is None:
             continue
+        
+        assert project is not None
+        assert id is not None
 
         if typ == 0:
             project = f"{project}_RMS"
@@ -47,60 +79,45 @@ def mapResultFiles(dirs: list) -> Tuple[Dict[int, List[Tuple[int, str, str]]], S
             project = f"{project}_EMT"
 
         cases.setdefault(id, []).append((typ, project, file))
-        relevantProjects.add(project)
+
+        relevantProjects.add(project)        
     return cases, relevantProjects
 
-def readFigureSetup(setupFile : str) -> List[Dict[str, Union[int, str]]]:
-    setup = list()
-    with open(setupFile, newline='') as setupFile:
+def readFigureSetup(filePath : str) -> List[Dict[str, str]]:
+    '''
+    Reads the figure setup from the given file and returns a list of dictionaries containing the information.
+    The index of the returned list corresponds to the figure number.
+    '''
+    setup : List[str]= list()
+    with open(filePath, newline='') as setupFile:
         setupReader = csv.DictReader(setupFile, delimiter = ';')
         for row in setupReader:
-            setup.append(row)
-    return setup
+            setup.append(row) #type: ignore
+    return setup #type: ignore
 
-def initFigure(figureName : str, ncolumns : int, nrows : int):
-    figure = make_subplots(rows=nrows,cols=ncolumns)
-    figure.update_layout(title_text=figureName)
-    return figure
-    
-def readConfig() -> SimpleNamespace:
-    cp = ConfigParser()
-    cp.read('config.ini')
-    parsedConf = cp['config']
-    config = SimpleNamespace()
-    config.resultsDir = parsedConf['resultsDir']
-    config.figureSetupfilePath = parsedConf['figureSetupfilePath']
-    config.columns = parsedConf.getint('columns')                 
-    config.genHTML = parsedConf.getboolean('genHTML')
-    config.genJPEG = parsedConf.getboolean('genJPEG')
-    config.emtAndRms = parsedConf.getboolean('emtAndRms') 
-    config.emtMinTime = parsedConf.getfloat('emtMinTime')
-    config.threads = parsedConf.getint('threads')
-
-    config.simDataDirs = list()
-    simPaths = cp.items('Simulation data paths')
-    for _, path in simPaths:
-        config.simDataDirs.append(path)
-
-    return config
-
-def emtColumns(file : str) -> Dict[int, str]:
-    columns = dict()
-    with open(file, 'r') as file:
+def emtColumns(infFilePath : str) -> Dict[int, str]:
+    '''
+    Reads EMT result columns from the given inf file and returns a dictionary with the column number as key and the column name as value.
+    '''
+    columns : Dict[int, str] = dict()
+    with open(infFilePath, 'r') as file:
         for line in file: 
             rem = re.match(r'^PGB\(([0-9]+)\) +Output +Desc="(\w+)" +Group="(\w+)" +Max=([0-9\-\.]+) +Min=([0-9\-\.]+) +Units="(\w*)" *$', line)
             if rem:
                 columns[int(rem.group(1))] = rem.group(2) 
     return columns
 
-def loadEMT(infFile : str, minTime : float) -> pd.DataFrame:
+def loadEMT(infFile : str) -> pd.DataFrame:
+    '''
+    Load EMT results from a collection of csv files defined by the given inf file. Returns a dataframe with index 'time'.
+    '''
     folder, filename = split(infFile)
     filename, fileext = splitext(filename)
-    if fileext != '.inf':
-        return None
+ 
+    assert fileext.lower() == '.inf'
 
     adjFiles = listdir(folder)
-    csvMap = dict()
+    csvMap : Dict[int, str]= dict()
     pat = re.compile(r'^' + filename.lower() + r'(?:_([0-9]+))?.csv$')
 
     for file in adjFiles:
@@ -118,25 +135,23 @@ def loadEMT(infFile : str, minTime : float) -> pd.DataFrame:
     firstFile = True
     loadedColumns = 0
     for map in csvMaps:
-        dfMap = pd.read_csv(csvMap[map], skiprows = 1, header = None)
+        dfMap = pd.read_csv(csvMap[map], skiprows = 1, header = None) #type: ignore
         if not firstFile:
             dfMap = dfMap.iloc[: , 1:]
         else:
-            if max(dfMap.iloc[: ,0]) < minTime:
-                return None
             firstFile = False
         dfMap.columns = list(range(loadedColumns, loadedColumns + len(dfMap.columns)))
         loadedColumns = loadedColumns + len(dfMap.columns)
-        df = pd.concat([df, dfMap], axis=1)
+        df = pd.concat([df, dfMap], axis=1) #type: ignore
 
     columns = emtColumns(infFile)
     columns[0] = 'time'
     df = df[columns.keys()]
     df.rename(columns, inplace=True, axis=1)
-    print(f"Loaded {infFile}, length = {max(df['time'])}s")    
+    print(f"Loaded {infFile}, length = {df['time'].iloc[-1]}s") #type: ignore   
     return df
 
-def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, Union[int, str]]], figure, project: str, file: str, colors: Dict[str, List[str]], nColumns: int) -> None: 
+def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, str]], figure : go.Figure, project: str, file: str, colors: Dict[str, List[str]], nColumns: int, pfFlatTIme : float, pscadInitTime : float) -> None: 
     for fSetup in figureSetup:
         fid = int(fSetup['figure'])
         rowPos = (fid - 1) // nColumns + 1
@@ -157,12 +172,13 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, U
             else:
                 sigColumn = rawSigName
 
-            timeColName = 'time' if typ == 1 else ('Results','b:tnow in s')    
+            timeColName = 'time' if typ == 1 else ('Results','b:tnow in s')
+            timeoffset = pfFlatTIme if typ == 0 else pscadInitTime    
 
             if sigColumn in result.columns:
-                figure.append_trace(
+                figure.append_trace( #type: ignore
                     go.Scatter(
-                    x=result[timeColName],
+                    x=result[timeColName] - timeoffset,
                     y=result[sigColumn],
                     line_color=colors[project][traces], 
                     name=f"{file}:{rawSigName}",
@@ -174,7 +190,7 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, U
                 traces += 1
             elif sigColumn != '':
                 print(f"Signal '{rawSigName}' not recognized in resultfile '{file}'")
-                figure.append_trace(
+                figure.append_trace( #type: ignore
                     go.Scatter(
                     x=None,
                     y=None,
@@ -187,18 +203,21 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, U
                 )
                 traces += 1               
         
-        figure.update_xaxes(
+        figure.update_xaxes( #type: ignore
             title_text='Time[s]',  
             row=rowPos, col=colPos
         )
-        figure.update_yaxes(
+        figure.update_yaxes( #type: ignore
             title_text=f"{fSetup['title']}[{fSetup['units']}]",  
             row=rowPos, col=colPos
         )
 
 def colorMap(projects: List[str]) -> Dict[str, List[str]]:
+    '''
+    Select colors for the given projects. Return a dictionary with the project name as key and a list of colors as value.
+    '''
     colors = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990', '#dcbeff', '#9A6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#a9a9a9', '#000000']
-    cMap = dict()
+    cMap : Dict[str, List[str]] = dict()
     if len(projects) > 2:
         i = 0
         for p in projects:
@@ -212,40 +231,41 @@ def colorMap(projects: List[str]) -> Dict[str, List[str]]:
             i += 3
     return cMap
 
+def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[int, List[Tuple[int, str, str]]], caseId : int, figureSetup :  List[Dict[str, str]], cMap : Dict[str, List[str]]):
+    figure = make_subplots(rows = nrows, cols = config.columns)
+    figure.update_layout(title_text = figurePath) #type: ignore
 
-def drawFigure(figurePath, config, nrows, cases, caseId, figureSetup, cMap):
-    figure = initFigure(figurePath, config.columns, nrows)
-    addedTypes = 0
-    emptyFig = True
+    addedRmsResults = 0
+    addedEmtResults = 0
 
-    for simData in cases[caseId]:
-        typ = simData[0]
-        project = simData[1]
-        path = simData[2]
+    for typ, project, path in cases[caseId]:
         print(f"Plotting {path} in case {caseId}.")
 
         if typ == 0:
-            result = pd.read_csv(path,sep=';',decimal=',',header=[0,1])
+            result : pd.DataFrame = pd.read_csv(path,sep=';',decimal=',',header=[0,1]) #type: ignore
+            addedRmsResults += 1
         elif typ == 1:
-            result = loadEMT(path, config.emtMinTime)
+            result = loadEMT(path,)
+            if result['time'].iloc[-1] < config.emtMinTime: #type: ignore
+                print(f"Resultfile '{path}' is too short. Skipping.")
+                continue
+            addedEmtResults += 1
+        
+        addResultToFig(typ, result, figureSetup, figure, project, path, cMap, config.columns, config.pfFlatTIme, config.pscadInitTime) #type: ignore
 
-        if result is not None:
-            emptyFig = False
-            addResultToFig(typ, result, figureSetup, figure, project, path, cMap, config.columns)
-            addedTypes += typ
 
-    if not emptyFig and ( len(cases[caseId]) > addedTypes > 0 or not config.emtAndRms ) :
+    if config.emtAndRms and addedRmsResults > 0 and addedEmtResults > 0 or not config.emtAndRms and ( addedRmsResults > 0 or addedEmtResults > 0):
         if config.genHTML:
-            figure.write_html('{}.html'.format(figurePath))
+            figure.write_html('{}.html'.format(figurePath)) #type: ignore
             
         if config.genJPEG:
-            figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns)
+            figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
 
 def main() -> None:
-    config = readConfig()
+    config = ReadConfig()
     figureSetup = readFigureSetup(config.figureSetupfilePath)
     cases, allProjects = mapResultFiles(config.simDataDirs)
-    cMap = colorMap(allProjects)
+    cMap = colorMap(list(allProjects))
 
     if not exists(config.resultsDir):
         makedirs(config.resultsDir)
@@ -253,7 +273,7 @@ def main() -> None:
     nfig = len(figureSetup)
     nrows = (nfig + config.columns - nfig%config.columns)//config.columns
 
-    threads = []
+    threads : List[Thread] = list()
 
     for caseId in cases.keys():
         types = 0
@@ -270,7 +290,7 @@ def main() -> None:
     NoT = len(threads)
     if NoT > 0:  
         sched = threads.copy()
-        inProg = []
+        inProg : List[Thread] = []
 
         while len(sched) > 0:
             for t in inProg:
