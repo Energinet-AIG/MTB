@@ -9,17 +9,15 @@ executeFolder = os.path.dirname(executePath)
 os.chdir(executeFolder)
 
 from configparser import ConfigParser
-from types import SimpleNamespace
 
-def readConfig() -> SimpleNamespace:
-    cp = ConfigParser(allow_no_value=True)
-    cp.read('config.ini')
-    parsedConf = cp['config']
-    config = SimpleNamespace()
-    config.sheetPath = parsedConf['Casesheet path']
-    config.pythonPath = parsedConf['Python path']
-    config.volley = int(parsedConf['Volley'])
-    return config
+class readConfig:
+  def __init__(self) -> None:
+    self.cp = ConfigParser(allow_no_value=True)
+    self.cp.read('config.ini')
+    self.parsedConf = self.cp['config']
+    self.sheetPath = str(self.parsedConf['Casesheet path'])
+    self.pythonPath = str(self.parsedConf['Python path'])
+    self.volley = int(self.parsedConf['Volley'])
 
 config = readConfig()
 import sys
@@ -94,7 +92,7 @@ def main():
     print('execute_pscad.py started at:', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
     pscad = mhi.pscad.application()
 
-    plantSettings, channels, _, maxRank = cs.setup('testcases.xlsx', pscadEnabled = True)
+    plantSettings, channels, _, maxRank = cs.setup(config.sheetPath, pscad = True, pfEncapsulation = None)
 
     si.renderFortran('interface.f', channels)
 

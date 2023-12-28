@@ -21,9 +21,9 @@ class FaultType(IntEnum):
 
 class PlantSettings:
     def __init__(self, path : str) -> None:
-        df : pd.DataFrame = pd.read_excel(path, sheet_name='Settings', header=None) #type: ignore
+        df : pd.DataFrame = pd.read_excel(path, sheet_name='Settings', header=None) # type: ignore
 
-        df.set_index(0, inplace=True) #type: ignore
+        df.set_index(0, inplace = True) # type: ignore
         inputs : pd.Series[Union[str, float]] = df.iloc[1:, 0] 
 
         self.Projectname = str(inputs['Projectname'])
@@ -69,7 +69,7 @@ class Case:
         self.Simulationtime: float = float(case['Simulationtime'])
         self.Events : List[Tuple[str, float, Union[float, str], Union[float, str]]] = []
 
-        index : pd.Index[str] = case.index #type: ignore
+        index : pd.Index[str] = case.index # type: ignore
         i = 0
         while(True):
             typeLabel = f'type.{i}' if i > 0 else 'type'
@@ -93,15 +93,10 @@ class Case:
             else:
                 break
 
-def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabled : bool = False) -> Tuple[PlantSettings, List[si.Channel], List[Case], int]:
+def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFinterface]) -> Tuple[PlantSettings, List[si.Channel], List[Case], int]:
     '''
     Sets up the simulation channels and cases from the given casesheet. Returns plant settings, channels, cases and max rank.
     '''
-    #def impedance(scr : float, xr : float, pn : float, un : float) -> Tuple[float, float]:
-    #    scr_ = max(scr, 0.001)
-    #    r : float = un*un/pn/sqrt(xr*xr + 1)/scr_ if scr >= 0.0 else 0.0
-    #    return r, r*xr
-
     def impedance_uk_pcu(scr : float, xr : float, pn : float, un : float) -> Tuple[float, float]:
         scr_ = max(scr, 0.001)
         pcu = pn/sqrt(xr*xr + 1)/scr_ if scr >= 0.0 else 0.0
@@ -109,26 +104,35 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
         return 100.0 * uk, 1000.0 * pcu
 
     def signal(name : str, pscad : bool = True, defaultConnection : bool = True, measFile : bool = False) -> si.Signal:
-        newSignal = si.Signal(name, pscad, defaultConnection, measFile, pfE)
+        newSignal = si.Signal(name, pscad, pfEncapsulation)
+        
+        if defaultConnection:
+            newSignal.addPFsub_S(f'{name}.ElmDsl', 's:x')
+            newSignal.addPFsub_R(f'{name}.ElmDsl', 'slope')
+            newSignal.addPFsub_S0(f'{name}.ElmDsl', 'x0')
+            newSignal.addPFsub_T(f'{name}.ElmDsl', 'mode')
+        if measFile:
+            newSignal.setElmFile(f'{name}_meas.ElmFile')
+        
         channels.append(newSignal)
         return newSignal
 
     def constant(name : str, value : float, pscad : bool = True) -> si.Constant:
-        newConstant = si.Constant(name, value, pscad, pfE)
+        newConstant = si.Constant(name, value, pscad, pfEncapsulation)
         channels.append(newConstant)
         return newConstant
 
     def pfObjRefer(name : str) -> si.PfObjRefer:
-        newPfObjRefer = si.PfObjRefer(name, pfE)
+        newPfObjRefer = si.PfObjRefer(name, pfEncapsulation)
         channels.append(newPfObjRefer)
         return newPfObjRefer
     
     def string(name : str) -> si.String:
-        newString = si.String(name, pfE)
+        newString = si.String(name, pfEncapsulation)
         channels.append(newString)
         return newString
     
-    pfEnabled = pfE is not None
+    pf = pfEncapsulation is not None
 
     channels : List[si.Channel] = []
     plantSettings = PlantSettings(casesheetPath)
@@ -137,7 +141,7 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
     si.pscad_time_offset = plantSettings.PSCAD_init_time
 
     # Voltage source control
-    mtb_t_vmode = signal('mtb_t_vmode', defaultConnection = False) #only to be used in PSCAD
+    mtb_t_vmode = signal('mtb_t_vmode', defaultConnection = False) # only to be used in PSCAD
     mtb_s_vref_pu = signal('mtb_s_vref_pu', measFile = True)
     mtb_s_vref_pu.addPFsub_S0('vac.ElmVac', 'usetp', lambda _, x : abs(x))
     mtb_s_vref_pu.addPFsub_S0('initializer_script.ComDpl', 'IntExpr:5', lambda _, x : abs(x))
@@ -154,7 +158,7 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
     mtb_s_vbref_pu = signal('mtb_s_vbref_pu', defaultConnection = False)
     mtb_s_vcref_pu = signal('mtb_s_vcref_pu', defaultConnection = False)
 
-    #Grid impedance
+    # Grid impedance
     mtb_s_scr = signal('mtb_s_scr')
     mtb_s_scr.addPFsub_S0('initializer_script.ComDpl', 'IntExpr:11')
     mtb_s_scr.addPFsub_S0('initializer_qdsl.ElmQdsl', 'initVals:11')
@@ -163,17 +167,12 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
     mtb_s_xr.addPFsub_S0('initializer_script.ComDpl', 'IntExpr:12')
     mtb_s_xr.addPFsub_S0('initializer_qdsl.ElmQdsl', 'initVals:12')
 
- #   ldf_t_rg0_ohm = signal('ldf_t_rg0_ohm', pscad = False, defaultConnection = False)
- #   ldf_t_rg0_ohm.addPFsub_S0('z.ElmSind', 'rrea')
- #   ldf_t_xg0_ohm = signal('mtb_t_ldf_xg0_ohm', pscad = False, defaultConnection = False)
- #   ldf_t_xg0_ohm.addPFsub_S0('z.ElmSind', 'xrea')
-
     ldf_t_uk = signal('ldf_t_uk', pscad = False, defaultConnection = False)
     ldf_t_uk .addPFsub_S0('z.ElmSind', 'uk')
     ldf_t_pcu_kw = signal('ldf_t_pcu_kw', pscad = False, defaultConnection = False)
     ldf_t_pcu_kw.addPFsub_S0('z.ElmSind', 'Pcu')
 
-    #Zero sequence impedance
+    # Zero sequence impedance
     mtb_t_r0_ohm = signal('mtb_t_r0_ohm', defaultConnection = False)
     mtb_t_r0_ohm.addPFsub_S0('vac.ElmVac', 'R0')
     mtb_t_r0_ohm.addPFsub_S0('fault_ctrl.ElmDsl', 'r0')
@@ -302,7 +301,7 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
     ldf_r_vcNode = pfObjRefer('mtb_r_vcNode')
     ldf_r_vcNode.addPFsub('vac.ElmVac', 'contbar')
 
-    #Refences outserv time invariants
+    # Refences outserv time invariants
     ldf_t_refOOS = signal('ldf_t_refOOS', pscad = False, defaultConnection = False)
     ldf_t_refOOS.addPFsub_S0('mtb_s_pref_pu.ElmDsl', 'outserv')
     ldf_t_refOOS.addPFsub_S0('mtb_s_qref_pu.ElmDsl', 'outserv')
@@ -319,11 +318,11 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
     ldf_t_refOOS.addPFsub_S0('mtb_s_9.ElmDsl', 'outserv')
     ldf_t_refOOS.addPFsub_S0('mtb_s_10.ElmDsl', 'outserv')
 
-    if pfE is not None:
-        if not bool(pfE.getAttribute('qref_multiplexer.ElmDsl', 'outserv')):
+    if pf:
+        if not bool(pfEncapsulation.getAttribute('qref_multiplexer.ElmDsl', 'outserv')):
             ldf_t_refOOS.addPFsub_S0('qref_multiplexer.ElmDsl', 'outserv')
 
-    #Calculation settings constants and timeVariants
+    # Calculation settings constants and timeVariants
     ldf_c_iopt_lim = constant('ldf_c_iopt_lim', int(plantSettings.PF_enforce_Q_limits_in_LDF), pscad = False)
     ldf_c_iopt_lim.addPFsub('$studycase$/ComLdf', 'iopt_lim')
 
@@ -342,10 +341,10 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
     ldf_c_iopt_plim = constant('ldf_c_iopt_plim', int(plantSettings.PF_enforce_P_limits_in_LDF), pscad = False)
     ldf_c_iopt_plim.addPFsub('$studycase$/ComLdf', 'iopt_plim')
 
-    ldf_c_iopt_net = signal('ldf_c_iopt_net', pscad = False, defaultConnection = False) #ldf asymmetrical option boolean
+    ldf_c_iopt_net = signal('ldf_c_iopt_net', pscad = False, defaultConnection = False) # ldf asymmetrical option boolean
     ldf_c_iopt_net.addPFsub_S0('$studycase$/ComLdf', 'iopt_net')
 
-    inc_c_iopt_net = string('inc_c_iopt_net') #inc asymmetrical option 
+    inc_c_iopt_net = string('inc_c_iopt_net') # inc asymmetrical option 
     inc_c_iopt_net.addPFsub('$studycase$/ComInc', 'iopt_net')
 
     inc_c_iopt_show = constant('inc_c_iopt_show', 1, pscad = False)
@@ -360,13 +359,13 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
     inc_c_tstart = constant('inc_c_tstart', 0, pscad = False)
     inc_c_tstart.addPFsub('$studycase$/ComInc', 'tstart')
 
-    inc_c_iopt_sync = constant('inc_c_iopt_sync', plantSettings.PF_enforced_sync, pscad = False) #enforced sync. option
+    inc_c_iopt_sync = constant('inc_c_iopt_sync', plantSettings.PF_enforced_sync, pscad = False) # enforced sync. option
     inc_c_iopt_sync.addPFsub('$studycase$/ComInc', 'iopt_sync')
 
     inc_c_syncperiod = constant('inc_c_syncperiod', 0.001, pscad = False)
     inc_c_syncperiod.addPFsub('$studycase$/ComInc', 'syncperiod')
 
-    inc_c_iopt_adapt = constant('inc_c_iopt_adapt', plantSettings.PF_variable_step, pscad = False) #variable step option
+    inc_c_iopt_adapt = constant('inc_c_iopt_adapt', plantSettings.PF_variable_step, pscad = False) # variable step option
     inc_c_iopt_adapt.addPFsub('$studycase$/ComInc', 'iopt_adapt')
 
     inc_c_iopt_lt = constant('inc_c_iopt_lt', 0, pscad = False)
@@ -375,24 +374,24 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
     inc_c_autocomp = constant('inc_c_autocomp', 0, pscad = False)
     inc_c_autocomp.addPFsub('$studycase$/ComInc', 'automaticCompilation')
 
-    df = pd.read_excel(casesheetPath, sheet_name='Cases', header=1) #type: ignore
+    df = pd.read_excel(casesheetPath, sheet_name='Cases', header=1) # type: ignore
 
     maxRank = 0
     cases : List[Case] = []
 
-    for _, case in df.iterrows(): #type: ignore
-        cases.append(Case(case)) #type: ignore
+    for _, case in df.iterrows(): # type: ignore
+        cases.append(Case(case)) # type: ignore
         maxRank = max(maxRank, cases[-1].rank)
 
     for case in cases:
-        #Simulation time
+        # Simulation time
         pf_lonRec = pscad_lonRec = 0.0
 
-        #PF: Default symmetrical simulation
+        # PF: Default symmetrical simulation
         ldf_c_iopt_net[case.rank] = 0
         inc_c_iopt_net[case.rank] = 'sym'
 
-        #Voltage source control default setup
+        # Voltage source control default setup
         mtb_t_vmode[case.rank] = 0
         mtb_s_vref_pu[case.rank] = -case.U0
         mtb_s_phref_deg[case.rank] = 0.0
@@ -406,13 +405,12 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
         mtb_s_scr[case.rank] = case.SCR0
         mtb_s_xr[case.rank] = case.XR0
 
-        #ldf_t_rg0_ohm[case.rank], ldf_t_xg0_ohm[case.rank] = impedance(case.SCR0, case.XR0, plantSettings.Pn, plantSettings.Un)
         ldf_t_uk[case.rank], ldf_t_pcu_kw[case.rank] = impedance_uk_pcu(case.SCR0, case.XR0, plantSettings.Pn, plantSettings.Un)
 
         mtb_t_r0_ohm[case.rank] = plantSettings.R0
         mtb_t_x0_ohm[case.rank] = plantSettings.X0
         
-        #Standard plant references and outputs default setup
+        # Standard plant references and outputs default setup
         mtb_s_pref_pu[case.rank] = case.P0
         mtb_s_qref_pu[case.rank] = case.Qref0
 
@@ -428,12 +426,12 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
         else:
             mtb_t_fsm[case.rank] = 0
         
-        #Fault signals
+        # Fault signals
         flt_s_type[case.rank] = 0.0
         flt_s_rf_ohm[case.rank] = 0.0
         flt_s_resxf[case.rank] = 0.0
         
-        #Dault custom signal values
+        # Dault custom signal values
         mtb_s[0][case.rank] = 0.0
         mtb_s[1][case.rank] = 0.0
         mtb_s[2][case.rank] = 0.0
@@ -445,10 +443,10 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
         mtb_s[8][case.rank] = 0.0
         mtb_s[9][case.rank] = 0.0
 
-        #Default OOS references
+        # Default OOS references
         ldf_t_refOOS[case.rank] = 0
 
-        #Parse events
+        # Parse events
         for event in case.Events:
             eventType = event[0]
             eventTime = event[1]
@@ -565,14 +563,14 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
             elif eventType == 'Pref recording':
                 assert isinstance(eventX1, str)
                 assert isinstance(eventX2, float)
-                wf = mtb_s_pref_pu[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pfEnabled, pscad=pscadEnabled)
+                wf = mtb_s_pref_pu[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pf, pscad=pscad)
                 pscad_lonRec = max(wf.pscadLen, pscad_lonRec)
                 pf_lonRec = max(wf.pfLen, pf_lonRec)
 
             elif eventType == 'Qref recording':
                 assert isinstance(eventX1, str)
                 assert isinstance(eventX2, float)
-                wf = mtb_s_qref_pu[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pfEnabled, pscad=pscadEnabled)
+                wf = mtb_s_qref_pu[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pf, pscad=pscad)
                 pscad_lonRec = max(wf.pscadLen, pscad_lonRec)
                 pf_lonRec = max(wf.pfLen, pf_lonRec)
 
@@ -581,7 +579,7 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
                 assert isinstance(eventX2, float)
                 if mtb_t_vmode[case.rank].s0 != 2:
                     mtb_t_vmode[case.rank] = 1
-                wf = mtb_s_vref_pu[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pfEnabled, pscad=pscadEnabled)
+                wf = mtb_s_vref_pu[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pf, pscad=pscad)
                 pscad_lonRec = max(wf.pscadLen, pscad_lonRec)
                 pf_lonRec = max(wf.pfLen, pf_lonRec)
 
@@ -589,22 +587,22 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
                 assert isinstance(eventX1, str)
                 assert isinstance(eventX2, float)
                 mtb_t_vmode[case.rank] = 2
-                mtb_s_varef_pu[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=False)
-                mtb_s_vbref_pu[case.rank] = si.Recorded(path=eventX1, column=2, scale=eventX2, pf=False)
-                wf = mtb_s_vcref_pu[case.rank] = si.Recorded(path=eventX1, column=3, scale=eventX2, pf=False)
+                mtb_s_varef_pu[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=False, pscad=pscad)
+                mtb_s_vbref_pu[case.rank] = si.Recorded(path=eventX1, column=2, scale=eventX2, pf=False, pscad=pscad)
+                wf = mtb_s_vcref_pu[case.rank] = si.Recorded(path=eventX1, column=3, scale=eventX2, pf=False, pscad=pscad)
                 pscad_lonRec = max(wf.pscadLen, pscad_lonRec)
 
             elif eventType == 'Phase recording':
                 assert isinstance(eventX1, str)
                 assert isinstance(eventX2, float)
-                wf = mtb_s_phref_deg[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pfEnabled, pscad=pscadEnabled)
+                wf = mtb_s_phref_deg[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pf, pscad=pscad)
                 pscad_lonRec = max(wf.pscadLen, pscad_lonRec)
                 pf_lonRec = max(wf.pfLen, pf_lonRec)
 
             elif eventType == 'Frequency recording':
                 assert isinstance(eventX1, str)
                 assert isinstance(eventX2, float)
-                wf = mtb_s_fref_hz[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pfEnabled, pscad=pscadEnabled)
+                wf = mtb_s_fref_hz[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pf, pscad=pscad)
                 pscad_lonRec = max(wf.pscadLen, pscad_lonRec)
                 pf_lonRec = max(wf.pfLen, pf_lonRec)
 
@@ -616,7 +614,7 @@ def setup(casesheetPath : str, pfE : Optional[si.PFinterface] = None, pscadEnabl
                 if eventType.lower().endswith('recording'):
                     assert isinstance(eventX1, str)
                     assert isinstance(eventX2, float)
-                    wf = customSignal[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pfEnabled, pscad=pscadEnabled)
+                    wf = customSignal[case.rank] = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pf, pscad=pscad)
                     pscad_lonRec = max(wf.pscadLen, pscad_lonRec)
                     pf_lonRec = max(wf.pfLen, pf_lonRec)
                 else:

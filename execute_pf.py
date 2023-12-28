@@ -272,7 +272,9 @@ def main():
 
   # Read and setup cases from sheet
   pfInterface = si.PFencapsulation(app, root)
-  plantSettings, channels, cases, maxRank = cs.setup(config.sheetPath, pfInterface)
+  plantSettings, channels, cases, maxRank = cs.setup(casesheetPath = config.sheetPath, 
+                                                     pscad = False,
+                                                     pfEncapsulation = pfInterface)
 
   #Create export folder if it does not exist
   if not os.path.exists(config.exportPath):

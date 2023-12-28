@@ -5,7 +5,7 @@ PSCAD is interfaced through rendered fortran code.
 '''
 from __future__ import annotations 
 from abc import ABC, abstractmethod
-from typing import Union, Dict, List, Tuple, Optional, Callable #, Protocol
+from typing import Union, Dict, List, Tuple, Optional, Callable
 from math import isnan
 from copy import copy
 from warnings import warn
@@ -16,42 +16,20 @@ import pandas as pd
 try:
     import powerfactory as pf #type: ignore
     print(f'Imported powerfactory module from {pf.__file__}')
-    PF_ENABLED = True
 except ImportError:
-    PF_ENABLED = False #type: ignore
     warn('sim_interface.py: Powerfactory module not found.')
 
 try:
     import jinja2
     print(f'Imported jinja2 module from {jinja2.__file__}')
-    pscad = True
 except ImportError:
-    pscad = False #type: ignore
     warn('sim_interface.py: jinja2 module not found. (pscad functionality disabled)')
 
-if not PF_ENABLED and not pscad:
-    raise RuntimeError('sim_interface.py: Neither Powerfactory nor PSCAD functionality enabled.')
 
 MEAS_FILE_FOLDER : str = 'MTB_files' # constant
 
 pf_time_offset : float = 0.0
 pscad_time_offset : float = 0.0
-
-""" 
-https://peps.python.org/pep-0544/
-class PFinterface(Protocol):
-    '''
-    Defines interface for encapsulation of Powerfactory native interface.
-    '''
-    def setAttribute(self, target : str, attribute : str, value : Union[str, float, int]) -> None:
-        ...
-
-    def getAttribute(self, target : str, attribute : str) -> Optional[Union[str, float, int, pf.DataObject]]:
-        ...
-
-    def newParamEvent(self, name : str, target : str, attrib : str, value : float, time : float) -> None:
-        ...
-"""
 
 class PFinterface(ABC):
     '''
@@ -265,9 +243,9 @@ class Recorded(Waveform):
     Waveform defined in specified column in file. Time must be first column (column = 0). Supports powerfactory ElmFile format, PSCAD legacy .out and .csv with dot decimal and semi-colon seperator.
     Only used in signal type channel.
     """  
-    def __init__(self, path : str, column : int, pf : bool = True, pscad : bool = True, scale : float = 1.0) -> None:
+    def __init__(self, path : str, column : int, pf : bool, pscad : bool, scale : float = 1.0) -> None:
         if not pf and not pscad:
-            raise ValueError('Recorded waveform must be either pf or pscad or both.')
+            warn(f'Recorded waveform (source: {path}) is not either set to be pf or pscad or both.')
         
         self.__path__ : str = path
         self.__column__ : int = column
@@ -335,7 +313,7 @@ class Recorded(Waveform):
         elif pathExtension.lower() == '.csv':                
             df : pd.DataFrame = pd.read_csv(self.__path__, sep=';', decimal='.', header=None, skiprows=1) # type: ignore
         else:
-            raise ValueError(f'Unknown filetype of: {self.__path__}.')
+            raise RuntimeError(f'Unknown filetype of: {self.__path__}.')
         
         #Data is loaded
         df = df.set_index(0) # type: ignore         
@@ -352,7 +330,7 @@ class Recorded(Waveform):
             df.rename(index={df.index[0] : time[0]}, inplace=True) # type: ignore
 
             recFilePath = join(MEAS_FILE_FOLDER , f'{pathName}_{self.__column__}_{self.__scale__}_{pf_time_offset}.meas')
-            measData : str = df.to_csv(None, sep = ' ', header=False, index_label=False).replace('\r\n','\n')
+            measData : str = df.to_csv(None, sep = ' ', header=False, index_label=False).replace('\r\n','\n') # type: ignore
             measData = '1\n' + measData
             f = open(recFilePath, 'w')
             f.write(measData)
@@ -369,7 +347,7 @@ class Recorded(Waveform):
                 df.rename(index={df.index[0] : time[0]}, inplace=True) # type: ignore
 
             recFilePath = join(MEAS_FILE_FOLDER , f'{pathName}_{self.__column__}_{self.__scale__}_{pscad_time_offset}.out')
-            measData = df.to_csv(None, sep = ' ', header=False, index_label=False).replace('\r\n','\n')
+            measData = df.to_csv(None, sep = ' ', header=False, index_label=False).replace('\r\n','\n') # type: ignore
             measData = '\n' + measData
             f = open(recFilePath, 'w')
             f.write(measData)
@@ -379,10 +357,14 @@ class Recorded(Waveform):
 
     @property
     def pfLen(self):
+        if self.__pfPath__ == None:
+            warn(f'Recorded waveform (source: {self.__path__}) pfLen call with pfPath set to None. Returning 0.0.')
         return self.__pfLen__
 
     @property
     def pscadLen(self):
+        if self.__pscadPath__ == None:
+             warn(f'Recorded waveform (source: {self.__path__}) pscadLen call with pscadPath set to None. Returning 0.0.')
         return self.__pscadLen__
 
     @property
@@ -391,14 +373,18 @@ class Recorded(Waveform):
 
     @property
     def pfPath(self):
+        if self.__pfPath__ == None:
+            raise RuntimeError('pfPath not set.')
         return self.__pfPath__
 
     @property
     def pscadPath(self):
+        if self.__pscadPath__ == None:
+            raise RuntimeError('pscadPath not set.')
         return self.__pscadPath__
     
     def add(self, t: float, s: float, r: float = 0) -> None:
-        warn(f'Add called on recorded waveform. Ignoring.')
+        warn(f'Recorded waveform (source: {self.__path__}) .add method called. Ignoring.')
 
 class Channel(ABC):
     @property
@@ -426,7 +412,7 @@ class Constant(Channel, FortranRenderable, PfApplyable):
     """
     Constant (irespective of rank and time) value passed to Powerfactory and PSCAD.
     """
-    def __init__(self, name : str, value : Union[float, int, bool], pscad : bool = True, pfInterface : Optional[PFinterface] = None) -> None:
+    def __init__(self, name : str, value : Union[float, int, bool], pscad : bool, pfInterface : Optional[PFinterface]) -> None:
         self.__name__ = name
         self.__PSCAD__ = pscad
         self.__value__ : float = float(value)
@@ -454,11 +440,9 @@ end subroutine {name}_const"""
         return self.__name__
 
     def renderFortran(self) -> str:
-        if pscad and self.__PSCAD__:
+        if self.__PSCAD__:
             return self.__signalTemplate__
         else:
-            if self.__PSCAD__:
-                warn(f'PSCAD features disabled. jinja2 not available. Constant {self.__name__} not rendered.')
             return ''
 
     def addPFsub(self, target : str, attribute : str) -> None:
@@ -471,7 +455,9 @@ end subroutine {name}_const"""
 
     def applyToPF(self, rank : int) -> None:
         if self.pfInterface == None:
-            raise RuntimeError(f'Powerfactory interface not set on constant: {self.name}.')
+            warn(f'Powerfactory interface not set on constant: {self.name}. Ignoring.')
+            return None
+        
         for target, attrib in self.__PFsubs__:
             self.pfInterface.setAttribute(target, attrib, self.value)
 
@@ -480,7 +466,7 @@ class Signal(Channel, FortranRenderable, PfApplyable):
     Dynamic value both in respect to time and rank passed to Powerfactory and PSCAD.
     Each rank can either contain a piecewise defined waveform or a recorded waveform.
     """        
-    def __init__(self, name : str, pscad : bool = True, defaultConnection : bool = True, measFile : bool = False, pfInterface : Optional[PFinterface] = None) -> None:
+    def __init__(self, name : str, pscad : bool, pfInterface : Optional[PFinterface]) -> None:
         self.__name__ : str = name
         self.__PSCAD__ : bool = pscad
         self.__waveforms__ : Dict[int, Waveform] = dict()
@@ -489,7 +475,7 @@ class Signal(Channel, FortranRenderable, PfApplyable):
         self.__PFsubs_R__ : List[Tuple[str, str]]= []
         self.__PFsubs_T__ : List[Tuple[str, str, Optional[Callable[[Signal, float], float]]]] = []
         self.__pfInterface__ : Optional[PFinterface] = pfInterface
-        self.__PFmeasFile__ : Optional[str] = None #Optional path to ElmFile object
+        self.__ElmFile__ : Optional[str] = None #Optional path to ElmFile object
 
         self.__signalTemplate__ = \
 """subroutine {{ signal.name }}_signal(rank, y)
@@ -561,15 +547,7 @@ class Signal(Channel, FortranRenderable, PfApplyable):
     endif
     {% endif %}
 end subroutine {{ signal.name }}_signal"""
-
-        if defaultConnection:
-            self.addPFsub_S(f'{name}.ElmDsl', 's:x')
-            self.addPFsub_R(f'{name}.ElmDsl', 'slope')
-            self.addPFsub_S0(f'{name}.ElmDsl', 'x0')
-            self.addPFsub_T(f'{name}.ElmDsl', 'mode')
-            if measFile:
-                self.__PFmeasFile__ = f'{name}_meas.ElmFile'
-
+        
     @property
     def name(self):
         return self.__name__
@@ -577,6 +555,13 @@ end subroutine {{ signal.name }}_signal"""
     @property
     def pfInterface(self) -> Optional[PFinterface]:
         return self.__pfInterface__
+
+    @property
+    def ElmFile(self):
+        return self.__ElmFile__
+    
+    def setElmFile(self, path : str) -> None:
+        self.__ElmFile__ = path
 
     def __setitem__(self, rank : int, wave : Union[Waveform, float, int]) -> None:
         if isinstance(wave, float) or isinstance(wave, int):
@@ -646,7 +631,7 @@ end subroutine {{ signal.name }}_signal"""
         return groupedSignal
         
     def renderFortran(self) -> str:
-        if pscad and self.__PSCAD__:
+        if self.__PSCAD__:
             hasPiecewise : bool = False
             hasRecorded : bool = False 
 
@@ -664,8 +649,6 @@ end subroutine {{ signal.name }}_signal"""
                                     RecordedClass = Recorded,
                                     isinstance = isinstance)
         else:
-            if self.__PSCAD__:
-                warn(f'PSCAD features disabled. jinja2 not available. Signal {self.name} not rendered.')
             return ''
 
     def addPFsub_S(self, target : str, attribute : str):
@@ -686,7 +669,8 @@ end subroutine {{ signal.name }}_signal"""
 
     def applyToPF(self, rank: int) -> None:
         if self.pfInterface == None:
-            raise RuntimeError(f'Powerfactory interface not set on signal: {self.name}.')
+            warn(f'Powerfactory interface not set on signal: {self.name}. Ignoring.')
+            return None
 
         wf = self.__waveforms__[rank]
 
@@ -701,14 +685,14 @@ end subroutine {{ signal.name }}_signal"""
                     if wf.t_pf(0)[i] != 0.0:
                         self.pfInterface.newParamEvent(f'{self.name}_s', target, attrib, wf.r(0)[i], wf.t_pf(0)[i])
 
-            if self.__PFmeasFile__ != None:
-                self.pfInterface.setAttribute(self.__PFmeasFile__, 'e:outserv', 1)
-                self.pfInterface.setAttribute(self.__PFmeasFile__, 'e:f_name', '')
+            if self.ElmFile != None:
+                self.pfInterface.setAttribute(self.ElmFile, 'e:outserv', 1)
+                self.pfInterface.setAttribute(self.ElmFile, 'e:f_name', '')
 
         elif isinstance(wf, Recorded):
-            if self.__PFmeasFile__ != None and wf.pfPath != None:
-                self.pfInterface.setAttribute(self.__PFmeasFile__, 'e:outserv', 0)
-                self.pfInterface.setAttribute(self.__PFmeasFile__, 'e:f_name', abspath(wf.pfPath))
+            if self.ElmFile != None:
+                self.pfInterface.setAttribute(self.ElmFile, 'e:outserv', 0)
+                self.pfInterface.setAttribute(self.ElmFile, 'e:f_name', abspath(wf.pfPath))
 
         for target, attrib, func in self.__PFsubs_S0__:
             if func != None:
@@ -736,7 +720,7 @@ class String(Channel, PfApplyable):
     """
     String value, only dynamic in respect to rank, passed to Powerfactory.
     """          
-    def __init__(self, name : str, pfInterface : Optional[PFinterface] = None) -> None:
+    def __init__(self, name : str, pfInterface : Optional[PFinterface]) -> None:
         self.__name__ : str = name
         self.__strings__ : Dict[int, str] = dict()
         self.__PFsubs__ : List[Tuple[str, str]] = []
@@ -773,7 +757,9 @@ class String(Channel, PfApplyable):
 
     def applyToPF(self, rank: int) -> None:
         if self.pfInterface == None:
-            raise RuntimeError(f'Powerfactory interface not set on string: {self.name}.')
+            warn(f'Powerfactory interface not set on string: {self.name}. Ignoring.')
+            return None
+
         for target, attribute in self.__PFsubs__:
             self.pfInterface.setAttribute(target, attribute, self.__strings__[rank])
 
@@ -783,7 +769,8 @@ class PfObjRefer(String):
     """           
     def applyToPF(self, rank: int) -> None:
         if self.pfInterface == None:
-            raise RuntimeError(f'Powerfactory interface not set on PfObjRefer: {self.name}.')
+            warn(f'Powerfactory interface not set on PfObjRefer: {self.name}. Ignoring.')
+            return None
 
         if self.__strings__[rank] == '$nochange$':
             return None
@@ -791,26 +778,24 @@ class PfObjRefer(String):
         for target, attribute in self.__PFsubs__:
             self.pfInterface.setAttribute(target, attribute, self.__strings__[rank])
 
-if pscad:
-    def renderFortran(path : str, channels : List[Channel]) -> None:
-        """
-        Renders all releavant signals and constants in a list to a single fortran file.
-        """ 
-        
-        fortranCode = ''  
-        for channel in channels:
-            if isinstance(channel, FortranRenderable):
-                fortranCode += channel.renderFortran() + '\n\n'
+def renderFortran(path : str, channels : List[Channel]) -> None:
+    """
+    Renders all releavant signals and constants in a list to a single fortran file.
+    """ 
+    
+    fortranCode = ''  
+    for channel in channels:
+        if isinstance(channel, FortranRenderable):
+            fortranCode += channel.renderFortran() + '\n\n'
 
-        with open(path, mode='w') as f:
-            f.write(fortranCode)
-            f.close()
+    with open(path, mode='w') as f:
+        f.write(fortranCode)
+        f.close()
 
-if PF_ENABLED:
-   def applyToPowerfactory(channels : List[Channel], rank : int):          
-        """
-        Apply all channel setups in list to Powerfactory.
-        """ 
-        for channel in channels:
-            if isinstance(channel, PfApplyable):
-                channel.applyToPF(rank)
+def applyToPowerfactory(channels : List[Channel], rank : int):          
+    """
+    Apply all channel setups in list to Powerfactory.
+    """ 
+    for channel in channels:
+        if isinstance(channel, PfApplyable):
+            channel.applyToPF(rank)
