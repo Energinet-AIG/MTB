@@ -143,3 +143,12 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+_junk/
+
+powerfactory.pyi
+*channels.xlsx
+test.py
+MTB_files/
+mhi/
+tests/

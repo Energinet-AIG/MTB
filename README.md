@@ -12,25 +12,16 @@ Connecting new electricity generation & demand facilities to the public transmis
   To get started, follow the Quickstart Guides on the PP-MTB wiki [Home](https://github.com/Energinet-IG/PP-MTB/wiki) page of the [PP-MTB GitHub](https://github.com/Energinet-AIG/PP-MTB). Here you will find guides for the Excel-Sheet, PowerFactory, PSCAD and the plotter.
 
 ## Requirements
-  Dependencies are installed by running `pip install -r requirements.txt`. Each tool subfolder contains a requirements.txt file.
+  Dependencies are installed by running `pip install -r requirements.txt`. 
 
 ### Tested PowerFactory environments
 The Powerfactory tool has been tested in the following environments and dependency versions as listed in requirements.txt:
-* 2021 SP6  &nbsp; with &nbsp; Python 3.8.8<sup>1)</sup>
-* 2022 &emsp; &emsp; with &nbsp; Python 3.8.8 
-* 2022 SP1  &nbsp; with &nbsp; Python 3.8.8 
-* 2022 SP3  &nbsp; with &nbsp; Python 3.8.8
-* 2022 SP4  &nbsp; with &nbsp; Python 3.8.8 
-* 2023 &emsp; &emsp; with &nbsp; Python 3.8.8<sup>2)</sup> 
-* 2023 &emsp; &emsp; with &nbsp; Python 3.11.1<sup>2)</sup> 
-
- <sup>1)</sup> _The PQ measurement object (StPqmea) does not support measurement of negative-sequence active and reactive power and are therefore not plotted._
- 
- <sup>2)</sup> _Exporting results as .png sometimes plots graphs with unavailable signals, however the .csv file is still exported correctly and results can be plotted with the Plotter tool._
+* 2023 SP5  &nbsp; with &nbsp; Python 3.8.8 
 
 ### Tested PSCAD environments
 The PSCAD tool has been tested with in following environments and dependency versions as listed in requirements.txt:
-* 5.0.1.0 with Python 3.7.2 (embedded python)
+* 5.0.2.0 with Python 3.7.2 (embedded python)
+
 #### Tested Fortran Compilers
 Intel(R) Visual Fortran Compiler XE:
 * 12.1.7.371
@@ -40,7 +31,6 @@ Intel(R) Visual Fortran Compiler XE:
 * 15.0.5.280 (64-bit)
 
 ### Tested python environments for Plotter
-
 The Plotter tool has been tested with the following python versions and dependency versions as listed in requirements.txt:
 * 3.7.16 (in anaconda environment)
 * 3.8.8
