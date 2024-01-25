@@ -168,7 +168,7 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
     mtb_s_xr.addPFsub_S0('initializer_qdsl.ElmQdsl', 'initVals:12')
 
     ldf_t_uk = signal('ldf_t_uk', pscad = False, defaultConnection = False)
-    ldf_t_uk .addPFsub_S0('z.ElmSind', 'uk')
+    ldf_t_uk.addPFsub_S0('z.ElmSind', 'uk')
     ldf_t_pcu_kw = signal('ldf_t_pcu_kw', pscad = False, defaultConnection = False)
     ldf_t_pcu_kw.addPFsub_S0('z.ElmSind', 'Pcu')
 
@@ -183,7 +183,7 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
 
     # Standard plant references and outputs
     mtb_s_pref_pu = signal('mtb_s_pref_pu', measFile = True)
-    mtb_s_pref_pu .addPFsub_S0('initializer_script.ComDpl', 'IntExpr:6')
+    mtb_s_pref_pu.addPFsub_S0('initializer_script.ComDpl', 'IntExpr:6')
     mtb_s_pref_pu.addPFsub_S0('initializer_qdsl.ElmQdsl', 'initVals:6')
     mtb_s_pref_pu.addPFsub_S0('powerf_ctrl.ElmSecctrl', 'psetp', lambda _, x : x * plantSettings.Pn)
 
