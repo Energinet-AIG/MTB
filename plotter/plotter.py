@@ -10,6 +10,8 @@ from plotly.subplots import make_subplots #type: ignore
 import plotly.graph_objects as go #type: ignore
 from configparser import ConfigParser
 from typing import List, Dict, Union, Tuple, Set
+import sampling_functions
+from down_sampling_method import DownSamplingMethod
 
 from threading import Thread
 import time
@@ -151,13 +153,13 @@ def loadEMT(infFile : str) -> pd.DataFrame:
     print(f"Loaded {infFile}, length = {df['time'].iloc[-1]}s") #type: ignore   
     return df
 
-def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, str]], figure : go.Figure, project: str, file: str, colors: Dict[str, List[str]], nColumns: int, pfFlatTIme : float, pscadInitTime : float) -> None: 
+def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, str]], figure : go.Figure, project: str, file: str, colors: Dict[str, List[str]], nColumns: int, pfFlatTIme : float, pscadInitTime : float) -> None:
     for fSetup in figureSetup:
         fid = int(fSetup['figure'])
+        downsampling_method = sampling_functions.get_down_sampling_method(fSetup)
         rowPos = (fid - 1) // nColumns + 1
         colPos = (fid - 1) % nColumns + 1
         traces = 0
-
         for sig in range(1,4):
             signalKey = 'rms' if typ == 0 else 'emt'
             rawSigName = fSetup.get(f"{signalKey}_signal_{sig}", "")
@@ -176,10 +178,16 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
             timeoffset = pfFlatTIme if typ == 0 else pscadInitTime    
 
             if sigColumn in result.columns:
+                x_value = result[timeColName] - timeoffset
+                y_value = result[sigColumn]
+                if downsampling_method == DownSamplingMethod.GRADIENT:
+                    x_value, y_value = sampling_functions.downsample_based_on_gradient(x_value, y_value, float(fSetup['gradient_threshold']))
+                elif downsampling_method == DownSamplingMethod.AMOUNT:
+                    x_value, y_value = sampling_functions.down_sample(x_value, y_value)
                 figure.append_trace( #type: ignore
                     go.Scatter(
-                    x=result[timeColName] - timeoffset,
-                    y=result[sigColumn],
+                    x=x_value,
+                    y=y_value,
                     line_color=colors[project][traces], 
                     name=f"{file}:{rawSigName}",
                     legendgroup=project,
@@ -264,6 +272,7 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
 def main() -> None:
     config = ReadConfig()
     figureSetup = readFigureSetup(config.figureSetupfilePath)
+    print(figureSetup)
     cases, allProjects = mapResultFiles(config.simDataDirs)
     cMap = colorMap(list(allProjects))
 

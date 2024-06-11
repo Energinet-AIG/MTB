@@ -152,3 +152,6 @@ test.py
 MTB_files/
 mhi/
 tests/
+
+#idea folder
+.idea
