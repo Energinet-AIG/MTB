@@ -12,6 +12,7 @@ from configparser import ConfigParser
 from typing import List, Dict, Union, Tuple, Set
 import sampling_functions
 from down_sampling_method import DownSamplingMethod
+import plot_cursor_functions
 
 from threading import Thread
 import time
@@ -184,21 +185,24 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
                     x_value, y_value = sampling_functions.downsample_based_on_gradient(x_value, y_value, float(fSetup['gradient_threshold']))
                 elif downsampling_method == DownSamplingMethod.AMOUNT:
                     x_value, y_value = sampling_functions.down_sample(x_value, y_value)
-                figure.append_trace( #type: ignore
+                trace_name = f"{file}:{rawSigName}"
+                figure.add_trace(
                     go.Scatter(
-                    x=x_value,
-                    y=y_value,
-                    line_color=colors[project][traces], 
-                    name=f"{file}:{rawSigName}",
-                    legendgroup=project,
-                    showlegend=True
-                ),
-                row=rowPos, col=colPos
+                        x=x_value,
+                        y=y_value,
+                        line_color=colors[project][traces],
+                        name=trace_name,
+                        legendgroup=project,
+                        showlegend=True
+                    ),
+                    row=rowPos, col=colPos
                 )
+                #print_subplot_dimensions(figure)
+                plot_cursor_functions.add_annotations(x_value, y_value, figure, fid, fid)
                 traces += 1
             elif sigColumn != '':
                 print(f"Signal '{rawSigName}' not recognized in resultfile '{file}'")
-                figure.append_trace( #type: ignore
+                figure.add_trace( #type: ignore
                     go.Scatter(
                     x=None,
                     y=None,
@@ -219,6 +223,22 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
             title_text=f"{fSetup['title']}[{fSetup['units']}]",  
             row=rowPos, col=colPos
         )
+
+
+def print_subplot_dimensions(fig):
+    # Extract the layout information from the figure
+    xaxes = [attr for attr in dir(fig.layout) if attr.startswith('xaxis')]
+    yaxes = [attr for attr in dir(fig.layout) if attr.startswith('yaxis')]
+
+
+    print(xaxes)
+    print(yaxes)
+    # Determine the number of rows and columns
+    #max_xaxis = max([int(attr[5:]) for attr in xaxes])
+    #max_yaxis = max([int(attr[5:]) for attr in yaxes])
+
+    # Print the dimensions
+    #print(f"Figure has {max_yaxis} rows and {max_xaxis} columns")
 
 def colorMap(projects: List[str]) -> Dict[str, List[str]]:
     '''
@@ -242,7 +262,6 @@ def colorMap(projects: List[str]) -> Dict[str, List[str]]:
 def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[int, List[Tuple[int, str, str]]], caseId : int, figureSetup :  List[Dict[str, str]], cMap : Dict[str, List[str]]):
     figure = make_subplots(rows = nrows, cols = config.columns)
     figure.update_layout(title_text = figurePath) #type: ignore
-
     addedRmsResults = 0
     addedEmtResults = 0
 
@@ -272,7 +291,6 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
 def main() -> None:
     config = ReadConfig()
     figureSetup = readFigureSetup(config.figureSetupfilePath)
-    print(figureSetup)
     cases, allProjects = mapResultFiles(config.simDataDirs)
     cMap = colorMap(list(allProjects))
 
@@ -294,6 +312,7 @@ def main() -> None:
             if config.threads > 1:
                 threads.append(Thread(target = drawFigure, args = (figurePath, config, nrows, cases, caseId, figureSetup, cMap,)))
             else:
+                print(1)
                 drawFigure(figurePath, config, nrows, cases, caseId, figureSetup, cMap)
     
     NoT = len(threads)
