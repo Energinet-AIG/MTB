@@ -69,12 +69,13 @@ def resetProjectUnits(project : pf.DataObject) -> None:
   '''
   Resets the project units to the default units.
   '''
-  SetPrj = project.SearchObject('Settings\\Project Settings.SetPrj')
+  #SetPrj = project.SearchObject('Settings\\Project Settings.SetPrj')
+  SetPrj = project.SearchObject('Settings.SetFold')
   if SetPrj:
     SetPrj.Delete()
-  ComIncUnits = project.SearchObject('Settings\\Units')
-  if ComIncUnits:
-    ComIncUnits.Delete()
+  #ComIncUnits = project.SearchObject('Settings\\Units')
+  #if ComIncUnits:
+  #  ComIncUnits.Delete()
 
   project.Deactivate() #type: ignore
   project.Activate() #type: ignore
