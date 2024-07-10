@@ -58,9 +58,17 @@ class PFencapsulation(PFinterface):
     def __findPfObject__(self, target : str) -> Optional[pf.DataObject]:
         if target == '':
             obj = None
-        elif target.lower().startswith('$studycase$/'):
-            scPath = target.split('/')[-1]
+        elif target.startswith('$studycase$\\'):
+            scPath = target.split('\\')[-1]
             obj = self.__app__.GetFromStudyCase(scPath)
+        elif target.startswith('$parent$\\'):
+            parentPFe = PFencapsulation(self.__app__, self.__root__.GetParent())
+            obj = parentPFe.__findPfObject__(target.lower().replace('$parent$\\', '', 1))
+        elif target.startswith('\\'):
+            userPFe = PFencapsulation(self.__app__, self.__app__.GetCurrentUser().GetParent())
+            while target.startswith('\\'):
+                target = target[1:]
+            obj = userPFe.__findPfObject__(target)
         else:
             obj = self.__root__.SearchObject(target)
 
@@ -470,9 +478,9 @@ class Signal(Channel, FortranRenderable, PfApplyable):
         self.__name__ : str = name
         self.__PSCAD__ : bool = pscad
         self.__waveforms__ : Dict[int, Waveform] = dict()
-        self.__PFsubs_S__ : List[Tuple[str, str]]= []
+        self.__PFsubs_S__ : List[Tuple[str, str,  Optional[Callable[[Signal, float], float]]]]= []
         self.__PFsubs_S0__ : List[Tuple[str, str,  Optional[Callable[[Signal, float], float]]]] = []
-        self.__PFsubs_R__ : List[Tuple[str, str]]= []
+        self.__PFsubs_R__ : List[Tuple[str, str,  Optional[Callable[[Signal, float], float]]]]= []
         self.__PFsubs_T__ : List[Tuple[str, str, Optional[Callable[[Signal, float], float]]]] = []
         self.__pfInterface__ : Optional[PFinterface] = pfInterface
         self.__ElmFile__ : Optional[str] = None #Optional path to ElmFile object
@@ -653,17 +661,17 @@ end subroutine {{ signal.name }}_signal"""
         else:
             return ''
 
-    def addPFsub_S(self, target : str, attribute : str):
-        if not (target, attribute) in self.__PFsubs_S__:
-            self.__PFsubs_S__.append((target, attribute))
+    def addPFsub_S(self, target : str, attribute : str, func : Optional[Callable[[Signal, float], float]] = None):
+        if not (target, attribute, func) in self.__PFsubs_S__:
+            self.__PFsubs_S__.append((target, attribute, func))
 
     def addPFsub_S0(self, target : str, attribute : str, func : Optional[Callable[[Signal, float], float]] = None):
         if not (target, attribute, func) in self.__PFsubs_S0__:
             self.__PFsubs_S0__.append((target, attribute, func))
 
-    def addPFsub_R(self, target : str, attribute : str):
-        if not (target, attribute) in self.__PFsubs_R__:
-            self.__PFsubs_R__.append((target, attribute))
+    def addPFsub_R(self, target : str, attribute : str, func : Optional[Callable[[Signal, float], float]] = None):
+        if not (target, attribute, func) in self.__PFsubs_R__:
+            self.__PFsubs_R__.append((target, attribute, func))
 
     def addPFsub_T(self, target : str, attribute : str, func : Optional[Callable[[Signal, float], float]] = None):
         if not (target, attribute, func) in self.__PFsubs_T__:
@@ -677,15 +685,25 @@ end subroutine {{ signal.name }}_signal"""
         wf = self.__waveforms__[rank]
 
         if isinstance(wf, Piecewise):
-            for target, attrib in self.__PFsubs_S__:
+            for target, attrib, func in self.__PFsubs_S__:
                 for i in range(wf.len):
                     if wf.t_pf(0)[i] != 0.0:
-                        self.pfInterface.newParamEvent(f'{self.name}_s', target, attrib, wf.s(0)[i], wf.t_pf(0)[i])
+                        if func != None:
+                            attValue = func(self, wf.s(0)[i])
+                        else:
+                            attValue = wf.s(0)[i]
+
+                        self.pfInterface.newParamEvent(f'{self.name}_s', target, attrib, attValue, wf.t_pf(0)[i])
             
-            for target, attrib in self.__PFsubs_R__:
+            for target, attrib, func in self.__PFsubs_R__:
                 for i in range(wf.len):
                     if wf.t_pf(0)[i] != 0.0:
-                        self.pfInterface.newParamEvent(f'{self.name}_s', target, attrib, wf.r(0)[i], wf.t_pf(0)[i])
+                        if func != None:
+                            attValue = func(self, wf.r(0)[i])
+                        else:
+                            attValue = wf.r(0)[i]
+
+                        self.pfInterface.newParamEvent(f'{self.name}_s', target, attrib, attValue, wf.t_pf(0)[i])
 
             if self.ElmFile != None:
                 self.pfInterface.setAttribute(self.ElmFile, 'e:outserv', 1)
