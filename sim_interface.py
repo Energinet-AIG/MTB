@@ -545,8 +545,10 @@ class Signal(Channel, FortranRenderable, PfApplyable):
 
     {% if hasPiecewise %}
     if( events > -1) then
-        if( ( index < events ) .and. (TIME >= tx(index + 1)) ) then
-            index = index + 1
+        if ( index < events ) then
+            if ( TIME >= tx(index + 1) ) then
+                index = index + 1
+            endif
         endif
         y =  sy(index) + (TIME - tx(index)) * ry(index)
         STORI(NSTORI) = index
