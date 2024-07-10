@@ -194,6 +194,10 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
     mtb_s_qref_pu.addPFsub_S0('station_ctrl.ElmStactrl', 'qsetp', lambda _, x : -x * plantSettings.Pn)
     mtb_s_qref_pu.addPFsub_S0('station_ctrl.ElmStactrl', 'pfsetp', lambda _, x: max(min(x, 1.0), -1.0))
 
+    mtb_s_qref_q_pu = signal('mtb_s_qref_q_pu', defaultConnection = False, measFile= False, pscad = False)
+    mtb_s_qref_qu_pu = signal('mtb_s_qref_qu_pu', defaultConnection = False, measFile= False, pscad = False)
+    mtb_s_qref_pf_pu = signal('mtb_s_qref_pf_pu', defaultConnection = False, measFile= False, pscad = False)
+
     mtb_t_qmode = signal('mtb_t_qmode')
     mtb_t_qmode.addPFsub_S0('initializer_script.ComDpl', 'IntExpr:8')
     mtb_t_qmode.addPFsub_S0('initializer_qdsl.ElmQdsl', 'initVals:8')
@@ -257,7 +261,7 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
     # Time and rank control
     mtb_t_simtimePscad_s = signal('mtb_t_simtimePscad_s', defaultConnection = False)
     mtb_t_simtimePf_s = signal('mtb_t_simtimePf_s', defaultConnection = False)
-    mtb_t_simtimePf_s.addPFsub_S0('$studycase$/ComSim', 'tstop')
+    mtb_t_simtimePf_s.addPFsub_S0('$studycase$\\ComSim', 'tstop')
 
     # Fault
     flt_s_type = signal('flt_s_type')
@@ -324,55 +328,55 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
 
     # Calculation settings constants and timeVariants
     ldf_c_iopt_lim = constant('ldf_c_iopt_lim', int(plantSettings.PF_enforce_Q_limits_in_LDF), pscad = False)
-    ldf_c_iopt_lim.addPFsub('$studycase$/ComLdf', 'iopt_lim')
+    ldf_c_iopt_lim.addPFsub('$studycase$\\ComLdf', 'iopt_lim')
 
     ldf_c_iopt_apdist = constant('ldf_c_iopt_apdist', 1, pscad = False)
-    ldf_c_iopt_apdist.addPFsub('$studycase$/ComLdf', 'iopt_apdist')
+    ldf_c_iopt_apdist.addPFsub('$studycase$\\ComLdf', 'iopt_apdist')
 
     ldf_c_iPST_at = constant('ldf_c_iPST_at', 1, pscad = False)
-    ldf_c_iPST_at.addPFsub('$studycase$/ComLdf', 'iPST_at')
+    ldf_c_iPST_at.addPFsub('$studycase$\\ComLdf', 'iPST_at')
 
     ldf_c_iopt_at = constant('ldf_c_iopt_at', 1, pscad = False)
-    ldf_c_iopt_at.addPFsub('$studycase$/ComLdf', 'iopt_at')
+    ldf_c_iopt_at.addPFsub('$studycase$\\ComLdf', 'iopt_at')
 
     ldf_c_iopt_asht = constant('ldf_c_iopt_asht', 1, pscad = False)
-    ldf_c_iopt_asht.addPFsub('$studycase$/ComLdf', 'iopt_asht')
+    ldf_c_iopt_asht.addPFsub('$studycase$\\ComLdf', 'iopt_asht')
 
     ldf_c_iopt_plim = constant('ldf_c_iopt_plim', int(plantSettings.PF_enforce_P_limits_in_LDF), pscad = False)
-    ldf_c_iopt_plim.addPFsub('$studycase$/ComLdf', 'iopt_plim')
+    ldf_c_iopt_plim.addPFsub('$studycase$\\ComLdf', 'iopt_plim')
 
     ldf_c_iopt_net = signal('ldf_c_iopt_net', pscad = False, defaultConnection = False) # ldf asymmetrical option boolean
-    ldf_c_iopt_net.addPFsub_S0('$studycase$/ComLdf', 'iopt_net')
+    ldf_c_iopt_net.addPFsub_S0('$studycase$\\ComLdf', 'iopt_net')
 
     inc_c_iopt_net = string('inc_c_iopt_net') # inc asymmetrical option 
-    inc_c_iopt_net.addPFsub('$studycase$/ComInc', 'iopt_net')
+    inc_c_iopt_net.addPFsub('$studycase$\\ComInc', 'iopt_net')
 
     inc_c_iopt_show = constant('inc_c_iopt_show', 1, pscad = False)
-    inc_c_iopt_show.addPFsub('$studycase$/ComInc', 'iopt_show')
+    inc_c_iopt_show.addPFsub('$studycase$\\ComInc', 'iopt_show')
 
     inc_c_dtgrd = constant('inc_c_dtgrd', 0.001, pscad = False)
-    inc_c_dtgrd.addPFsub('$studycase$/ComInc', 'dtgrd')
+    inc_c_dtgrd.addPFsub('$studycase$\\ComInc', 'dtgrd')
 
     inc_c_dtgrd_max = constant('inc_c_dtgrd_max', 0.01, pscad = False)
-    inc_c_dtgrd_max.addPFsub('$studycase$/ComInc', 'dtgrd_max')
+    inc_c_dtgrd_max.addPFsub('$studycase$\\ComInc', 'dtgrd_max')
 
     inc_c_tstart = constant('inc_c_tstart', 0, pscad = False)
-    inc_c_tstart.addPFsub('$studycase$/ComInc', 'tstart')
+    inc_c_tstart.addPFsub('$studycase$\\ComInc', 'tstart')
 
     inc_c_iopt_sync = constant('inc_c_iopt_sync', plantSettings.PF_enforced_sync, pscad = False) # enforced sync. option
-    inc_c_iopt_sync.addPFsub('$studycase$/ComInc', 'iopt_sync')
+    inc_c_iopt_sync.addPFsub('$studycase$\\ComInc', 'iopt_sync')
 
     inc_c_syncperiod = constant('inc_c_syncperiod', 0.001, pscad = False)
-    inc_c_syncperiod.addPFsub('$studycase$/ComInc', 'syncperiod')
+    inc_c_syncperiod.addPFsub('$studycase$\\ComInc', 'syncperiod')
 
     inc_c_iopt_adapt = constant('inc_c_iopt_adapt', plantSettings.PF_variable_step, pscad = False) # variable step option
-    inc_c_iopt_adapt.addPFsub('$studycase$/ComInc', 'iopt_adapt')
+    inc_c_iopt_adapt.addPFsub('$studycase$\\ComInc', 'iopt_adapt')
 
     inc_c_iopt_lt = constant('inc_c_iopt_lt', 0, pscad = False)
-    inc_c_iopt_lt.addPFsub('$studycase$/ComInc', 'iopt_lt')
+    inc_c_iopt_lt.addPFsub('$studycase$\\ComInc', 'iopt_lt')
 
     inc_c_autocomp = constant('inc_c_autocomp', 0, pscad = False)
-    inc_c_autocomp.addPFsub('$studycase$/ComInc', 'automaticCompilation')
+    inc_c_autocomp.addPFsub('$studycase$\\ComInc', 'automaticCompilation')
 
     df = pd.read_excel(casesheetPath, sheet_name='Cases', header=1) # type: ignore
 
@@ -413,7 +417,10 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
         # Standard plant references and outputs default setup
         mtb_s_pref_pu[case.rank] = case.P0
         mtb_s_qref_pu[case.rank] = case.Qref0
-
+        mtb_s_qref_q_pu[case.rank] = 0.0
+        mtb_s_qref_qu_pu[case.rank] = 0.0
+        mtb_s_qref_pf_pu[case.rank] = 0.0
+        
         if case.Qmode.lower() == 'q' or plantSettings.Default_Q_mode.lower() == 'q' and case.Qmode.lower() == 'default':
             mtb_t_qmode[case.rank] = 0
         elif case.Qmode.lower() == 'q(u)' or plantSettings.Default_Q_mode.lower() == 'q(u)' and case.Qmode.lower() == 'default':
@@ -462,6 +469,15 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
                 assert isinstance(eventX1, float)
                 assert isinstance(eventX2, float)
                 mtb_s_qref_pu[case.rank].add(eventTime, eventX1, eventX2)
+
+                if mtb_t_qmode[case.rank].s0 == 0:
+                    mtb_s_qref_q_pu[case.rank].add(eventTime, eventX1, 0.0)
+                elif mtb_t_qmode[case.rank].s0 == 1:
+                    mtb_s_qref_qu_pu[case.rank].add(eventTime, eventX1, 0.0)
+                elif mtb_t_qmode[case.rank].s0 == 2:
+                    mtb_s_qref_pf_pu[case.rank].add(eventTime, eventX1, 0.0)
+                else:
+                    raise ValueError('Invalid Q mode')
 
             elif eventType == 'Voltage':
                 assert isinstance(eventX1, float)

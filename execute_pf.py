@@ -26,11 +26,12 @@ config = readConfig()
 import sys
 sys.path.append(config.pythonPath)
 
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Union
 if getattr(sys, 'gettrace', None) is not None:
-  sys.path.append('C:\\Program Files\\DIgSILENT\\PowerFactory 2023 SP5\\Python\\3.8')
+  sys.path.append('C:\\Program Files\\DIgSILENT\\PowerFactory 2024 SP2\\Python\\3.8')
 import powerfactory as pf #type: ignore 
 
+import re
 import time
 from datetime import datetime
 import case_setup as cs
@@ -220,6 +221,93 @@ def setupPlots(app : pf.Application, root : pf.DataObject):
 
   app.WriteChangesToDb()
 
+def addCustomSubscribers(thisScript : pf.DataObject, channels : List[si.Channel]) -> None:
+  '''
+  Add custom subscribers to the channels. For example, references applied as parameter events directly to control blocks.
+  '''
+  def script_GetExtnalObject(name : str) -> Optional[pf.DataObject]:
+    retVal : List[Union[int, pf.DataObject, None]] = thisScript.GetExternalObject(name) #type: ignore
+    assert isinstance(retVal, list)
+    assert len(retVal) == 2
+    assert isinstance(retVal[0], int)
+    assert retVal[0] == 0
+    assert isinstance(retVal[1], (pf.DataObject, type(None)))
+    return retVal[1]
+  
+  def script_GetStr(name : str) -> str:
+    retVal : List[Union[int, str]] = thisScript.GetInputParameterString(name) #type: ignore
+    assert isinstance(retVal, list)
+    assert len(retVal) == 2
+    assert isinstance(retVal[0], int)
+    assert retVal[0] == 0
+    if isinstance(retVal[1], str):
+      return retVal[1]
+    else:
+      return ''
+  
+  def script_GetDouble(name : str) -> Optional[float]:
+    retVal : List[Union[int, float]] = thisScript.GetInputParameterDouble(name)
+    assert isinstance(retVal, list)
+    assert len(retVal) == 2
+    assert isinstance(retVal[0], int)
+    assert retVal[0] == 0
+    assert isinstance(retVal[1], (float, type(None)))
+    return retVal[1]
+  
+  def getChnlByName(name : str) -> si.Channel:
+    for ch in channels:
+      if ch.name == name:
+        return ch
+    raise RuntimeError(f'Channel {name} not found.')
+
+  custConfStr = script_GetStr('sub_conf_str')
+
+  def convertToConfStr(param : str, signal : str) -> str:
+    sub_obj = script_GetExtnalObject(f'{param}_sub')
+    sub_attrib = script_GetStr(f'{param}_sub_attrib')
+    if sub_obj is not None and sub_attrib != '':
+      sub_scale = script_GetDouble(f'{param}_sub_scale')
+      assert isinstance(sub_scale, float)
+      sub_signal = getChnlByName(f'{signal}')
+      assert isinstance(sub_signal, si.Signal)
+      return f'\{sub_obj.GetFullName()}:{sub_attrib}={signal}:S~{sub_scale} * x' #type: ignore
+    return ''
+
+  pref_conf = convertToConfStr('Pref', 'mtb_s_pref_pu')
+  qref1_conf = convertToConfStr('Qref_q', 'mtb_s_qref_q_pu')
+  qref2_conf = convertToConfStr('Qref_qu', 'mtb_s_qref_qu_pu')
+  qref3_conf = convertToConfStr('Qref_pf', 'mtb_s_qref_pf_pu')
+  custom1_conf = convertToConfStr('Custom1', 'mtb_s_1')
+  custom2_conf = convertToConfStr('Custom2', 'mtb_s_2')
+  custom3_conf = convertToConfStr('Custom3', 'mtb_s_3')
+
+  configs = custConfStr.split(';') + [pref_conf, qref1_conf, qref2_conf, qref3_conf, custom1_conf, custom2_conf, custom3_conf]
+
+  confFilterStr = r"^([^:*?=\",~|\n\r]+):((?:\w:)?\w+(?::\d+)?)=(\w+):(S|s|S0|s0|R|r|T|t|C|c)~(.*)"
+  confFilter = re.compile(confFilterStr)
+
+  for config in configs:
+    confFilterMatch = confFilter.match(config)
+    if confFilterMatch is not None:
+      obj = confFilterMatch.group(1)
+      attrib = confFilterMatch.group(2)
+      sub = confFilterMatch.group(3)
+      typ = confFilterMatch.group(4)
+      lamb = confFilterMatch.group(5)
+
+      chnl = getChnlByName(sub)
+      if isinstance(chnl, si.Signal):
+        if typ.lower() == 's' or typ.lower() == 'c':
+          chnl.addPFsub_S(obj, attrib, lambda _,x : eval(lamb))
+        elif typ.lower() == 's0':
+          chnl.addPFsub_S0(obj, attrib, lambda _,x : eval(lamb)) #Not exactly safe
+        elif typ.lower() == 'r':
+          chnl.addPFsub_R(obj, attrib, lambda _,x : eval(lamb))
+        elif typ.lower() == 't':
+          chnl.addPFsub_T(obj, attrib, lambda _,x : eval(lamb))
+      elif isinstance(chnl, si.Constant) or isinstance(chnl, si.PfObjRefer) or isinstance(chnl, si.String):
+          chnl.addPFsub(obj, attrib)
+
 def main():
   # 
   app, project, thisScript = connectPF()
@@ -276,6 +364,9 @@ def main():
   plantSettings, channels, cases, maxRank = cs.setup(casesheetPath = config.sheetPath, 
                                                      pscad = False,
                                                      pfEncapsulation = pfInterface)
+
+  # Add user channel subscribers
+  addCustomSubscribers(thisScript, channels)
 
   #Create export folder if it does not exist
   if not os.path.exists(config.exportPath):
