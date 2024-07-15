@@ -146,7 +146,7 @@ cython_debug/
 
 _junk/
 
-powerfactory.pyi
+#powerfactory.pyi
 *channels.xlsx
 test.py
 MTB_files/
