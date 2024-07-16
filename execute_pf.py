@@ -507,6 +507,12 @@ def main():
     app.WriteChangesToDb()
     studycase.Deactivate() 
     app.WriteChangesToDb()
+  
+  # Create post run backup
+  postBackup = script_GetInt(thisScript, 'Post_run_backup')
+  assert isinstance(postBackup, int)
+  if postBackup > 0:
+    project.CreateVersion('POST_MTB_{}'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
 
 if __name__ == "__main__":
   main()
