@@ -37,6 +37,7 @@ import time
 from datetime import datetime
 import case_setup as cs
 import sim_interface as si
+#import pandas as pd
 
 def script_GetExtObj(script : pf.ComPython, name : str) -> Optional[pf.DataObject]:
   '''
@@ -119,7 +120,7 @@ def resetProjectUnits(project : pf.IntPrj) -> None:
   project.Deactivate() 
   project.Activate() 
 
-def setupResFiles(app : pf.Application, root : pf.DataObject):
+def setupResFiles(app : pf.Application, script : pf.ComPython, root : pf.DataObject):
   '''
   Setup the result files for the studycase.
   '''
@@ -198,6 +199,22 @@ def setupResFiles(app : pf.Application, root : pf.DataObject):
   assert mtb_s_10 is not None
   elmRes.AddVariable(mtb_s_10,  's:yo') 
   
+  # Include measurement objects and set alias
+  for i in range(1, 100):
+    Meas_obj_n = script_GetExtObj(script, f'Meas_obj_{i}')
+    if Meas_obj_n is not None:
+      Meas_obj_n_signals = script_GetStr(script, f'Meas_obj_{i}_signals')
+      assert Meas_obj_n_signals is not None
+      Meas_obj_n_signals = Meas_obj_n_signals.split(';')
+
+      for signal in Meas_obj_n_signals:
+        if signal != '':
+          elmRes.AddVariable(Meas_obj_n, signal)
+      
+      Meas_obj_n_alias = script_GetStr(script, f'Meas_obj_{i}_alias')
+      assert Meas_obj_n_alias is not None
+      Meas_obj_n.SetAttribute('for_name', Meas_obj_n_alias)
+
 def setupExport(app : pf.Application, filename : str):
     '''
     Setup the export component for the studycase.
@@ -212,6 +229,7 @@ def setupExport(app : pf.Application, filename : str):
     comRes.SetAttribute('iopt_exp', 6)
     comRes.SetAttribute('iopt_sep', 0)
     comRes.SetAttribute('ciopt_head', 1)
+    comRes.SetAttribute('iopt_locn', 4)
     comRes.SetAttribute('dec_Sep', ',')
     comRes.SetAttribute('col_Sep', ';')
     comRes.SetAttribute('f_name', csvFileName)
@@ -335,7 +353,7 @@ def addCustomSubscribers(thisScript : pf.ComPython, channels : List[si.Channel])
           chnl.addPFsub(obj, attrib)
 
 def main():
-  # 
+  # Connect to Powerfactory
   app, project, thisScript = connectPF()
 
   # Check if any studycase is active
@@ -464,7 +482,7 @@ def main():
       taskAuto.AppendStudyCase(newStudycase) 
       taskAuto.AppendCommand(inc, -1) 
       taskAuto.AppendCommand(sim, -1) 
-      setupResFiles(app, root)
+      setupResFiles(app, thisScript, root)
       app.WriteChangesToDb()
       setupExport(app, exportName)
       app.WriteChangesToDb()
@@ -483,7 +501,9 @@ def main():
     comRes : pf.ComRes = app.GetFromStudyCase('ComRes') #type: ignore
     assert comRes is not None
     if onlySetup == 0:
-      comRes.Execute() 
+      comRes.Execute()
+      time.sleep(5)
+
     app.WriteChangesToDb()
     studycase.Deactivate() 
     app.WriteChangesToDb()
