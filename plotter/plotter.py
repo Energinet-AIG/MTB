@@ -288,8 +288,9 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
         if config.genHTML:
             figure.write_html('{}.html'.format(figurePath)) #type: ignore
             
-        if config.genJPEG:
-            figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
+        if config.genJPEG: #.write_image hangs inf, blocks script completion
+            # figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
+            figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
 
 def main() -> None:
     config = ReadConfig()
@@ -297,12 +298,12 @@ def main() -> None:
     
     cases, allProjects = mapResultFiles(config.simDataDirs)
     if len(config.includeCase) >= 1:
-        for case_number in list(cases.keys()):  # Make a copy of the keys to iterate over
+        for case_number in list(cases.keys()):
             if case_number not in config.includeCase:
                 del cases[case_number]
         print("Included cases specified in config:", cases.keys())
     elif len(config.excludeCase) >= 1:
-        for case_number in list(cases.keys()):  # Make a copy of the keys to iterate over
+        for case_number in list(cases.keys()): 
             if case_number in config.excludeCase:
                 del cases[case_number]
         print('Excluded cases specified in config:', config.excludeCase)
