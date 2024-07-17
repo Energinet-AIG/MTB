@@ -32,7 +32,10 @@ class ReadConfig:
         self.threads = parsedConf.getint('threads')
         self.pfFlatTIme = parsedConf.getfloat('pfFlatTime')
         self.pscadInitTime = parsedConf.getfloat('pscadInitTime')
-
+        #print(parsedConf.get('includeCase', ''))
+        #print(parsedConf.get('excludeCase', ''))
+        self.includeCase = [int(item.strip()) for item in parsedConf.get('includeCase', '').split(',') if item != '']
+        self.excludeCase = [int(item.strip()) for item in parsedConf.get('excludeCase', '').split(',') if item != '']
         self.simDataDirs : List[str] = list()
         simPaths = cp.items('Simulation data paths')
         for _, path in simPaths:
@@ -291,7 +294,19 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
 def main() -> None:
     config = ReadConfig()
     figureSetup = readFigureSetup(config.figureSetupfilePath)
+    
     cases, allProjects = mapResultFiles(config.simDataDirs)
+    if len(config.includeCase) >= 1:
+        for case_number in list(cases.keys()):  # Make a copy of the keys to iterate over
+            if case_number not in config.includeCase:
+                del cases[case_number]
+        print("Included cases specified in config:", cases.keys())
+    elif len(config.excludeCase) >= 1:
+        for case_number in list(cases.keys()):  # Make a copy of the keys to iterate over
+            if case_number in config.excludeCase:
+                del cases[case_number]
+        print('Excluded cases specified in config:', config.excludeCase)
+
     cMap = colorMap(list(allProjects))
 
     if not exists(config.resultsDir):
