@@ -29,7 +29,7 @@ sys.path.append(config.pythonPath)
 
 from typing import Optional, Tuple, List, Union
 if getattr(sys, 'gettrace', None) is not None:
-  sys.path.append('C:\\Program Files\\DIgSILENT\\PowerFactory 2024 SP2\\Python\\3.8')
+  sys.path.append('C:\\Program Files\\DIgSILENT\\PowerFactory 2024 SP4\\Python\\3.8')
 import powerfactory as pf #type: ignore
 
 import re
@@ -342,13 +342,13 @@ def addCustomSubscribers(thisScript : pf.ComPython, channels : List[si.Channel])
       chnl = getChnlByName(sub)
       if isinstance(chnl, si.Signal):
         if typ.lower() == 's' or typ.lower() == 'c':
-          chnl.addPFsub_S(obj, attrib, lambda _,x : eval(lamb))
+          chnl.addPFsub_S(obj, attrib, lambda _,x,l=lamb : eval(l))
         elif typ.lower() == 's0':
-          chnl.addPFsub_S0(obj, attrib, lambda _,x : eval(lamb)) #Not exactly safe
+          chnl.addPFsub_S0(obj, attrib, lambda _,x,l=lamb : eval(l)) #Not exactly safe
         elif typ.lower() == 'r':
-          chnl.addPFsub_R(obj, attrib, lambda _,x : eval(lamb))
+          chnl.addPFsub_R(obj, attrib, lambda _,x,l=lamb : eval(l))
         elif typ.lower() == 't':
-          chnl.addPFsub_T(obj, attrib, lambda _,x : eval(lamb))
+          chnl.addPFsub_T(obj, attrib, lambda _,x,l=lamb : eval(l))
       elif isinstance(chnl, si.Constant) or isinstance(chnl, si.PfObjRefer) or isinstance(chnl, si.String):
           chnl.addPFsub(obj, attrib)
 
