@@ -172,7 +172,7 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
             else:
                 sigColumn = rawSigName
 
-            timeColName = 'time' if typ == 1 else ('Results','b:tnow in s')
+            timeColName = 'time' if typ == 1 else result.columns[0]
             timeoffset = pfFlatTIme if typ == 0 else pscadInitTime    
 
             if sigColumn in result.columns:
