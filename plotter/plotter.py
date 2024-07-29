@@ -31,8 +31,6 @@ class ReadConfig:
         self.threads = parsedConf.getint('threads')
         self.pfFlatTIme = parsedConf.getfloat('pfFlatTime')
         self.pscadInitTime = parsedConf.getfloat('pscadInitTime')
-        #print(parsedConf.get('includeCase', ''))
-        #print(parsedConf.get('excludeCase', ''))
         self.includeCase = [int(item.strip()) for item in parsedConf.get('includeCase', '').split(',') if item != '']
         self.excludeCase = [int(item.strip()) for item in parsedConf.get('excludeCase', '').split(',') if item != '']
         self.simDataDirs : List[str] = list()
@@ -199,7 +197,6 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
                     ),
                     row=rowPos, col=colPos
                 )
-                #print_subplot_dimensions(figure)
                 plot_cursor_functions.add_annotations(x_value, y_value, figure, fid, fid)
                 traces += 1
             elif sigColumn != '':
@@ -232,15 +229,6 @@ def print_subplot_dimensions(fig):
     xaxes = [attr for attr in dir(fig.layout) if attr.startswith('xaxis')]
     yaxes = [attr for attr in dir(fig.layout) if attr.startswith('yaxis')]
 
-
-    print(xaxes)
-    print(yaxes)
-    # Determine the number of rows and columns
-    #max_xaxis = max([int(attr[5:]) for attr in xaxes])
-    #max_yaxis = max([int(attr[5:]) for attr in yaxes])
-
-    # Print the dimensions
-    #print(f"Figure has {max_yaxis} rows and {max_xaxis} columns")
 
 def colorMap(projects: List[str]) -> Dict[str, List[str]]:
     '''
@@ -288,8 +276,8 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
             figure.write_html('{}.html'.format(figurePath)) #type: ignore
             
         if config.genJPEG: #.write_image hangs inf, blocks script completion
-            # fix, downgrade kaleido from 0.2.1 to 0.1.0 - DOESNT WORK
-            # https://stackoverflow.com/questions/76305333/plotly-write-image-runs-forever-and-doesnt-produce-any-static-image
+            ### fix, downgrade kaleido from 0.2.1 to 0.1.0 - DOESNT WORK
+            ### https://stackoverflow.com/questions/76305333/plotly-write-image-runs-forever-and-doesnt-produce-any-static-image
             # figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
             # figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
             pass
