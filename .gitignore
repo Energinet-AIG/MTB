@@ -149,6 +149,6 @@ _junk/
 #powerfactory.pyi
 *channels.xlsx
 test.py
-MTB_files/
 mhi/
 tests/
+MTB_*/

@@ -155,9 +155,37 @@ def setupResFiles(app : pf.Application, script : pf.ComPython, root : pf.DataObj
   assert mtb_s_pref_pu is not None
   elmRes.AddVariable(mtb_s_pref_pu,  's:yo')
 
-  mtb_s_qref_pu = root.SearchObject('mtb_s_qref_pu.ElmDsl')
-  assert mtb_s_qref_pu is not None
-  elmRes.AddVariable(mtb_s_qref_pu,  's:yo')
+  mtb_s_qref = root.SearchObject('mtb_s_qref.ElmDsl')
+  assert mtb_s_qref is not None
+  elmRes.AddVariable(mtb_s_qref,  's:yo')
+
+  mtb_s_qref_q_pu = root.SearchObject('mtb_s_qref_q_pu.ElmDsl')
+  assert mtb_s_qref_q_pu is not None
+  elmRes.AddVariable(mtb_s_qref_q_pu,  's:yo')
+
+  mtb_s_qref_qu_pu = root.SearchObject('mtb_s_qref_qu_pu.ElmDsl')
+  assert mtb_s_qref_qu_pu is not None
+  elmRes.AddVariable(mtb_s_qref_qu_pu,  's:yo')
+
+  mtb_s_qref_pf = root.SearchObject('mtb_s_qref_pf.ElmDsl')
+  assert mtb_s_qref_pf is not None
+  elmRes.AddVariable(mtb_s_qref_pf,  's:yo')
+
+  mtb_s_qref_3 = root.SearchObject('mtb_s_qref_3.ElmDsl')
+  assert mtb_s_qref_3 is not None
+  elmRes.AddVariable(mtb_s_qref_3,  's:yo')
+
+  mtb_s_qref_4 = root.SearchObject('mtb_s_qref_4.ElmDsl')
+  assert mtb_s_qref_4 is not None
+  elmRes.AddVariable(mtb_s_qref_4,  's:yo')
+
+  mtb_s_qref_5 = root.SearchObject('mtb_s_qref_5.ElmDsl')
+  assert mtb_s_qref_5 is not None
+  elmRes.AddVariable(mtb_s_qref_5,  's:yo')
+
+  mtb_s_qref_6 = root.SearchObject('mtb_s_qref_6.ElmDsl')
+  assert mtb_s_qref_6 is not None
+  elmRes.AddVariable(mtb_s_qref_6,  's:yo')
 
   mtb_s_1 = root.SearchObject('mtb_s_1.ElmDsl')
   assert mtb_s_1 is not None
@@ -198,7 +226,7 @@ def setupResFiles(app : pf.Application, script : pf.ComPython, root : pf.DataObj
   mtb_s_10 = root.SearchObject('mtb_s_10.ElmDsl') 
   assert mtb_s_10 is not None
   elmRes.AddVariable(mtb_s_10,  's:yo') 
-  
+
   # Include measurement objects and set alias
   for i in range(1, 100):
     Meas_obj_n = script_GetExtObj(script, f'Meas_obj_{i}')
@@ -320,7 +348,7 @@ def addCustomSubscribers(thisScript : pf.ComPython, channels : List[si.Channel])
   pref_conf = convertToConfStr('Pref', 'mtb_s_pref_pu')
   qref1_conf = convertToConfStr('Qref_q', 'mtb_s_qref_q_pu')
   qref2_conf = convertToConfStr('Qref_qu', 'mtb_s_qref_qu_pu')
-  qref3_conf = convertToConfStr('Qref_pf', 'mtb_s_qref_pf_pu')
+  qref3_conf = convertToConfStr('Qref_pf', 'mtb_s_qref_pf')
   custom1_conf = convertToConfStr('Custom1', 'mtb_s_1')
   custom2_conf = convertToConfStr('Custom2', 'mtb_s_2')
   custom3_conf = convertToConfStr('Custom3', 'mtb_s_3')
