@@ -506,10 +506,13 @@ def main():
       assert inc is not None
       sim = app.GetFromStudyCase('ComSim')
       assert sim is not None
+      comRes : pf.ComRes = app.GetFromStudyCase('ComRes') #type: ignore
+      assert comRes is not None
 
       taskAuto.AppendStudyCase(newStudycase) 
       taskAuto.AppendCommand(inc, -1) 
       taskAuto.AppendCommand(sim, -1) 
+      taskAuto.AppendCommand(comRes, -1)
       setupResFiles(app, thisScript, root)
       app.WriteChangesToDb()
       setupExport(app, exportName)
@@ -526,11 +529,11 @@ def main():
     studycase.Activate() 
     setupPlots(app, root)
     app.WriteChangesToDb()
-    comRes : pf.ComRes = app.GetFromStudyCase('ComRes') #type: ignore
-    assert comRes is not None
-    if onlySetup == 0:
-      comRes.Execute()
-      time.sleep(5)
+    #comRes : pf.ComRes = app.GetFromStudyCase('ComRes') #type: ignore
+    #assert comRes is not None
+    #if onlySetup == 0:
+    #  comRes.Execute()
+    #  time.sleep(5)
 
     app.WriteChangesToDb()
     studycase.Deactivate() 
