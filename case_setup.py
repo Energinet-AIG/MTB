@@ -46,8 +46,6 @@ class PlantSettings:
         self.Default_Q_mode = str(inputs['Default Q mode'])
         self.PSCAD_Timestep = float(inputs['PSCAD Timestep'])
         self.PSCAD_init_time = float(inputs['PSCAD Initialization time'])
-        self.PSCAD_Kp = float(inputs['PSCAD Kp'])
-        self.PSCAD_Ti = float(inputs['PSCAD Ti'])
         self.PF_flat_time = float(inputs['PF flat time'])
         self.PF_variable_step = bool(inputs['PF variable step'])
         self.PF_enforced_sync = bool(inputs['PF enforced sync.'])
@@ -255,9 +253,6 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
     mtb_c_flattime_s = constant('mtb_c_flattime_s', plantSettings.PF_flat_time, pscad = False)
     mtb_c_flattime_s.addPFsub('initializer_script.ComDpl', 'IntExpr:3')
     mtb_c_flattime_s.addPFsub('initializer_qdsl.ElmQdsl', 'initVals:3')
-
-    constant('mtb_c_kp', plantSettings.PSCAD_Kp)
-    constant('mtb_c_ti_s', plantSettings.PSCAD_Ti)
 
     mtb_c_vdroop = constant('mtb_c_vdroop', plantSettings.V_droop, pscad = False)
     mtb_c_vdroop.addPFsub('initializer_script.ComDpl', 'IntExpr:10')
