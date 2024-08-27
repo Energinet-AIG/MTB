@@ -278,7 +278,6 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
         if config.genJPEG: 
             figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
             figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
-            pass
 
 def main() -> None:
     config = ReadConfig()
