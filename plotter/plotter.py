@@ -275,11 +275,9 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
         if config.genHTML:
             figure.write_html('{}.html'.format(figurePath)) #type: ignore
             
-        if config.genJPEG: #.write_image hangs inf, blocks script completion
-            ### fix, downgrade kaleido from 0.2.1 to 0.1.0 - DOESNT WORK
-            ### https://stackoverflow.com/questions/76305333/plotly-write-image-runs-forever-and-doesnt-produce-any-static-image
-            # figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
-            # figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
+        if config.genJPEG: 
+            figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
+            figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
             pass
 
 def main() -> None:
