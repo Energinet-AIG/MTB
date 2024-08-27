@@ -3,10 +3,16 @@ Executes the Powerplant model testbench in PSCAD.
 '''
 from __future__ import annotations 
 import os
-#Ensure right working directory
-executePath = os.path.abspath(__file__)
-executeFolder = os.path.dirname(executePath)
-os.chdir(executeFolder)
+import sys
+
+if __name__ == '__main__':
+    print(sys.version)
+    #Ensure right working directory
+    executePath = os.path.abspath(__file__)
+    executeFolder = os.path.dirname(executePath)
+    os.chdir(executeFolder)
+    sys.path.append(executeFolder)
+    print(executeFolder)
 
 from configparser import ConfigParser
 
@@ -20,17 +26,28 @@ class readConfig:
     self.volley = int(self.parsedConf['Volley'])
 
 config = readConfig()
-import sys
 sys.path.append(config.pythonPath)
-print(sys.version)
 
 from datetime import datetime
 import shutil
+import psutil
 from typing import List
 import sim_interface as si
 import case_setup as cs
+from pscad_update_ums import updateUMs
 
 import mhi.pscad
+
+def connectPSCAD() -> mhi.pscad.PSCAD:
+    pid = os.getpid()
+    ports = [con.laddr.port for con in psutil.net_connections() if con.status == psutil.CONN_LISTEN and con.pid == pid]
+
+    if len(ports) == 0:
+        RuntimeError('No PSCAD listening ports found')
+    elif len(ports) > 1:
+        Warning('Multiple PSCAD listening ports found. Using the first one.')
+    
+    return mhi.pscad.connect(port = ports[0])
 
 def outToCsv(srcPath : str, dstPath : str):
     """
@@ -90,7 +107,7 @@ def cleanBuildfolder(buildPath : str):
 
 def main():
     print('execute_pscad.py started at:', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-    pscad = mhi.pscad.application()
+    pscad = connectPSCAD()
 
     plantSettings, channels, _, maxRank = cs.setup(config.sheetPath, pscad = True, pfEncapsulation = None)
 
@@ -101,6 +118,9 @@ def main():
         print(f'{setting} : {plantSettings.__dict__[setting]}')
 
     project = pscad.project(plantSettings.PSCAD_Namespace)
+
+    #Update pgb names for all unit measurement components
+    updateUMs()
 
     buildFolder : str = project.temp_folder #type: ignore
     cleanBuildfolder(buildFolder) #type: ignore
