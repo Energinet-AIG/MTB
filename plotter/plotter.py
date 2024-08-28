@@ -31,8 +31,6 @@ class ReadConfig:
         self.threads = parsedConf.getint('threads')
         self.pfFlatTIme = parsedConf.getfloat('pfFlatTime')
         self.pscadInitTime = parsedConf.getfloat('pscadInitTime')
-        self.includeCase = [int(item.strip()) for item in parsedConf.get('includeCase', '').split(',') if item != '']
-        self.excludeCase = [int(item.strip()) for item in parsedConf.get('excludeCase', '').split(',') if item != '']
         self.simDataDirs : List[str] = list()
         simPaths = cp.items('Simulation data paths')
         for _, path in simPaths:
@@ -276,29 +274,42 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
             figure.write_html('{}.html'.format(figurePath)) #type: ignore
             
         if config.genJPEG: 
-            figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
-            figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
+            # figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
+            # figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
+            pass
 
 def main() -> None:
     config = ReadConfig()
     figureSetup = readFigureSetup(config.figureSetupfilePath)
     
     cases, allProjects = mapResultFiles(config.simDataDirs)
-    if len(config.includeCase) >= 1:
-        for case_number in list(cases.keys()):
-            if case_number not in config.includeCase:
-                del cases[case_number]
-        print("Included cases specified in config:", cases.keys())
-    elif len(config.excludeCase) >= 1:
-        for case_number in list(cases.keys()): 
-            if case_number in config.excludeCase:
-                del cases[case_number]
-        print('Excluded cases specified in config:', config.excludeCase)
 
     cMap = colorMap(list(allProjects))
 
     if not exists(config.resultsDir):
         makedirs(config.resultsDir)
+
+    # Setup different num of plots based on csv
+    # figs_per_case = {case_number: [] for case_number in cases.keys()}
+    # for fig in figureSetup:
+    #     include_from_case = fig.get('include_in_case', '')
+    #     exclude_from_case = fig.get('exclude_in_case', '')
+    #     figure_number = fig.get('figure')
+
+    #     if include_from_case:
+    #         included_cases = [int(case.strip()) for case in include_from_case.split(',')]
+    #         for case_number in included_cases:
+    #             if case_number in figs_per_case:
+    #                 figs_per_case[case_number].append(figure_number)
+    #     elif exclude_from_case:
+    #         excluded_cases = [int(case.strip()) for case in exclude_from_case.split(',')]
+    #         for case_number in figs_per_case.keys():
+    #             if case_number not in excluded_cases:
+    #                 figs_per_case[case_number].append(figure_number)
+    #     else:
+    #         for case_number in figs_per_case.keys():
+    #             figs_per_case[case_number].append(figure_number)
+
 
     nfig = len(figureSetup)
     nrows = (nfig + config.columns - nfig%config.columns)//config.columns
