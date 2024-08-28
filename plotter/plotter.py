@@ -248,8 +248,29 @@ def colorMap(projects: List[str]) -> Dict[str, List[str]]:
     return cMap
 
 def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[int, List[Tuple[int, str, str]]], caseId : int, figureSetup :  List[Dict[str, str]], cMap : Dict[str, List[str]]):
+   
+    # filter case figures to render based on input from figureSetup
+    case_setup = figureSetup.copy()
+    exclusion_marker = []
+    inclusion_marker = []
+
+    for setup in figureSetup:
+        if str(caseId) in setup.get('exclude_in_case', '').split(','):
+            exclusion_marker.append(setup['figure'])
+        if str(caseId) in setup.get('include_in_case', '').split(','):
+            inclusion_marker.append(setup['figure'])
+    
+    if len(inclusion_marker) > 0:
+        case_setup = [setup for setup in case_setup if setup['figure'] in inclusion_marker]
+    elif len(exclusion_marker) > 0:
+        case_setup = [setup for setup in case_setup if setup['figure'] not in exclusion_marker]
+    
+    nfig = len(case_setup)
+    nrows = (nfig + config.columns - nfig%config.columns)//config.columns
+    
     figure = make_subplots(rows = nrows, cols = config.columns)
     figure.update_layout(title_text = figurePath) #type: ignore
+    
     addedRmsResults = 0
     addedEmtResults = 0
 
@@ -266,7 +287,7 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
                 continue
             addedEmtResults += 1
         
-        addResultToFig(typ, result, figureSetup, figure, project, path, cMap, config.columns, config.pfFlatTIme, config.pscadInitTime) #type: ignore
+        addResultToFig(typ, result, case_setup, figure, project, path, cMap, config.columns, config.pfFlatTIme, config.pscadInitTime) #type: ignore
 
 
     if config.emtAndRms and addedRmsResults > 0 and addedEmtResults > 0 or not config.emtAndRms and ( addedRmsResults > 0 or addedEmtResults > 0):
@@ -274,8 +295,8 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
             figure.write_html('{}.html'.format(figurePath)) #type: ignore
             
         if config.genJPEG: 
-            # figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
-            # figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
+            figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
+            figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
             pass
 
 def main() -> None:
@@ -288,28 +309,6 @@ def main() -> None:
 
     if not exists(config.resultsDir):
         makedirs(config.resultsDir)
-
-    # Setup different num of plots based on csv
-    # figs_per_case = {case_number: [] for case_number in cases.keys()}
-    # for fig in figureSetup:
-    #     include_from_case = fig.get('include_in_case', '')
-    #     exclude_from_case = fig.get('exclude_in_case', '')
-    #     figure_number = fig.get('figure')
-
-    #     if include_from_case:
-    #         included_cases = [int(case.strip()) for case in include_from_case.split(',')]
-    #         for case_number in included_cases:
-    #             if case_number in figs_per_case:
-    #                 figs_per_case[case_number].append(figure_number)
-    #     elif exclude_from_case:
-    #         excluded_cases = [int(case.strip()) for case in exclude_from_case.split(',')]
-    #         for case_number in figs_per_case.keys():
-    #             if case_number not in excluded_cases:
-    #                 figs_per_case[case_number].append(figure_number)
-    #     else:
-    #         for case_number in figs_per_case.keys():
-    #             figs_per_case[case_number].append(figure_number)
-
 
     nfig = len(figureSetup)
     nrows = (nfig + config.columns - nfig%config.columns)//config.columns
