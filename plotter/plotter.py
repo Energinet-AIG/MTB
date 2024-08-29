@@ -1,6 +1,7 @@
 '''
 Minimal script to plot simulation results from PSCAD and PowerFactory.
 '''
+import os
 from os import listdir, makedirs
 from os.path import join, split, splitext, exists
 import re
@@ -176,7 +177,8 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
                 sigColumn = rawSigName
 
             timeColName = 'time' if typ == 1 else ('Results','b:tnow in s')
-            timeoffset = pfFlatTIme if typ == 0 else pscadInitTime    
+            timeoffset = pfFlatTIme if typ == 0 else pscadInitTime
+            file_type_name = get_file_type_name(file)
 
             if sigColumn in result.columns:
                 x_value = result[timeColName] - timeoffset
@@ -185,19 +187,18 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
                     x_value, y_value = sampling_functions.downsample_based_on_gradient(x_value, y_value, float(fSetup['gradient_threshold']))
                 elif downsampling_method == DownSamplingMethod.AMOUNT:
                     x_value, y_value = sampling_functions.down_sample(x_value, y_value)
-                trace_name = f"{file}:{rawSigName}"
                 figure.add_trace(
                     go.Scatter(
                         x=x_value,
                         y=y_value,
                         line_color=colors[project][traces],
-                        name=trace_name,
+                        name=f"{file_type_name}:{rawSigName}",
                         legendgroup=project,
                         showlegend=True
                     ),
                     row=rowPos, col=colPos
                 )
-                plot_cursor_functions.add_annotations(x_value, y_value, figure, fid, fid)
+                plot_cursor_functions.add_annotations(x_value, y_value, figure, fid, fid) #TODO - maybe remove
                 traces += 1
             elif sigColumn != '':
                 print(f"Signal '{rawSigName}' not recognized in resultfile '{file}'")
@@ -206,7 +207,7 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
                     x=None,
                     y=None,
                     line_color=colors[project][traces], 
-                    name=f"{file}:{rawSigName} (Unknown)",
+                    name=f"{file_type_name}:{rawSigName} (Unknown)",
                     legendgroup=project,
                     showlegend=True
                 ),
@@ -224,10 +225,21 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
         )
 
 
-def print_subplot_dimensions(fig):
-    # Extract the layout information from the figure
-    xaxes = [attr for attr in dir(fig.layout) if attr.startswith('xaxis')]
-    yaxes = [attr for attr in dir(fig.layout) if attr.startswith('yaxis')]
+def get_file_type_name(file):
+    file_type_name = f"{file}"
+    file_type_name = file_type_name.split(get_split_char())
+    if (len(file_type_name) > 1):
+        file_type_name = file_type_name[-2]
+    else:
+        file_type_name = file_type_name[-1]
+    return file_type_name
+
+
+def get_split_char():
+    if os.name == 'nt':
+        return '\\'
+    else:
+        return '/'
 
 
 def colorMap(projects: List[str]) -> Dict[str, List[str]]:
@@ -273,11 +285,43 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
 
     if config.emtAndRms and addedRmsResults > 0 and addedEmtResults > 0 or not config.emtAndRms and ( addedRmsResults > 0 or addedEmtResults > 0):
         if config.genHTML:
-            figure.write_html('{}.html'.format(figurePath)) #type: ignore
+            create_html(figure, figurePath, config)
             
         if config.genJPEG: 
             figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
             figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
+
+
+def create_html(figure, figurePath, config : ReadConfig):
+    # Step 2: Add custom text below the figure
+    additional_text_prefix = """
+            <div style="text-align: left; margin-top: 1px;">"""
+
+    additionel_text_suffix = """</div>"""
+    additional_text = additional_text_prefix
+    i = 1
+    for path in config.simDataDirs:
+        additional_text += f"<p>The path for input path #{i} is: {path}</p>"
+        i += 1
+    additional_text += additionel_text_suffix
+    # Step 3: Generate the HTML string with the figure
+    html_content = figure.to_html(full_html=False, include_plotlyjs='cdn')
+    # Step 4: Combine the HTML content with additional text
+    full_html_content = f"""
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+            </head>
+            <body>
+                {html_content}
+                {additional_text}
+            </body>
+            </html>
+            """
+    with open(f'{figurePath}.html', 'w') as file:
+        file.write(full_html_content)
+
 
 def main() -> None:
     config = ReadConfig()
@@ -315,7 +359,6 @@ def main() -> None:
             if config.threads > 1:
                 threads.append(Thread(target = drawFigure, args = (figurePath, config, nrows, cases, caseId, figureSetup, cMap,)))
             else:
-                print(1)
                 drawFigure(figurePath, config, nrows, cases, caseId, figureSetup, cMap)
     
     NoT = len(threads)

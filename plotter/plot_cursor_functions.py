@@ -1,5 +1,5 @@
+import enum
 from typing import List, Dict
-import numpy as np
 
 
 def create_min_max_annotations(x, y, subplot_ref, existing_annotations: List[Dict] = None) -> List[Dict]:
