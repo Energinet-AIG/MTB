@@ -7,7 +7,6 @@ import pandas as pd
 import sim_interface as si
 from math import isnan, sqrt
 from warnings import warn
-from enum import IntEnum
 
 FAULT_TYPES = { 
     '3p fault' : 7,
@@ -214,7 +213,8 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
     mtb_s_qref.addPFsub_S0('initializer_qdsl.ElmQdsl', 'initVals:9')
     mtb_s_qref.addPFsub_S0('station_ctrl.ElmStactrl', 'usetp', lambda _, x: 1.0 if x <= 0.0 else x)
     mtb_s_qref.addPFsub_S0('station_ctrl.ElmStactrl', 'qsetp', lambda _, x : -x * plantSettings.Pn)
-    mtb_s_qref.addPFsub_S0('station_ctrl.ElmStactrl', 'pfsetp', lambda _, x: max(min(x, 1.0), -1.0))
+    mtb_s_qref.addPFsub_S0('station_ctrl.ElmStactrl', 'pfsetp', lambda _, x: min(abs(x), 1.0))
+    mtb_s_qref.addPFsub_S0('station_ctrl.ElmStactrl', 'pf_recap', lambda _, x: 0 if x > 0 else 1)
 
     mtb_s_qref_q_pu = signal('mtb_s_qref_q_pu',  measFile = True)
     mtb_s_qref_qu_pu = signal('mtb_s_qref_qu_pu', measFile = True)
@@ -683,5 +683,5 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
     for emtCase in emtCases:
         mtb_s_task[taskId] = emtCase.rank
         taskId += 1
-
+    mtb_s_task.__pfInterface__ = None
     return plantSettings, channels, cases, maxRank, emtCases

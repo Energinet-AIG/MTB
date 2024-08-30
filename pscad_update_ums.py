@@ -21,24 +21,24 @@ if __name__ == '__main__':
 
 import mhi.pscad
 
-def updateUMs(pscad : mhi.pscad, verbose : bool = False) -> None:
+def updateUMs(pscad : mhi.pscad.PSCAD, verbose : bool = False) -> None:
     projectLst = pscad.projects()
     for prjDic in projectLst:
         if prjDic['type'].lower() == 'case':
             project = pscad.project(prjDic['name'])
             print(f'Updating unit measurements in project: {project}')
-            ums : List[mhi.pscad.UserCmp]= project.find_all(Name_='$ALIAS_UM_9124$')
+            ums : List[mhi.pscad.UserCmp]= project.find_all(Name_='$ALIAS_UM_9124$') #type: ignore
             for um in ums:
                 print(f'\t{um}')
                 canvas : mhi.pscad.Canvas = um.canvas()
-                umParams = um.parameters()
-                alias = umParams['alias']
-                pgbs = canvas.find_all('master:pgb')
+                umParams = um.parameters() #type: ignore
+                alias = umParams['alias'] #type: ignore
+                pgbs = canvas.find_all('master:pgb') #type: ignore
                 for pgb in pgbs:
                     if verbose:
                         print(f'\t\t{pgb}')
                     pgbParams = pgb.parameters()
-                    pgb.parameters(Name = alias + '_' + pgbParams['Group'])
+                    pgb.parameters(Name = alias + '_' + pgbParams['Group']) #type: ignore
 
             '''
             pll_seq_def = project.definition('PLL_seq')
@@ -53,7 +53,7 @@ def updateUMs(pscad : mhi.pscad, verbose : bool = False) -> None:
             '''
 
 def main():
-    pscad = connectPSCAD()    
+    pscad = connectPSCAD() #type: ignore 
     updateUMs(pscad)
     print()
 

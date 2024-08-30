@@ -9,13 +9,13 @@ try:
     LOG_FILE = open('execute_pscad.log', 'w')
 except:
     print('Failed to open log file. Logging to file disabled.')
-    LOG_FILE = None
+    LOG_FILE = None #type: ignore
 
-def print(*args):
+def print(*args): #type: ignore
     '''
     Overwrites the print function to also write to a log file.
     '''
-    outputString = ''.join(map(str, args)) + '\n'
+    outputString = ''.join(map(str, args)) + '\n' #type: ignore
     sys.stdout.write(outputString)
     if LOG_FILE:
         LOG_FILE.write(outputString)
@@ -56,14 +56,14 @@ import mhi.pscad
 
 def connectPSCAD() -> mhi.pscad.PSCAD:
     pid = os.getpid()
-    ports = [con.laddr.port for con in psutil.net_connections() if con.status == psutil.CONN_LISTEN and con.pid == pid]
+    ports = [con.laddr.port for con in psutil.net_connections() if con.status == psutil.CONN_LISTEN and con.pid == pid] #type: ignore
 
-    if len(ports) == 0:
+    if len(ports) == 0: #type: ignore
         RuntimeError('No PSCAD listening ports found')
-    elif len(ports) > 1:
+    elif len(ports) > 1: #type: ignore
         Warning('Multiple PSCAD listening ports found. Using the first one.')
     
-    return mhi.pscad.connect(port = ports[0])
+    return mhi.pscad.connect(port = ports[0]) #type: ignore
 
 def outToCsv(srcPath : str, dstPath : str):
     """
@@ -153,7 +153,7 @@ def main():
     print('execute_pscad.py started at:', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '\n')
     pscad = connectPSCAD()
 
-    plantSettings, channels, _, maxRank, emtCases = cs.setup(config.sheetPath, pscad = True, pfEncapsulation = None)
+    plantSettings, channels, _, _, emtCases = cs.setup(config.sheetPath, pscad = True, pfEncapsulation = None)
 
     #Output ranks in relation to task id
     print('Rank / Task ID / Casename:')

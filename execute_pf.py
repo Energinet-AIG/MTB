@@ -37,7 +37,6 @@ import time
 from datetime import datetime
 import case_setup as cs
 import sim_interface as si
-#import pandas as pd
 
 def script_GetExtObj(script : pf.ComPython, name : str) -> Optional[pf.DataObject]:
   '''
@@ -402,7 +401,7 @@ def main():
     raise RuntimeError('No active grids.')
 
   # Make project backup
-  project.CreateVersion(f'PRE_MTB_{datetime.now().strftime(r'%d%m%Y%H%M%S')}') 
+  project.CreateVersion(f'PRE_MTB_{datetime.now().strftime(r"%d%m%Y%H%M%S")}') 
 
   resetProjectUnits(project)
   currentStudyCase.Consolidate() 
@@ -529,13 +528,6 @@ def main():
     studycase.Activate() 
     setupPlots(app, root)
     app.WriteChangesToDb()
-    #comRes : pf.ComRes = app.GetFromStudyCase('ComRes') #type: ignore
-    #assert comRes is not None
-    #if onlySetup == 0:
-    #  comRes.Execute()
-    #  time.sleep(5)
-
-    app.WriteChangesToDb()
     studycase.Deactivate() 
     app.WriteChangesToDb()
   
@@ -543,7 +535,7 @@ def main():
   postBackup = script_GetInt(thisScript, 'Post_run_backup')
   assert isinstance(postBackup, int)
   if postBackup > 0:
-    project.CreateVersion(f'POST_MTB_{datetime.now().strftime(r'%d%m%Y%H%M%S')}')
+    project.CreateVersion(f'POST_MTB_{datetime.now().strftime(r"%d%m%Y%H%M%S")}')
 
 if __name__ == "__main__":
   main()
