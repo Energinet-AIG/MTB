@@ -5,6 +5,22 @@ from __future__ import annotations
 import os
 import sys
 
+try:
+    LOG_FILE = open('execute_pscad.log', 'w')
+except:
+    print('Failed to open log file. Logging to file disabled.')
+    LOG_FILE = None
+
+def print(*args):
+    '''
+    Overwrites the print function to also write to a log file.
+    '''
+    outputString = ''.join(map(str, args)) + '\n'
+    sys.stdout.write(outputString)
+    if LOG_FILE:
+        LOG_FILE.write(outputString)
+        LOG_FILE.flush()
+
 if __name__ == '__main__':
     print(sys.version)
     #Ensure right working directory
@@ -55,7 +71,7 @@ def outToCsv(srcPath : str, dstPath : str):
     """
     with open(srcPath) as out, \
             open(dstPath, 'w') as csv:
-        csv.writelines(','.join(line.split())+'\n' for line in out)
+        csv.writelines(','.join(line.split()) +'\n' for line in out)
 
 def moveFiles(srcPath : str, dstPath : str, types : List[str]) -> None:
     '''
@@ -66,16 +82,36 @@ def moveFiles(srcPath : str, dstPath : str, types : List[str]) -> None:
         if typ in types:
             shutil.move(os.path.join(srcPath, file), os.path.join(dstPath, file))
 
-def cleanUpOutFiles(buildPath : str, projectName : str):
+def taskIdToRank(csvPath : str, projectName : str, emtCases : List[cs.Case]):
+    '''
+    Changes task ID to rank in the .csv and .inf files in csvPath.
+    '''
+    for file in os.listdir(csvPath):
+        _, fileName = os.path.split(file)
+        root, typ = os.path.splitext(fileName)
+        if typ == '.csv' or typ == '.inf':
+            parts = root.split('_')
+            if len(parts) > 1 and parts[0] == projectName and parts[1].isnumeric():
+                taskId = int(parts[1])
+                if taskId - 1 < len(emtCases):
+                    parts[1] = str(emtCases[int(parts[1]) - 1].rank)
+                    newName = '_'.join(parts)
+                    print(f'Renaming {fileName} to {newName + typ}')
+                    os.rename(os.path.join(csvPath, fileName), os.path.join(csvPath, newName + typ))
+                else:
+                    Warning(f'{fileName} has a task ID that is out of bounds. Ignoring file.')
+
+def cleanUpOutFiles(buildPath : str, projectName : str) -> str:
     '''
     Cleans up the build folder by moving .out and .csv files to an 'Output' folder in the current working directory.
+    Return path to results folder.
     '''
     # Converting .out files to .csv files
     for file in os.listdir(buildPath):
         _, fileName = os.path.split(file)
         root, typ = os.path.splitext(fileName)
         if fileName.startswith(projectName) and typ == '.out':
-            print('Converting {} to .csv'.format(file))
+            print(f'Converting {file} to .csv')
             outToCsv(os.path.join(buildPath, fileName), os.path.join(buildPath, f'{root}.csv'))
 
     # Move desired files to an 'Output' folder in the current working directory
@@ -83,6 +119,12 @@ def cleanUpOutFiles(buildPath : str, projectName : str):
 
     if not os.path.exists(outputFolder):
         os.mkdir(outputFolder)
+    else:
+        for dir in os.listdir(outputFolder):
+            _dir = os.path.join(outputFolder, dir)
+            if os.path.isdir(_dir) and dir.startswith('MTB_'):
+                if os.listdir(_dir) == []:
+                    shutil.rmtree(_dir)
 
     resultsFolder = f'MTB_{datetime.now().strftime(r"%d%m%Y%H%M%S")}'
 
@@ -96,6 +138,8 @@ def cleanUpOutFiles(buildPath : str, projectName : str):
     os.mkdir(outFolder)
     moveFiles(buildPath, outFolder, ['.out'])
 
+    return csvFolder
+
 def cleanBuildfolder(buildPath : str):
     '''
     "Cleans" the build folder by trying to delete it.
@@ -106,21 +150,28 @@ def cleanBuildfolder(buildPath : str):
         pass
 
 def main():
-    print('execute_pscad.py started at:', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    print('execute_pscad.py started at:', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '\n')
     pscad = connectPSCAD()
 
-    plantSettings, channels, _, maxRank = cs.setup(config.sheetPath, pscad = True, pfEncapsulation = None)
+    plantSettings, channels, _, maxRank, emtCases = cs.setup(config.sheetPath, pscad = True, pfEncapsulation = None)
 
+    #Output ranks in relation to task id
+    print('Rank / Task ID / Casename:')
+    for case in emtCases:
+        print(f'{case.rank} / {emtCases.index(case) + 1} / {case.Name}')
+
+    print()
     si.renderFortran('interface.f', channels)
 
-    #Print key plant settings
+    #Print plant settings from casesheet
+    print('Plant settings:')
     for setting in plantSettings.__dict__:
         print(f'{setting} : {plantSettings.__dict__[setting]}')
-
+    print()
     project = pscad.project(plantSettings.PSCAD_Namespace)
 
     #Update pgb names for all unit measurement components
-    updateUMs()
+    updateUMs(pscad)
 
     buildFolder : str = project.temp_folder #type: ignore
     cleanBuildfolder(buildFolder) #type: ignore
@@ -133,14 +184,19 @@ def main():
     pmr = pscad.create_simulation_set('MTB')
     pmr.add_tasks(plantSettings.PSCAD_Namespace)
     project_pmr = pmr.task(plantSettings.PSCAD_Namespace)
-    project_pmr.parameters(ammunition = maxRank, volley = config.volley, affinity_type = '2') #type: ignore
+    project_pmr.parameters(ammunition = len(emtCases), volley = config.volley, affinity_type = '2') #type: ignore
 
     pscad.run_simulation_sets('MTB') #type: ignore ??? By sideeffect changes current working directory ???
     os.chdir(executeFolder)
 
-    cleanUpOutFiles(buildFolder, plantSettings.Projectname)
+    csvFolder = cleanUpOutFiles(buildFolder, plantSettings.Projectname)
+    print()
+    taskIdToRank(csvFolder, plantSettings.Projectname, emtCases)
 
     print('execute.py finished at:', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
 if __name__ == '__main__':
     main()
+
+if LOG_FILE:
+    LOG_FILE.close()

@@ -9,15 +9,37 @@ from math import isnan, sqrt
 from warnings import warn
 from enum import IntEnum
 
-class FaultType(IntEnum):
-    ThreePhase = 7
-    TwoPhaseG = 5
-    TwoPhase = 3
-    OnePhase = 1
-    ThreePhaseOhm = 8
-    TwoPhaseGOhm = 6
-    TwoPhaseOhm = 4
-    OnePhaseOhm = 2
+FAULT_TYPES = { 
+    '3p fault' : 7,
+    '2p-g fault' : 5,
+    '2p fault' : 3,
+    '1p fault' : 1,
+    '3p fault (ohm)' : 8,
+    '2p-g fault (ohm)' : 6,
+    '2p fault (ohm)' : 4,
+    '1p fault (ohm)' : 2 
+}
+    
+QMODES = {
+    'q': 0,
+    'q(u)': 1,
+    'pf': 2,
+    'qmode3': 3,
+    'qmode4': 4,
+    'qmode5': 5,
+    'qmode6': 6,
+}
+
+PMODES = {
+    'no p(f)': 0,
+    'lfsm': 1,
+    'fsm': 2,
+    'lfsm+fsm': 3,
+    'pmode4': 4,
+    'pmode5': 5,
+    'pmode6': 6,
+    'pmode7': 7
+} 
 
 class PlantSettings:
     def __init__(self, path : str) -> None:
@@ -28,7 +50,7 @@ class PlantSettings:
 
         self.Casegroup = str(inputs['Casegroup'])
         self.Run_custom_cases = bool(inputs['Run custom cases'])
-        self.Projectname = str(inputs['Projectname'])
+        self.Projectname = str(inputs['Projectname']).replace(' ', '_')
         self.PSCAD_Namespace = str(inputs['PSCAD Namespace']) 
         self.Pn = float(inputs['Pn']) 
         self.Uc = float(inputs['Uc'])
@@ -93,9 +115,9 @@ class Case:
             else:
                 break
 
-def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFinterface]) -> Tuple[PlantSettings, List[si.Channel], List[Case], int]:
+def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFinterface]) -> Tuple[PlantSettings, List[si.Channel], List[Case], int, List[Case]]:
     '''
-    Sets up the simulation channels and cases from the given casesheet. Returns plant settings, channels, cases and max rank.
+    Sets up the simulation channels and cases from the given casesheet. Returns plant settings, channels, cases, max rank and emtCases.
     '''
     def impedance_uk_pcu(scr : float, xr : float, pn : float, un : float) -> Tuple[float, float]:
         scr_ = max(scr, 0.001)
@@ -264,6 +286,9 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
     mtb_t_simtimePf_s = signal('mtb_t_simtimePf_s', defaultConnection = False)
     mtb_t_simtimePf_s.addPFsub_S0('$studycase$\\ComSim', 'tstop')
 
+    # From rank to PSCAD task ID
+    mtb_s_task = signal('mtb_s_task', defaultConnection = False)
+
     # Fault
     flt_s_type = signal('flt_s_type')
     flt_s_rf_ohm = signal('flt_s_rf_ohm')
@@ -325,12 +350,6 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
     ldf_t_refOOS.addPFsub_S0('mtb_s_9.ElmDsl', 'outserv')
     ldf_t_refOOS.addPFsub_S0('mtb_s_10.ElmDsl', 'outserv')
 
-    '''
-    if pf:
-        if not bool(pfEncapsulation.getAttribute('qref_multiplexer.ElmDsl', 'outserv')):
-            ldf_t_refOOS.addPFsub_S0('qref_multiplexer.ElmDsl', 'outserv')
-    '''
-
     # Calculation settings constants and timeVariants
     ldf_c_iopt_lim = constant('ldf_c_iopt_lim', int(plantSettings.PF_enforce_Q_limits_in_LDF), pscad = False)
     ldf_c_iopt_lim.addPFsub('$studycase$\\ComLdf', 'iopt_lim')
@@ -387,6 +406,7 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
 
     maxRank = 0
     cases : List[Case] = []
+    emtCases : List[Case] = []
 
     for _, case in df.iterrows(): # type: ignore
         cases.append(Case(case)) # type: ignore
@@ -432,17 +452,7 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
         if case.Qmode.lower() == 'default':
             case.Qmode = plantSettings.Default_Q_mode
 
-        qmodes = {
-            'q': 0,
-            'q(u)': 1,
-            'pf': 2,
-            'qmode3': 3,
-            'qmode4': 4,
-            'qmode5': 5,
-            'qmode6': 6,
-        }
-        
-        mtb_t_qmode[case.rank] = qmodes[case.Qmode.lower()]
+        mtb_t_qmode[case.rank] = QMODES[case.Qmode.lower()]
 
         mtb_s_qref[case.rank] = case.Qref0
         mtb_s_qref_q_pu[case.rank] = case.Qref0 if mtb_t_qmode[case.rank].s0 == 0 else 0.0
@@ -453,19 +463,7 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
         mtb_s_qref_5[case.rank] = case.Qref0 if mtb_t_qmode[case.rank].s0 == 5 else 0.0
         mtb_s_qref_6[case.rank] = case.Qref0 if mtb_t_qmode[case.rank].s0 == 6 else 0.0
 
-        #Set Pmode
-        pmodes = {
-            'no p(f)': 0,
-            'lfsm': 1,
-            'fsm': 2,
-            'lfsm+fsm': 3,
-            'pmode4': 4,
-            'pmode5': 5,
-            'pmode6': 6,
-            'pmode7': 7
-        }
-
-        mtb_t_pmode[case.rank] = pmodes[case.Pmode.lower()]
+        mtb_t_pmode[case.rank] = PMODES[case.Pmode.lower()]
 
         # Fault signals
         flt_s_type[case.rank] = 0.0
@@ -547,73 +545,16 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
                 mtb_s_scr[case.rank].add(eventTime, eventX1, 0.0)
                 mtb_s_xr[case.rank].add(eventTime, eventX2, 0.0)
 
-            elif eventType == '3p fault':
+            elif eventType.count('fault') > 0 and eventType != 'Clear fault':
                 assert isinstance(eventX1, float)
                 assert isinstance(eventX2, float)
-                flt_s_type[case.rank].add(eventTime, FaultType.ThreePhase.value, 0.0)
-                flt_s_type[case.rank].add(eventTime + eventX2, 0.0, 0.0)
-                flt_s_resxf[case.rank].add(eventTime, eventX1, 0.0)
 
-            elif eventType == '2p-g fault':
-                assert isinstance(eventX1, float)
-                assert isinstance(eventX2, float)
-                flt_s_type[case.rank].add(eventTime, FaultType.TwoPhaseG.value, 0.0)
+                flt_s_type[case.rank].add(eventTime, FAULT_TYPES[eventType], 0.0)
                 flt_s_type[case.rank].add(eventTime + eventX2, 0.0, 0.0)
                 flt_s_resxf[case.rank].add(eventTime, eventX1, 0.0)
-                ldf_c_iopt_net[case.rank] = 1
-                inc_c_iopt_net[case.rank] = 'rst'
-            
-            elif eventType == '2p fault':
-                assert isinstance(eventX1, float)
-                assert isinstance(eventX2, float)
-                flt_s_type[case.rank].add(eventTime, FaultType.TwoPhase.value, 0.0)
-                flt_s_type[case.rank].add(eventTime + eventX2, 0.0, 0.0)
-                flt_s_resxf[case.rank].add(eventTime, eventX1, 0.0)
-                ldf_c_iopt_net[case.rank] = 1
-                inc_c_iopt_net[case.rank] = 'rst'              
-
-            elif eventType == '1p fault':
-                assert isinstance(eventX1, float)
-                assert isinstance(eventX2, float)
-                flt_s_type[case.rank].add(eventTime, FaultType.OnePhase.value, 0.0)
-                flt_s_type[case.rank].add(eventTime + eventX2, 0.0, 0.0)
-                flt_s_resxf[case.rank].add(eventTime, eventX1, 0.0)
-                ldf_c_iopt_net[case.rank] = 1
-                inc_c_iopt_net[case.rank] = 'rst'
-
-            elif eventType == '3p fault (ohm)': 
-                assert isinstance(eventX1, float)
-                assert isinstance(eventX2, float)
-                flt_s_type[case.rank].add(eventTime, FaultType.ThreePhaseOhm.value, 0.0)
-                flt_s_type[case.rank].add(eventTime + eventX2, 0.0, 0.0)
-                flt_s_resxf[case.rank].add(eventTime, eventX1, 0.0)
-
-            elif eventType == '2p-g fault (ohm)':
-                assert isinstance(eventX1, float)
-                assert isinstance(eventX2, float)
-                flt_s_type[case.rank].add(eventTime, FaultType.TwoPhaseG.value, 0.0)
-                flt_s_type[case.rank].add(eventTime + eventX2, 0.0, 0.0)
-                flt_s_resxf[case.rank].add(eventTime, eventX1, 0.0)
-                ldf_c_iopt_net[case.rank] = 1
-                inc_c_iopt_net[case.rank] = 'rst'
-
-            elif eventType == '2p fault (ohm)':
-                assert isinstance(eventX1, float)
-                assert isinstance(eventX2, float)
-                flt_s_type[case.rank].add(eventTime, FaultType.TwoPhase.value, 0.0)
-                flt_s_type[case.rank].add(eventTime + eventX2, 0.0, 0.0)
-                flt_s_resxf[case.rank].add(eventTime, eventX1, 0.0)
-                ldf_c_iopt_net[case.rank] = 1
-                inc_c_iopt_net[case.rank] = 'rst'
-
-            elif eventType == '1p fault (ohm)':
-                assert isinstance(eventX1, float)
-                assert isinstance(eventX2, float)
-                flt_s_type[case.rank].add(eventTime, FaultType.OnePhaseOhm.value, 0.0)
-                flt_s_type[case.rank].add(eventTime + eventX2, 0.0, 0.0)
-                flt_s_resxf[case.rank].add(eventTime, eventX1, 0.0)
-                ldf_c_iopt_net[case.rank] = 1
-                inc_c_iopt_net[case.rank] = 'rst'
+                if FAULT_TYPES[eventType] < 7:
+                    ldf_c_iopt_net[case.rank] = 1
+                    inc_c_iopt_net[case.rank] = 'rst'
 
             elif eventType == 'Clear fault':
                 flt_s_type[case.rank].add(eventTime, 0.0, 0.0)
@@ -629,13 +570,33 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
                 assert isinstance(eventX1, str)
                 assert isinstance(eventX2, float)
                 wf = si.Recorded(path=eventX1, column=1, scale=eventX2, pf=pf, pscad=pscad)
-                mtb_s_qref_q_pu[case.rank] = wf
-                mtb_s_qref_qu_pu[case.rank] = wf
-                mtb_s_qref_pf[case.rank] = wf
-                mtb_s_qref_3[case.rank] = wf
-                mtb_s_qref_4[case.rank] = wf
-                mtb_s_qref_5[case.rank] = wf   
-                mtb_s_qref_6[case.rank] = wf
+
+                mtb_s_qref[case.rank] = wf
+                mtb_s_qref_q_pu[case.rank] = 0
+                mtb_s_qref_qu_pu[case.rank] = 0
+                mtb_s_qref_pf[case.rank] = 0
+                mtb_s_qref_3[case.rank] = 0
+                mtb_s_qref_4[case.rank] = 0
+                mtb_s_qref_5[case.rank] = 0
+                mtb_s_qref_6[case.rank] = 0
+
+                if mtb_t_qmode[case.rank].s0 == 0:
+                    mtb_s_qref_q_pu[case.rank] = wf
+                elif mtb_t_qmode[case.rank].s0 == 1:
+                    mtb_s_qref_qu_pu[case.rank] = wf
+                elif mtb_t_qmode[case.rank].s0 == 2:
+                    mtb_s_qref_pf[case.rank] = wf
+                elif mtb_t_qmode[case.rank].s0 == 3:
+                    mtb_s_qref_3[case.rank] = wf
+                elif mtb_t_qmode[case.rank].s0 == 4:
+                    mtb_s_qref_4[case.rank] = wf
+                elif mtb_t_qmode[case.rank].s0 == 5:
+                    mtb_s_qref_5[case.rank] = wf
+                elif mtb_t_qmode[case.rank].s0 == 6:
+                    mtb_s_qref_6[case.rank] = wf
+                else:
+                    raise ValueError('Invalid Q mode')
+
                 pscad_lonRec = max(wf.pscadLen, pscad_lonRec)
                 pf_lonRec = max(wf.pfLen, pf_lonRec)
 
@@ -708,10 +669,19 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
         
         if not case.EMT:
             mtb_t_simtimePscad_s[case.rank] = -1.0
+        else:
+            emtCases.append(case)
         
         if isinstance(mtb_s_vref_pu[case.rank], si.Recorded):
             ldf_r_vcNode[case.rank] = ''
         else:
             ldf_r_vcNode[case.rank] = '$nochange$'
 
-    return plantSettings, channels, cases, maxRank
+    emtCases.sort(key = lambda x: x.Simulationtime)
+
+    taskId = 1
+    for emtCase in emtCases:
+        mtb_s_task[taskId] = emtCase.rank
+        taskId += 1
+
+    return plantSettings, channels, cases, maxRank, emtCases

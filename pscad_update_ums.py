@@ -21,27 +21,41 @@ if __name__ == '__main__':
 
 import mhi.pscad
 
-def updateUMs(pscad : mhi.pscad):
+def updateUMs(pscad : mhi.pscad, verbose : bool = False) -> None:
     projectLst = pscad.projects()
     for prjDic in projectLst:
         if prjDic['type'].lower() == 'case':
             project = pscad.project(prjDic['name'])
-            print('Updating unit measurements in project: {}'.format(project))
+            print(f'Updating unit measurements in project: {project}')
             ums : List[mhi.pscad.UserCmp]= project.find_all(Name_='$ALIAS_UM_9124$')
             for um in ums:
-                print('\t{}'.format(um))
+                print(f'\t{um}')
                 canvas : mhi.pscad.Canvas = um.canvas()
                 umParams = um.parameters()
                 alias = umParams['alias']
                 pgbs = canvas.find_all('master:pgb')
                 for pgb in pgbs:
-                    print('\t\t{}'.format(pgb))
+                    if verbose:
+                        print(f'\t\t{pgb}')
                     pgbParams = pgb.parameters()
                     pgb.parameters(Name = alias + '_' + pgbParams['Group'])
+
+            '''
+            pll_seq_def = project.definition('PLL_seq')
+            if pll_seq_def:
+                pll_seq_def.name = 'PLL_seq_9124'
+            pll_adaptive = project.definition('PLL_ADAPTIVE')
+            if pll_adaptive:
+                pll_adaptive.name = 'PLL_ADAPTIVE_9124'
+            FFT_TRACKING = project.definition('FFT_TRACKING')
+            if FFT_TRACKING:
+                FFT_TRACKING.name = 'FFT_TRACKING_9124'
+            '''
 
 def main():
     pscad = connectPSCAD()    
     updateUMs(pscad)
+    print()
 
 if __name__ == '__main__':
     main()

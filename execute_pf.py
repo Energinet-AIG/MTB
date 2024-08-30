@@ -402,7 +402,7 @@ def main():
     raise RuntimeError('No active grids.')
 
   # Make project backup
-  project.CreateVersion('PRE_MTB_{}'.format(datetime.now().strftime(r'%d%m%Y%H%M%S'))) 
+  project.CreateVersion(f'PRE_MTB_{datetime.now().strftime(r'%d%m%Y%H%M%S')}') 
 
   resetProjectUnits(project)
   currentStudyCase.Consolidate() 
@@ -433,7 +433,7 @@ def main():
 
   # Read and setup cases from sheet
   pfInterface = si.PFencapsulation(app, root)
-  plantSettings, channels, cases, maxRank = cs.setup(casesheetPath = config.sheetPath, 
+  plantSettings, channels, cases, maxRank, ___ = cs.setup(casesheetPath = config.sheetPath, 
                                                      pscad = False,
                                                      pfEncapsulation = pfInterface)
 
@@ -464,7 +464,7 @@ def main():
   for case in cases:
     if case.RMS:
       # Set-up studycase, variation and balance      
-      caseName = '{}_{}'.format(str(case.rank).zfill(len(str(maxRank))), case.Name).replace('.', '')
+      caseName = f'{str(case.rank).zfill(len(str(maxRank)))}_{case.Name}'.replace('.', '')
       exportName = os.path.join(os.path.abspath(config.exportPath), f'{plantSettings.Projectname}_{case.rank}')
       newStudycase : pf.IntCase = studyCaseFolder.CreateObject('IntCase', caseName) #type: ignore
       assert newStudycase is not None
@@ -543,7 +543,7 @@ def main():
   postBackup = script_GetInt(thisScript, 'Post_run_backup')
   assert isinstance(postBackup, int)
   if postBackup > 0:
-    project.CreateVersion('POST_MTB_{}'.format(datetime.now().strftime(r'%d%m%Y%H%M%S')))
+    project.CreateVersion(f'POST_MTB_{datetime.now().strftime(r'%d%m%Y%H%M%S')}')
 
 if __name__ == "__main__":
   main()
