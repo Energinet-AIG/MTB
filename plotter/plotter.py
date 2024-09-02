@@ -255,9 +255,11 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
     inclusion_marker = []
 
     for setup in figureSetup:
-        if str(caseId) in setup.get('exclude_in_case', '').split(','):
+        exclusion_list = [item.strip() for item in setup.get('exclude_in_case').split(',')]
+        inclusion_list = [item.strip() for item in setup.get('include_in_case').split(',')]
+        if str(caseId) in exclusion_list:
             exclusion_marker.append(setup['figure'])
-        if str(caseId) in setup.get('include_in_case', '').split(','):
+        if str(caseId) in inclusion_list:
             inclusion_marker.append(setup['figure'])
     
     if len(inclusion_marker) > 0:
