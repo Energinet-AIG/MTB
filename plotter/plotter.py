@@ -32,8 +32,6 @@ class ReadConfig:
         self.threads = parsedConf.getint('threads')
         self.pfFlatTIme = parsedConf.getfloat('pfFlatTime')
         self.pscadInitTime = parsedConf.getfloat('pscadInitTime')
-        self.includeCase = [int(item.strip()) for item in parsedConf.get('includeCase', '').split(',') if item != '']
-        self.excludeCase = [int(item.strip()) for item in parsedConf.get('excludeCase', '').split(',') if item != '']
         self.simDataDirs : List[str] = list()
         simPaths = cp.items('Simulation data paths')
         for _, path in simPaths:
@@ -262,8 +260,31 @@ def colorMap(projects: List[str]) -> Dict[str, List[str]]:
     return cMap
 
 def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[int, List[Tuple[int, str, str]]], caseId : int, figureSetup :  List[Dict[str, str]], cMap : Dict[str, List[str]]):
+   
+    # filter case figures to render based on input from figureSetup
+    case_setup = figureSetup.copy()
+    exclusion_marker = []
+    inclusion_marker = []
+
+    for setup in figureSetup:
+        exclusion_list = [item.strip() for item in setup.get('exclude_in_case').split(',')]
+        inclusion_list = [item.strip() for item in setup.get('include_in_case').split(',')]
+        if str(caseId) in exclusion_list:
+            exclusion_marker.append(setup['figure'])
+        if str(caseId) in inclusion_list:
+            inclusion_marker.append(setup['figure'])
+    
+    if len(inclusion_marker) > 0:
+        case_setup = [setup for setup in case_setup if setup['figure'] in inclusion_marker]
+    elif len(exclusion_marker) > 0:
+        case_setup = [setup for setup in case_setup if setup['figure'] not in exclusion_marker]
+    
+    nfig = len(case_setup)
+    nrows = (nfig + config.columns - nfig%config.columns)//config.columns
+    
     figure = make_subplots(rows = nrows, cols = config.columns)
     figure.update_layout(title_text = figurePath) #type: ignore
+    
     addedRmsResults = 0
     addedEmtResults = 0
 
@@ -280,7 +301,7 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
                 continue
             addedEmtResults += 1
         
-        addResultToFig(typ, result, figureSetup, figure, project, path, cMap, config.columns, config.pfFlatTIme, config.pscadInitTime) #type: ignore
+        addResultToFig(typ, result, case_setup, figure, project, path, cMap, config.columns, config.pfFlatTIme, config.pscadInitTime) #type: ignore
 
 
     if config.emtAndRms and addedRmsResults > 0 and addedEmtResults > 0 or not config.emtAndRms and ( addedRmsResults > 0 or addedEmtResults > 0):
@@ -328,16 +349,6 @@ def main() -> None:
     figureSetup = readFigureSetup(config.figureSetupfilePath)
     
     cases, allProjects = mapResultFiles(config.simDataDirs)
-    if len(config.includeCase) >= 1:
-        for case_number in list(cases.keys()):
-            if case_number not in config.includeCase:
-                del cases[case_number]
-        print("Included cases specified in config:", cases.keys())
-    elif len(config.excludeCase) >= 1:
-        for case_number in list(cases.keys()): 
-            if case_number in config.excludeCase:
-                del cases[case_number]
-        print('Excluded cases specified in config:', config.excludeCase)
 
     cMap = colorMap(list(allProjects))
 
