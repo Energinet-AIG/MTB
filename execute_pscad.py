@@ -149,6 +149,27 @@ def cleanBuildfolder(buildPath : str):
     except FileNotFoundError:
         pass
 
+def setMTBtoVolley(project : mhi.pscad.Project):
+    '''
+    Sets MTB block to volley mode.
+    '''
+    MTBs : List[mhi.pscad.UserCmp]= project.find_all(Name_ = '$MTB_9124$') #type: ignore
+    for MTB in MTBs:
+        print(f'Setting {MTB} to volley mode')
+        MTB.parameters(par_mode = 1)
+
+def addInterfaceFile(project : mhi.pscad.Project):
+    '''
+    Adds the interface file to the project.
+    '''
+    resList = project.resources()
+    for res in resList:
+        if res.path == '.\interface.f' or res.name == 'interface.f':
+            return
+
+    print('Adding interface.f to project')
+    project.create_resource('.\interface.f')
+
 def main():
     print('execute_pscad.py started at:', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '\n')
     pscad = connectPSCAD()
@@ -169,9 +190,15 @@ def main():
         print(f'{setting} : {plantSettings.__dict__[setting]}')
     print()
     project = pscad.project(plantSettings.PSCAD_Namespace)
-
+    
     #Update pgb names for all unit measurement components
     updateUMs(pscad)
+
+    #Set MTB to volley mode
+    setMTBtoVolley(project)
+
+    #Add interface file to project
+    addInterfaceFile(project)
 
     buildFolder : str = project.temp_folder #type: ignore
     cleanBuildfolder(buildFolder) #type: ignore
