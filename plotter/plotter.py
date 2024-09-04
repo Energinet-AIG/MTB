@@ -1,6 +1,7 @@
 '''
 Minimal script to plot simulation results from PSCAD and PowerFactory.
 '''
+import os
 from os import listdir, makedirs
 from os.path import join, split, splitext, exists
 import re
@@ -10,7 +11,9 @@ from plotly.subplots import make_subplots #type: ignore
 import plotly.graph_objects as go #type: ignore
 from configparser import ConfigParser
 from typing import List, Dict, Union, Tuple, Set
-
+import sampling_functions
+from down_sampling_method import DownSamplingMethod
+import plot_cursor_functions
 from threading import Thread
 import time
 
@@ -29,7 +32,6 @@ class ReadConfig:
         self.threads = parsedConf.getint('threads')
         self.pfFlatTIme = parsedConf.getfloat('pfFlatTime')
         self.pscadInitTime = parsedConf.getfloat('pscadInitTime')
-
         self.simDataDirs : List[str] = list()
         simPaths = cp.items('Simulation data paths')
         for _, path in simPaths:
@@ -151,13 +153,13 @@ def loadEMT(infFile : str) -> pd.DataFrame:
     print(f"Loaded {infFile}, length = {df['time'].iloc[-1]}s") #type: ignore   
     return df
 
-def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, str]], figure : go.Figure, project: str, file: str, colors: Dict[str, List[str]], nColumns: int, pfFlatTIme : float, pscadInitTime : float) -> None: 
+def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, str]], figure : go.Figure, project: str, file: str, colors: Dict[str, List[str]], nColumns: int, pfFlatTIme : float, pscadInitTime : float) -> None:
     for fSetup in figureSetup:
         fid = int(fSetup['figure'])
+        downsampling_method = sampling_functions.get_down_sampling_method(fSetup)
         rowPos = (fid - 1) // nColumns + 1
         colPos = (fid - 1) % nColumns + 1
         traces = 0
-
         for sig in range(1,4):
             signalKey = 'rms' if typ == 0 else 'emt'
             rawSigName = fSetup.get(f"{signalKey}_signal_{sig}", "")
@@ -172,30 +174,38 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
             else:
                 sigColumn = rawSigName
 
-            timeColName = 'time' if typ == 1 else result.columns[0]
-            timeoffset = pfFlatTIme if typ == 0 else pscadInitTime    
+            timeColName = 'time' if typ == 1 else ('Results','b:tnow in s')
+            timeoffset = pfFlatTIme if typ == 0 else pscadInitTime
+            file_type_name = get_file_type_name(file)
 
             if sigColumn in result.columns:
-                figure.append_trace( #type: ignore
+                x_value = result[timeColName] - timeoffset
+                y_value = result[sigColumn]
+                if downsampling_method == DownSamplingMethod.GRADIENT:
+                    x_value, y_value = sampling_functions.downsample_based_on_gradient(x_value, y_value, float(fSetup['gradient_threshold']))
+                elif downsampling_method == DownSamplingMethod.AMOUNT:
+                    x_value, y_value = sampling_functions.down_sample(x_value, y_value)
+                figure.add_trace(
                     go.Scatter(
-                    x=result[timeColName] - timeoffset,
-                    y=result[sigColumn],
-                    line_color=colors[project][traces], 
-                    name=f"{file}:{rawSigName}",
-                    legendgroup=project,
-                    showlegend=True
-                ),
-                row=rowPos, col=colPos
+                        x=x_value,
+                        y=y_value,
+                        line_color=colors[project][traces],
+                        name=f"{file_type_name}:{rawSigName}",
+                        legendgroup=project,
+                        showlegend=True
+                    ),
+                    row=rowPos, col=colPos
                 )
+                plot_cursor_functions.add_annotations(x_value, y_value, figure, fid, fid) #TODO - maybe remove
                 traces += 1
             elif sigColumn != '':
                 print(f"Signal '{rawSigName}' not recognized in resultfile '{file}'")
-                figure.append_trace( #type: ignore
+                figure.add_trace( #type: ignore
                     go.Scatter(
                     x=None,
                     y=None,
                     line_color=colors[project][traces], 
-                    name=f"{file}:{rawSigName} (Unknown)",
+                    name=f"{file_type_name}:{rawSigName} (Unknown)",
                     legendgroup=project,
                     showlegend=True
                 ),
@@ -211,6 +221,24 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
             title_text=f"{fSetup['title']}[{fSetup['units']}]",  
             row=rowPos, col=colPos
         )
+
+
+def get_file_type_name(file):
+    file_type_name = f"{file}"
+    file_type_name = file_type_name.split(get_split_char())
+    if (len(file_type_name) > 1):
+        file_type_name = file_type_name[-2]
+    else:
+        file_type_name = file_type_name[-1]
+    return file_type_name
+
+
+def get_split_char():
+    if os.name == 'nt':
+        return '\\'
+    else:
+        return '/'
+
 
 def colorMap(projects: List[str]) -> Dict[str, List[str]]:
     '''
@@ -232,9 +260,31 @@ def colorMap(projects: List[str]) -> Dict[str, List[str]]:
     return cMap
 
 def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[int, List[Tuple[int, str, str]]], caseId : int, figureSetup :  List[Dict[str, str]], cMap : Dict[str, List[str]]):
+   
+    # filter case figures to render based on input from figureSetup
+    case_setup = figureSetup.copy()
+    exclusion_marker = []
+    inclusion_marker = []
+
+    for setup in figureSetup:
+        exclusion_list = [item.strip() for item in setup.get('exclude_in_case').split(',')]
+        inclusion_list = [item.strip() for item in setup.get('include_in_case').split(',')]
+        if str(caseId) in exclusion_list:
+            exclusion_marker.append(setup['figure'])
+        if str(caseId) in inclusion_list:
+            inclusion_marker.append(setup['figure'])
+    
+    if len(inclusion_marker) > 0:
+        case_setup = [setup for setup in case_setup if setup['figure'] in inclusion_marker]
+    elif len(exclusion_marker) > 0:
+        case_setup = [setup for setup in case_setup if setup['figure'] not in exclusion_marker]
+    
+    nfig = len(case_setup)
+    nrows = (nfig + config.columns - nfig%config.columns)//config.columns
+    
     figure = make_subplots(rows = nrows, cols = config.columns)
     figure.update_layout(title_text = figurePath) #type: ignore
-
+    
     addedRmsResults = 0
     addedEmtResults = 0
 
@@ -251,20 +301,55 @@ def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[
                 continue
             addedEmtResults += 1
         
-        addResultToFig(typ, result, figureSetup, figure, project, path, cMap, config.columns, config.pfFlatTIme, config.pscadInitTime) #type: ignore
+        addResultToFig(typ, result, case_setup, figure, project, path, cMap, config.columns, config.pfFlatTIme, config.pscadInitTime) #type: ignore
 
 
     if config.emtAndRms and addedRmsResults > 0 and addedEmtResults > 0 or not config.emtAndRms and ( addedRmsResults > 0 or addedEmtResults > 0):
         if config.genHTML:
-            figure.write_html('{}.html'.format(figurePath)) #type: ignore
+            create_html(figure, figurePath, config)
             
-        if config.genJPEG:
+        if config.genJPEG: 
             figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
+            figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
+
+
+def create_html(figure, figurePath, config : ReadConfig):
+    # Step 2: Add custom text below the figure
+    additional_text_prefix = """
+            <div style="text-align: left; margin-top: 1px;">"""
+
+    additionel_text_suffix = """</div>"""
+    additional_text = additional_text_prefix
+    i = 1
+    for path in config.simDataDirs:
+        additional_text += f"<p>The path for input path #{i} is: {path}</p>"
+        i += 1
+    additional_text += additionel_text_suffix
+    # Step 3: Generate the HTML string with the figure
+    html_content = figure.to_html(full_html=False, include_plotlyjs='cdn')
+    # Step 4: Combine the HTML content with additional text
+    full_html_content = f"""
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+            </head>
+            <body>
+                {html_content}
+                {additional_text}
+            </body>
+            </html>
+            """
+    with open(f'{figurePath}.html', 'w') as file:
+        file.write(full_html_content)
+
 
 def main() -> None:
     config = ReadConfig()
     figureSetup = readFigureSetup(config.figureSetupfilePath)
+    
     cases, allProjects = mapResultFiles(config.simDataDirs)
+
     cMap = colorMap(list(allProjects))
 
     if not exists(config.resultsDir):
