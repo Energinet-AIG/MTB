@@ -174,7 +174,7 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
             else:
                 sigColumn = rawSigName
 
-            timeColName = 'time' if typ == 1 else ('Results','b:tnow in s')
+            timeColName = 'time' if typ == 1 else result.columns[0]
             timeoffset = pfFlatTIme if typ == 0 else pscadInitTime
             file_type_name = get_file_type_name(file)
 
@@ -196,7 +196,7 @@ def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, s
                     ),
                     row=rowPos, col=colPos
                 )
-                plot_cursor_functions.add_annotations(x_value, y_value, figure, fid, fid) #TODO - maybe remove
+                #plot_cursor_functions.add_annotations(x_value, y_value, figure, fid, fid) #TODO - maybe remove
                 traces += 1
             elif sigColumn != '':
                 print(f"Signal '{rawSigName}' not recognized in resultfile '{file}'")

@@ -1,13 +1,11 @@
 figure;title;units;emt_signal_1;emt_signal_2;emt_signal_3;rms_signal_1;rms_signal_2;rms_signal_3;down_sampling_method;gradient_threshold;include_in_case;exclude_in_case
-1;Vpp;pu;V_A_RMS_pu_PoC_ENDK;V_B_RMS_pu_PoC_ENDK;V_B_RMS_pu_PoC_ENDK;meas\m:u:bus2:A in p.u.;meas\m:u:bus2:B in p.u.;meas\m:u:bus2:C in p.u.;gradient;0.5;6;
-2;Vpos;pu;V_pos_pu_PoC_ENDK;;;meas\m:u1:bus2 in p.u.;;;gradient;0.5;6;
-3;Vneg;pu;V_neg_pu_PoC_ENDK;;;meas\m:u2:bus2 in p.u.;;;gradient;0.05;;
-4;Idpos;pu;Id_pos_pu_PoC_ENDK;;;meas\m:i1P:bus2 in p.u.;;;gradient;0.5;6;
-5;Idneg;pu;Id_neg_pu_PoC_ENDK;;;meas\m:i2P:bus2 in p.u.;;;gradient;0.025;;
-6;Iqpos;pu;Iq_pos_pu_PoC_ENDK;;;meas\m:i1Q:bus2 in p.u.;;;gradient;0.25;;
-7;Iqneg;pu;Iq_neg_pu_PoC_ENDK;;;meas\m:i2Q:bus2 in p.u.;;;gradient;0.05;;
-8;Ppos;pu;P_pos_pu_PoC_ENDK;;;pqSum\s:p;;;gradient;0.5;;
-9;Qpos;pu;Q_pos_pu_PoC_ENDK;;;pqSum\s:q;;;gradient;0.25;;
-10;Qneg;pu;Q_neg_pu_PoC_ENDK;;;pqSum\s:q2;;;gradient;0.0005;;
-11;f;Hz;f_ENDK;;;pcc\m:fehz in Hz;;;gradient;10.;;32
-12;phi;deg;PhiRef_ENDK;;;meas\m:phiu1:bus2 in deg;;;gradient;0.5;;32
+1;Vpp;pu;meas_Vab_pu;meas_Vbc_pu;meas_Vca_pu;##meas\s:Vab_pu;##meas\s:Vbc_pu;##meas\s:Vbc_pu;gradient;0.5;;
+2;Vpos;pu;fft_pos_Vmag_pu;;;##meas\s:pos_Vmag_pu;;;gradient;0.5;;
+3;Vneg;pu;fft_neg_Vmag_pu;;;##meas\s:neg_Vmag_pu;;;gradient;0.05;;
+4;Idpos;pu;fft_pos_Id_pu;;;##meas\s:pos_Id_pu;;;gradient;0.5;;
+5;Idneg;pu;fft_neg_Id_pu;;;##meas\s:neg_Id_pu;;;gradient;0.025;;
+6;Iqpos;pu;fft_pos_Iq_pu;;;##meas\s:pos_Iq_pu;;;gradient;0.25;;
+7;Iqneg;pu;fft_neg_Iq_pu;;;##meas\s:neg_Iq_pu;;;gradient;0.05;;
+8;P;pu;meas_ppoc_pu;;;##meas\s:ppoc_pu;;;gradient;0.5;;
+9;Q;pu;meas_qpoc_pu;;;##meas\s:qpoc_pu;;;gradient;0.25;;
+10;f;Hz;fft_f_hz;;;##meas\s:f_hz;;;gradient;0.0005;;
