@@ -178,35 +178,45 @@ class Piecewise(Waveform):
         self.__r__ : List[float] = [0.0]
     
     def add(self, t : float, s : float, r : float = 0.0) -> None:            
-        if isnan(t) or t < 0.0:
-            raise ValueError('t must be a float >= 0.0.')
+        if isnan(t):
+            raise ValueError('t must be a float')
 
         assert len(self.__t__) == len(self.__s__) == len(self.__r__)
         assert len(self.__t__) > 0
         assert self.__t__[0] == 0.0
 
+        if t < 0.0:
+            if isnan(s):
+                raise ValueError('Initial value of piecewise must be a float')
+            self.__s__[0] = s
+            return
+
         i = len(self.__t__) - 1
 
         while(True):
             if t >= self.__t__[i]:
-                newIndex = i + 1
+                if t > self.__t__[i] or t == 0.0:
+                    newIndex = i + 1
+                else:
+                    newIndex = i
+                
+                if t > self.__t__[i]:
+                    donorIndex = i
+                else:
+                    donorIndex = max(i - 1, 0)
                 
                 if isnan(s):
-                    dt = t - self.__t__[i]
-                    s = self.__s__[i] + self.__r__[i] * dt
+                    dt = t - self.__t__[donorIndex]
+                    s = self.__s__[donorIndex] + self.__r__[donorIndex] * dt
                 
                 if isnan(r):
-                    r = self.__r__[i]
+                    r = self.__r__[donorIndex]
             
                 self.__t__.insert(newIndex, t)
                 self.__s__.insert(newIndex, s)
                 self.__r__.insert(newIndex, r)
-
-                if t == self.__t__[i] and t != 0.0:
-                    self.__t__.pop(i)
-                    self.__s__.pop(i)
-                    self.__r__.pop(i)
                 break
+            i -= 1
 
     def t_pscad(self, minLength : int = 0) -> List[float]:
         return self.__tf__(minLength, pscad_time_offset)

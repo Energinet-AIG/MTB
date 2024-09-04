@@ -3,3 +3,4 @@ openpyxl
 jinja2
 plotly
 kaleido
+tsdownsample==0.1.3
