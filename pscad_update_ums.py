@@ -37,20 +37,8 @@ def updateUMs(pscad : mhi.pscad.PSCAD, verbose : bool = False) -> None:
                 for pgb in pgbs:
                     if verbose:
                         print(f'\t\t{pgb}')
-                    pgbParams = pgb.parameters()
+                    pgbParams = pgb.parameters() #type: ignore
                     pgb.parameters(Name = alias + '_' + pgbParams['Group']) #type: ignore
-
-            '''
-            pll_seq_def = project.definition('PLL_seq')
-            if pll_seq_def:
-                pll_seq_def.name = 'PLL_seq_9124'
-            pll_adaptive = project.definition('PLL_ADAPTIVE')
-            if pll_adaptive:
-                pll_adaptive.name = 'PLL_ADAPTIVE_9124'
-            FFT_TRACKING = project.definition('FFT_TRACKING')
-            if FFT_TRACKING:
-                FFT_TRACKING.name = 'FFT_TRACKING_9124'
-            '''
 
 def main():
     pscad = connectPSCAD() #type: ignore 
