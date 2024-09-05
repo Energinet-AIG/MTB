@@ -11,7 +11,7 @@ The workflow is simple:
 2. **Integrate the PSCAD MTB Component** into the plant's PSCAD model.
 3. **Integrate the PowerFactory MTB Component** into the plant's PowerFactory model.
 4. **Execute Simulations** using the MTB Python scripts.
-5. **Visualize the Results** with the included plotter tool. The example below shows a 
+5. **Visualize the Results** with the included plotter tool.
 
 For the latest release notes, please visit the [Releases page](https://github.com/Energinet-AIG/MTB/releases). Learn more about the regulations for grid connection of new facilities in Denmark: [Danish](https://energinet.dk/regler/el/nettilslutning) or [English](https://en.energinet.dk/electricity/rules-and-regulations/regulations-for-new-facilities).
 
