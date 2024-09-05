@@ -50,7 +50,6 @@ class PlantSettings:
         self.Casegroup = str(inputs['Casegroup'])
         self.Run_custom_cases = bool(inputs['Run custom cases'])
         self.Projectname = str(inputs['Projectname']).replace(' ', '_')
-        self.PSCAD_Namespace = str(inputs['PSCAD Namespace']) 
         self.Pn = float(inputs['Pn']) 
         self.Uc = float(inputs['Uc'])
         self.Un = float(inputs['Un'])

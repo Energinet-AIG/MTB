@@ -27,9 +27,14 @@ if __name__ == '__main__':
     executePath = os.path.abspath(__file__)
     executeFolder = os.path.dirname(executePath)
     os.chdir(executeFolder)
-    sys.path.append(executeFolder)
-    print(executeFolder)
-
+    if not executeFolder in sys.path:
+        sys.path.append(executeFolder)
+    print(f'CWD: {executeFolder}')
+    print('sys.path:')
+    for path in sys.path:
+        if path != '':
+            print(f'\t{path}')
+    
 from configparser import ConfigParser
 
 class readConfig:
@@ -46,8 +51,8 @@ sys.path.append(config.pythonPath)
 
 from datetime import datetime
 import shutil
-import psutil
-from typing import List
+import psutil #type: ignore
+from typing import List, Optional
 import sim_interface as si
 import case_setup as cs
 from pscad_update_ums import updateUMs
@@ -59,9 +64,9 @@ def connectPSCAD() -> mhi.pscad.PSCAD:
     ports = [con.laddr.port for con in psutil.net_connections() if con.status == psutil.CONN_LISTEN and con.pid == pid] #type: ignore
 
     if len(ports) == 0: #type: ignore
-        RuntimeError('No PSCAD listening ports found')
+        exit('No PSCAD listening ports found')
     elif len(ports) > 1: #type: ignore
-        Warning('Multiple PSCAD listening ports found. Using the first one.')
+        print('WARNING: Multiple PSCAD listening ports found. Using the first one.')
     
     return mhi.pscad.connect(port = ports[0]) #type: ignore
 
@@ -99,7 +104,7 @@ def taskIdToRank(csvPath : str, projectName : str, emtCases : List[cs.Case]):
                     print(f'Renaming {fileName} to {newName + typ}')
                     os.rename(os.path.join(csvPath, fileName), os.path.join(csvPath, newName + typ))
                 else:
-                    Warning(f'{fileName} has a task ID that is out of bounds. Ignoring file.')
+                    print(f'WARNING: {fileName} has a task ID that is out of bounds. Ignoring file.')
 
 def cleanUpOutFiles(buildPath : str, projectName : str) -> str:
     '''
@@ -149,14 +154,29 @@ def cleanBuildfolder(buildPath : str):
     except FileNotFoundError:
         pass
 
-def setMTBtoVolley(project : mhi.pscad.Project):
+def findMTB(pscad : mhi.pscad.PSCAD) -> mhi.pscad.UserCmp:
     '''
-    Sets MTB block to volley mode.
+    Finds the MTB block in the project.
     '''
-    MTBs : List[mhi.pscad.UserCmp]= project.find_all(Name_ = '$MTB_9124$') #type: ignore
-    for MTB in MTBs:
-        print(f'Setting {MTB} to volley mode')
-        MTB.parameters(par_mode = 1)
+    projectLst = pscad.projects()
+    MTBcand : Optional[mhi.pscad.UserCmp] = None
+    for prjDic in projectLst:
+        if prjDic['type'].lower() == 'case':
+            project = pscad.project(prjDic['name'])
+            MTBs : List[mhi.pscad.UserCmp]= project.find_all(Name_='$MTB_9124$') #type: ignore
+            if len(MTBs) > 0:
+                if MTBcand or len(MTBs) > 1:
+                    exit('Multiple MTB blocks found in workspace.')
+                else:
+                    MTBcand = MTBs[0]
+
+    if not MTBcand:
+        exit('No MTB block found in workspace.')
+    assert MTBcand is not None
+
+    print(f'Setting {MTBcand} to volley mode')
+    MTBcand.parameters(par_mode = 1) #type: ignore
+    return MTBcand
 
 def addInterfaceFile(project : mhi.pscad.Project):
     '''
@@ -164,17 +184,29 @@ def addInterfaceFile(project : mhi.pscad.Project):
     '''
     resList = project.resources()
     for res in resList:
-        if res.path == '.\interface.f' or res.name == 'interface.f':
+        if res.path == r'.\interface.f' or res.name == 'interface.f':
             return
 
     print('Adding interface.f to project')
-    project.create_resource('.\interface.f')
+    project.create_resource(r'.\interface.f')
 
 def main():
+    print()
     print('execute_pscad.py started at:', datetime.now().strftime('%Y-%m-%d %H:%M:%S'), '\n')
     pscad = connectPSCAD()
 
     plantSettings, channels, _, _, emtCases = cs.setup(config.sheetPath, pscad = True, pfEncapsulation = None)
+
+    #Print plant settings from casesheet
+    print('Plant settings:')
+    for setting in plantSettings.__dict__:
+        print(f'{setting} : {plantSettings.__dict__[setting]}')
+    print()
+    
+    #Set MTB to volley mode
+    MTB = findMTB(pscad)
+    project = pscad.project(MTB.project_name)
+    print()
 
     #Output ranks in relation to task id
     print('Rank / Task ID / Casename:')
@@ -183,19 +215,12 @@ def main():
 
     print()
     si.renderFortran('interface.f', channels)
-
-    #Print plant settings from casesheet
-    print('Plant settings:')
-    for setting in plantSettings.__dict__:
-        print(f'{setting} : {plantSettings.__dict__[setting]}')
-    print()
-    project = pscad.project(plantSettings.PSCAD_Namespace)
     
+    #Set executed flag
+    MTB.parameters(executed = 1) #type: ignore  
+
     #Update pgb names for all unit measurement components
     updateUMs(pscad)
-
-    #Set MTB to volley mode
-    setMTBtoVolley(project)
 
     #Add interface file to project
     addInterfaceFile(project)
@@ -209,8 +234,8 @@ def main():
 
     pscad.remove_all_simulation_sets()
     pmr = pscad.create_simulation_set('MTB')
-    pmr.add_tasks(plantSettings.PSCAD_Namespace)
-    project_pmr = pmr.task(plantSettings.PSCAD_Namespace)
+    pmr.add_tasks(MTB.project_name)
+    project_pmr = pmr.task(MTB.project_name)
     project_pmr.parameters(ammunition = len(emtCases), volley = config.volley, affinity_type = '2') #type: ignore
 
     pscad.run_simulation_sets('MTB') #type: ignore ??? By sideeffect changes current working directory ???
