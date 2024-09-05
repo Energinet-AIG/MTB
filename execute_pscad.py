@@ -234,8 +234,8 @@ def main():
 
     pscad.remove_all_simulation_sets()
     pmr = pscad.create_simulation_set('MTB')
-    pmr.add_tasks(plantSettings.PSCAD_Namespace)
-    project_pmr = pmr.task(plantSettings.PSCAD_Namespace)
+    pmr.add_tasks(MTB.project_name)
+    project_pmr = pmr.task(MTB.project_name)
     project_pmr.parameters(ammunition = len(emtCases), volley = config.volley, affinity_type = '2') #type: ignore
 
     pscad.run_simulation_sets('MTB') #type: ignore ??? By sideeffect changes current working directory ???
