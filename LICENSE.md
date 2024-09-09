@@ -1,6 +1,6 @@
-## Information concerning the use of Power Plant and Model Test Bench.
+## Information concerning the use of the Model Test Bench.
 
-Energinet provides the Power Plant and Model Test Bench (MTB) for the purpose of developing a prequalification test bench for production facility and simulation performance which the facility owner may use in its own simulation environment in order to pre-test compliance with the applicable technical requirements for simulation models. 
+Energinet provides the Model Test Bench (MTB) for the purpose of developing a prequalification test bench for production facility and simulation performance which the facility owner may use in its own simulation environment in order to pre-test compliance with the applicable technical requirements for simulation models. 
 
 The MTB is provided under the following considerations:
 1)	Use of the MTB and its results are indicative and for informational purposes only. Energinet may only in its own simulation environment perform conclusive testing, performance and compliance of the simulation models developed and supplied by the facility owner.
