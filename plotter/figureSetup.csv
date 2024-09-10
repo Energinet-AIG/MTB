@@ -1,11 +1,13 @@
 figure;title;units;emt_signal_1;emt_signal_2;emt_signal_3;rms_signal_1;rms_signal_2;rms_signal_3;down_sampling_method;gradient_threshold;include_in_case;exclude_in_case
 1;Vpp;pu;meas_Vab_pu;meas_Vbc_pu;meas_Vca_pu;##meas\s:Vab_pu;##meas\s:Vbc_pu;##meas\s:Vbc_pu;gradient;0.5;;
-2;Vpos;pu;fft_pos_Vmag_pu;;;##meas\s:pos_Vmag_pu;;;gradient;0.5;;
-3;Vneg;pu;fft_neg_Vmag_pu;;;##meas\s:neg_Vmag_pu;;;gradient;0.05;;
-4;Idpos;pu;fft_pos_Id_pu;;;##meas\s:pos_Id_pu;;;gradient;0.5;;
-5;Idneg;pu;fft_neg_Id_pu;;;##meas\s:neg_Id_pu;;;gradient;0.025;;
-6;Iqpos;pu;fft_pos_Iq_pu;;;##meas\s:pos_Iq_pu;;;gradient;0.25;;
-7;Iqneg;pu;fft_neg_Iq_pu;;;##meas\s:neg_Iq_pu;;;gradient;0.05;;
-8;P;pu;meas_ppoc_pu;;;##meas\s:ppoc_pu;;;gradient;0.5;;
-9;Q;pu;meas_qpoc_pu;;;##meas\s:qpoc_pu;;;gradient;0.25;;
-10;f;Hz;fft_f_hz;;;##meas\s:f_hz;;;gradient;0.0005;;
+2;Vpg;pu;meas_Vag_pu;meas_Vbg_pu;meas_Vcg_pu;##meas\s:Vag_pu;##meas\s:Vbg_pu;##meas\s:Vbg_pu;gradient;0.5;;
+3;Vseq;pu;fft_pos_Vmag_pu;fft_neg_Vmag_pu;;##meas\s:pos_Vmag_pu;##meas\s:neg_Vmag_pu;;gradient;0.5;;
+4;Itotal;pu;meas_Ia_pu;meas_Ib_pu;meas_Ic_pu;##meas\s:Ia_pu;##meas\s:Ib_pu;##meas\s:Ic_pu;gradient;0.5;;
+5;Iactive;pu;fft_pos_Id_pu;fft_neg_Id_pu;;##meas\s:pos_Id_pu;##meas\s:neg_Id_pu;;gradient;0.5;;
+6;Ireactive;pu;fft_pos_Iq_pu;fft_neg_Iq_pu;;##meas\s:pos_Iq_pu;##meas\s:neg_Iq_pu;;gradient;0.5;;
+7;Ppoc;pu;meas_ppoc_pu;mtb_s_pref_pu;;##meas\s:ppoc_pu;;;gradient;0.5;;
+8;Qpoc;pu;meas_qpoc_pu;mtb_s_qref_pu;;##meas\s:qpoc_pu;;;gradient;0.5;;
+9;F;Hz;pll_f_hz;;;##meas\s:f_hz;;;gradient;0.5;;
+10;Id_pll;pu;pll_pos_Id_pu;pll_neg_Id_pu;;;;;gradient;0.5;;
+11;Iq_pll;pu;pll_pos_Iq_pu;pll_neg_Iq_pu;;;;;gradient;0.5;;
+12;Terminal;pu;unit_fft_pos_Id_pu;unit_fft_pos_Iq_pu;unit_fft_pos_Vmag_pu;##Unit_1\m:i1P:bus1 in p.u.;##Unit_1\m:i1Q:bus1 in p.u.;##Unit_1\n:u1:bus1 in p.u.;gradient;0.5;;
