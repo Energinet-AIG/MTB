@@ -1,7 +1,7 @@
 '''
 Minimal script to plot simulation results from PSCAD and PowerFactory.
 '''
-import os
+from __future__ import annotations
 from os import listdir, makedirs
 from os.path import join, split, splitext, exists
 import re
@@ -13,9 +13,85 @@ from configparser import ConfigParser
 from typing import List, Dict, Union, Tuple, Set
 import sampling_functions
 from down_sampling_method import DownSamplingMethod
-import plot_cursor_functions
-from threading import Thread
+from threading import Thread, Lock
 import time
+import sys
+from enum import Enum
+from math import ceil
+from collections import defaultdict
+
+try:
+    LOG_FILE = open('plotter.log', 'w')
+except:
+    print('Failed to open log file. Logging to file disabled.')
+    LOG_FILE = None #type: ignore
+
+gLock = Lock()
+
+def print(*args): #type: ignore
+    '''
+    Overwrites the print function to also write to a log file.
+    '''
+    gLock.acquire()
+    outputString = ''.join(map(str, args)) + '\n' #type: ignore
+    sys.stdout.write(outputString)
+    if LOG_FILE:
+        try:
+            LOG_FILE.write(outputString)
+            LOG_FILE.flush()
+        except:
+            pass
+    gLock.release()
+
+class ResultType(Enum):
+    RMS = 0
+    EMT = 1
+
+    @classmethod
+    def from_string(cls, string : str):
+        try:
+            return cls[string.upper()]
+        except KeyError:
+            raise ValueError(f'{string} is not a valid {cls.__name__}')
+
+class Figure:
+    def __init__(self, 
+                 id : int, 
+                 title : str, 
+                 units : str, 
+                 emt_signal_1 : str, 
+                 emt_signal_2 : str, 
+                 emt_signal_3 : str, 
+                 rms_signal_1 : str, 
+                 rms_signal_2 : str, 
+                 rms_signal_3 : str, 
+                 gradient_threshold : float, 
+                 down_sampling_method : DownSamplingMethod,
+                 include_in_case : List[int],
+                 exclude_in_case : List[int]) -> None:
+        
+        self.id = id
+        self.title = title
+        self.units = units
+        self.emt_signal_1 = emt_signal_1
+        self.emt_signal_2 = emt_signal_2
+        self.emt_signal_3 = emt_signal_3
+        self.rms_signal_1 = rms_signal_1
+        self.rms_signal_2 = rms_signal_2
+        self.rms_signal_3 = rms_signal_3
+        self.gradient_threshold = float(gradient_threshold)
+        self.down_sampling_method = down_sampling_method
+        self.include_in_case : List[int] = include_in_case
+        self.exclude_in_case : List[int] = exclude_in_case
+
+class Result:
+    def __init__(self, typ : ResultType, rank : int, name : str, bulkname : str, fullpath : str, group : str) -> None:
+        self.typ = typ
+        self.rank = rank
+        self.name = name
+        self.bulkname = bulkname
+        self.fullpath = fullpath
+        self.group = group
 
 class ReadConfig:
     def __init__(self) -> None:
@@ -23,79 +99,155 @@ class ReadConfig:
         cp.read('config.ini')
         parsedConf = cp['config']
         self.resultsDir = parsedConf['resultsDir']
-        self.figureSetupfilePath = parsedConf['figureSetupfilePath']
         self.columns = parsedConf.getint('columns')                 
         self.genHTML = parsedConf.getboolean('genHTML')
         self.genJPEG = parsedConf.getboolean('genJPEG')
-        self.emtAndRms = parsedConf.getboolean('emtAndRms') 
-        self.emtMinTime = parsedConf.getfloat('emtMinTime')
         self.threads = parsedConf.getint('threads')
         self.pfFlatTIme = parsedConf.getfloat('pfFlatTime')
         self.pscadInitTime = parsedConf.getfloat('pscadInitTime')
-        self.simDataDirs : List[str] = list()
+        self.optionalCasesheet = parsedConf['optionalCasesheet']
+        self.simDataDirs : List[Tuple[str, str]] = list()
         simPaths = cp.items('Simulation data paths')
-        for _, path in simPaths:
-            self.simDataDirs.append(path)
+        for name, path in simPaths:
+            self.simDataDirs.append((name, path))
 
-def idFile(filePath: str) -> Tuple[Union[int, None], Union[str, None], Union[int, None]]:
+class Case:
+    def __init__(self, case: 'pd.Series[Union[str, int, float, bool]]') -> None:
+        self.rank: int = int(case['Rank'])
+        self.RMS: bool = bool(case['RMS'])
+        self.EMT: bool = bool(case['EMT'])
+        self.Name: str = str(case['Name'])
+        self.U0: float = float(case['U0'])
+        self.P0: float = float(case['P0'])
+        self.Pmode: str = str(case['Pmode'])
+        self.Qmode: str = str(case['Qmode'])
+        self.Qref0: float = float(case['Qref0'])
+        self.SCR0: float = float(case['SCR0'])
+        self.XR0: float = float(case['XR0'])
+        self.Simulationtime: float = float(case['Simulationtime'])
+        self.Events : List[Tuple[str, float, Union[float, str], Union[float, str]]] = []
+
+        index : pd.Index[str] = case.index # type: ignore
+        i = 0
+        while(True):
+            typeLabel = f'type.{i}' if i > 0 else 'type'
+            timeLabel = f'time.{i}' if i > 0 else 'time'
+            x1Label = f'X1.{i}' if i > 0 else 'X1'
+            x2Label = f'X2.{i}' if i > 0 else 'X2'
+
+            if typeLabel in index and timeLabel in index and x1Label in index and x2Label in index:
+                try:
+                    x1value = float(str(case[x1Label]).replace(' ',''))
+                except ValueError:
+                    x1value = str(case[x1Label])
+
+                try:
+                    x2value = float(str(case[x2Label]).replace(' ',''))
+                except ValueError:
+                    x2value = str(case[x2Label])
+
+                self.Events.append((str(case[typeLabel]), float(case[timeLabel]), x1value, x2value))
+                i += 1
+            else:
+                break
+
+def readFigureSetup(filePath : str) -> Dict[int, List[Figure]]:
     '''
-    Identifies the type (EMT or RMS), project and case id of a given file. If the file is not recognized, a none tuple is returned.
+    Read figure setup file.
+    '''
+    setup : List[Dict[str, str|List[int]]] = list()
+    with open(filePath, newline='') as setupFile:
+        setupReader = csv.DictReader(setupFile, delimiter = ';')
+        for row in setupReader:
+            row['exclude_in_case'] = list(set([int(item.strip()) for item in row.get('exclude_in_case', '').split(',') if item.strip() != '']))
+            row['include_in_case']  = list(set([int(item.strip())  for item in row.get('include_in_case', '').split(',') if item.strip() != '']))
+            setup.append(row)
+    
+    figureList : List[Figure] = list()
+    for figureStr in setup:
+        figureList.append(
+               Figure(int(figureStr['figure']),                                        #type: ignore
+               figureStr['title'],                                                #type: ignore
+               figureStr['units'],                                                #type: ignore
+               figureStr['emt_signal_1'],                                         #type: ignore
+               figureStr['emt_signal_2'],                                         #type: ignore
+               figureStr['emt_signal_3'],                                         #type: ignore
+               figureStr['rms_signal_1'],                                         #type: ignore
+               figureStr['rms_signal_2'],                                         #type: ignore
+               figureStr['rms_signal_3'],                                         #type: ignore
+               figureStr['gradient_threshold'],                                   #type: ignore
+               DownSamplingMethod.from_string(figureStr['down_sampling_method']), #type: ignore
+               figureStr['include_in_case'],                                      #type: ignore
+               figureStr['exclude_in_case']))                                     #type: ignore
+
+    defaultSetup = [fig for fig in figureList if fig.include_in_case == []]
+    figDict : Dict[int, List[Figure]] = defaultdict(lambda: defaultSetup)
+
+    for fig in figureList:
+        if fig.include_in_case != []:
+            for inc in fig.include_in_case:
+                if not inc in figDict.keys():
+                    figDict[inc] = defaultSetup.copy()
+                defaultSetup.append(fig)
+        else:
+            for exc in fig.exclude_in_case:
+                if not exc in figDict.keys():
+                    figDict[exc] = defaultSetup.copy()
+                figDict[exc].remove(fig)
+    return figDict
+
+def idFile(filePath: str) -> Tuple[Union[ResultType, None], Union[int, None], Union[str, None], Union[str, None], Union[str, None]]:
+    '''
+    Identifies the type (EMT or RMS), root and case id of a given file. If the file is not recognized, a none tuple is returned.
     '''
     path, fileName = split(filePath)
     match = re.match(r'^(\w+?)_([0-9]+).(inf|csv)$', fileName.lower())
     if match:
-        caseId = int(match.group(2))
-        project = join(path, match.group(1))
+        rank = int(match.group(2))
+        name = match.group(1)
+        bulkName = join(path, match.group(1))
+        fullpath = filePath
         with open(filePath, 'r') as file:
             firstLine = file.readline()
             if match.group(3) == 'inf' and firstLine.startswith('PGB(1)'):
-                fileType = 1
-                return (fileType, project, caseId)
+                fileType = ResultType.EMT
+                return (fileType, rank, name, bulkName, fullpath)
             elif match.group(3) == 'csv':
                 secondLine = file.readline()
                 if secondLine.startswith(r'"b:tnow in s"'):
-                    fileType = 0
-                    return (fileType, project, caseId)
-    return (None, None, None)
+                    fileType = ResultType.RMS
+                    return (fileType, rank, name, bulkName, fullpath)
+    return (None, None, None, None, None)
 
-def mapResultFiles(dirs: List[str]) -> Tuple[Dict[int, List[Tuple[int, str, str]]], Set[str]]:
+def mapResultFiles(config : ReadConfig) -> Dict[int, List[Result]]:
     '''
     Goes through all files in the given directories and maps them to a dictionary of cases.
     '''
-    files = [join(dir, p) for dir in dirs for p in listdir(dir)]
+    files : List[Tuple[str, str]] = list()
+    for dir_ in config.simDataDirs:
+        for file_ in listdir(dir_[1]):
+            files.append((dir_[0], join(dir_[1], file_)))
 
-    cases : Dict[int, List[Tuple[int, str, str]]] = {}
-    relevantProjects : Set[str] = set()
+    results : Dict[int, List[Result]] = dict()
 
     for file in files:
-        typ, project, id = idFile(file)
+        group = file[0]
+        fullpath = file[1]
+        typ, rank, name, bulkName, fullpath = idFile(fullpath)
         if typ is None:
             continue
-        
-        assert project is not None
-        assert id is not None
+        assert rank is not None
+        assert name is not None
+        assert bulkName is not None
+        assert fullpath is not None
+        newResult = Result(typ, rank, name, bulkName, fullpath, group)
 
-        if typ == 0:
-            project = f"{project}_RMS"
-        elif typ == 1:
-            project = f"{project}_EMT"
+        if rank in results.keys():
+            results[rank].append(newResult)
+        else:
+            results[rank] = [newResult]
 
-        cases.setdefault(id, []).append((typ, project, file))
-
-        relevantProjects.add(project)        
-    return cases, relevantProjects
-
-def readFigureSetup(filePath : str) -> List[Dict[str, str]]:
-    '''
-    Reads the figure setup from the given file and returns a list of dictionaries containing the information.
-    The index of the returned list corresponds to the figure number.
-    '''
-    setup : List[str]= list()
-    with open(filePath, newline='') as setupFile:
-        setupReader = csv.DictReader(setupFile, delimiter = ';')
-        for row in setupReader:
-            setup.append(row) #type: ignore
-    return setup #type: ignore
+    return results
 
 def emtColumns(infFilePath : str) -> Dict[int, str]:
     '''
@@ -153,181 +305,163 @@ def loadEMT(infFile : str) -> pd.DataFrame:
     print(f"Loaded {infFile}, length = {df['time'].iloc[-1]}s") #type: ignore   
     return df
 
-def addResultToFig(typ: int, result: pd.DataFrame, figureSetup: List[Dict[str, str]], figure : go.Figure, project: str, file: str, colors: Dict[str, List[str]], nColumns: int, pfFlatTIme : float, pscadInitTime : float) -> None:
-    for fSetup in figureSetup:
-        fid = int(fSetup['figure'])
-        downsampling_method = sampling_functions.get_down_sampling_method(fSetup)
-        rowPos = (fid - 1) // nColumns + 1
-        colPos = (fid - 1) % nColumns + 1
+def addResults(    plotlyFigure : go.Figure,
+                   typ: ResultType,
+                   data: pd.DataFrame,
+                   figures: List[Figure],
+                   name: str,
+                   file: str, #Only for error messages
+                   colors: Dict[str, List[str]],
+                   nColumns: int,
+                   pfFlatTIme : float,
+                   pscadInitTime : float) -> None:
+    '''
+    Add result to plot.
+    '''
+
+    for figure in figures:
+        downsampling_method = figure.down_sampling_method
+        rowPos = (figure.id - 1) // nColumns + 1
+        colPos = (figure.id - 1) % nColumns + 1
+
         traces = 0
         for sig in range(1,4):
-            signalKey = 'rms' if typ == 0 else 'emt'
-            rawSigName = fSetup.get(f"{signalKey}_signal_{sig}", "")
+            signalKey = typ.name.lower()
+            rawSigName = getattr(figure, f'{signalKey}_signal_{sig}')
             
-            if typ == 0:
+            if typ == ResultType.RMS:
+                while rawSigName.startswith('#'):
+                    rawSigName = rawSigName[1:]
                 splitSigName = rawSigName.split('\\')
-                
+
                 if len(splitSigName) == 2:
-                    sigColumn = (splitSigName[0], splitSigName[1])
+                    sigColumn = ('##' + splitSigName[0], splitSigName[1])
                 else:
-                    sigColumn = ''
+                    sigColumn = rawSigName
             else:
                 sigColumn = rawSigName
 
-            timeColName = 'time' if typ == 1 else result.columns[0]
-            timeoffset = pfFlatTIme if typ == 0 else pscadInitTime
-            file_type_name = get_file_type_name(file)
+            timeColName = 'time' if typ == ResultType.EMT else data.columns[0]
+            timeoffset = pfFlatTIme if typ == ResultType.RMS else pscadInitTime
 
-            if sigColumn in result.columns:
-                x_value = result[timeColName] - timeoffset
-                y_value = result[sigColumn]
+            if sigColumn in data.columns:
+                x_value = data[timeColName] - timeoffset #type: ignore
+                y_value = data[sigColumn] #type: ignore
                 if downsampling_method == DownSamplingMethod.GRADIENT:
-                    x_value, y_value = sampling_functions.downsample_based_on_gradient(x_value, y_value, float(fSetup['gradient_threshold']))
+                    x_value, y_value = sampling_functions.downsample_based_on_gradient(x_value, y_value, figure.gradient_threshold) #type: ignore
                 elif downsampling_method == DownSamplingMethod.AMOUNT:
-                    x_value, y_value = sampling_functions.down_sample(x_value, y_value)
-                figure.add_trace(
+                    x_value, y_value = sampling_functions.down_sample(x_value, y_value) #type: ignore
+                plotlyFigure.add_trace( #type: ignore
                     go.Scatter(
                         x=x_value,
                         y=y_value,
-                        line_color=colors[project][traces],
-                        name=f"{file_type_name}:{rawSigName}",
-                        legendgroup=project,
+                        line_color=colors[name][traces],
+                        name=f"{name}:{rawSigName}",
+                        legendgroup=name,
                         showlegend=True
                     ),
                     row=rowPos, col=colPos
-                )
-                #plot_cursor_functions.add_annotations(x_value, y_value, figure, fid, fid) #TODO - maybe remove
+                )  
                 traces += 1
             elif sigColumn != '':
                 print(f"Signal '{rawSigName}' not recognized in resultfile '{file}'")
-                figure.add_trace( #type: ignore
+                plotlyFigure.add_trace( #type: ignore
                     go.Scatter(
                     x=None,
                     y=None,
-                    line_color=colors[project][traces], 
-                    name=f"{file_type_name}:{rawSigName} (Unknown)",
-                    legendgroup=project,
+                    line_color=colors[name][traces], 
+                    name=f"{name}:{rawSigName} (Unknown)",
+                    legendgroup=name,
                     showlegend=True
                 ),
                 row=rowPos, col=colPos
                 )
                 traces += 1               
         
-        figure.update_xaxes( #type: ignore
+        plotlyFigure.update_xaxes( #type: ignore
             title_text='Time[s]',  
             row=rowPos, col=colPos
         )
-        figure.update_yaxes( #type: ignore
-            title_text=f"{fSetup['title']}[{fSetup['units']}]",  
+        plotlyFigure.update_yaxes( #type: ignore
+            title_text=f"{figure.title}[{figure.units}]",  
             row=rowPos, col=colPos
         )
 
-
-def get_file_type_name(file):
-    file_type_name = f"{file}"
-    file_type_name = file_type_name.split(get_split_char())
-    if (len(file_type_name) > 1):
-        file_type_name = file_type_name[-2]
-    else:
-        file_type_name = file_type_name[-1]
-    return file_type_name
-
-
-def get_split_char():
-    if os.name == 'nt':
-        return '\\'
-    else:
-        return '/'
-
-
-def colorMap(projects: List[str]) -> Dict[str, List[str]]:
+def colorMap(names: List[str]) -> Dict[str, List[str]]:
     '''
     Select colors for the given projects. Return a dictionary with the project name as key and a list of colors as value.
     '''
     colors = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990', '#dcbeff', '#9A6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#a9a9a9', '#000000']
     cMap : Dict[str, List[str]] = dict()
-    if len(projects) > 2:
+    if len(names) > 2:
         i = 0
-        for p in projects:
+        for p in names:
             cMap[p] = [colors[i % len(colors)]] * 3
             i += 1
         return cMap
     else:
         i = 0
-        for p in projects:
+        for p in names:
             cMap[p] = colors[i:i+3]
             i += 3
     return cMap
 
-def drawFigure(figurePath : str, config : ReadConfig, nrows : int, cases : Dict[int, List[Tuple[int, str, str]]], caseId : int, figureSetup :  List[Dict[str, str]], cMap : Dict[str, List[str]]):
-   
-    # filter case figures to render based on input from figureSetup
-    case_setup = figureSetup.copy()
-    exclusion_marker = []
-    inclusion_marker = []
+def drawPlot( rank : int,
+                resultDict : Dict[int, List[Result]],
+                figureDict : Dict[int, List[Figure]],
+                caseDict : Dict[int, str],
+                colorMap : Dict[str, List[str]],
+                config : ReadConfig):
+    
+    '''
+    Draws plot.    
+    '''
 
-    for setup in figureSetup:
-        exclusion_list = [item.strip() for item in setup.get('exclude_in_case').split(',')]
-        inclusion_list = [item.strip() for item in setup.get('include_in_case').split(',')]
-        if str(caseId) in exclusion_list:
-            exclusion_marker.append(setup['figure'])
-        if str(caseId) in inclusion_list:
-            inclusion_marker.append(setup['figure'])
-    
-    if len(inclusion_marker) > 0:
-        case_setup = [setup for setup in case_setup if setup['figure'] in inclusion_marker]
-    elif len(exclusion_marker) > 0:
-        case_setup = [setup for setup in case_setup if setup['figure'] not in exclusion_marker]
-    
-    nfig = len(case_setup)
-    nrows = (nfig + config.columns - nfig%config.columns)//config.columns
-    
-    figure = make_subplots(rows = nrows, cols = config.columns)
-    figure.update_layout(title_text = figurePath) #type: ignore
-    
-    addedRmsResults = 0
-    addedEmtResults = 0
+    print(f'Drawing plot for rank {rank}.')
 
-    for typ, project, path in cases[caseId]:
-        print(f"Plotting {path} in case {caseId}.")
+    resultList = resultDict.get(rank, [])
+    figureList = figureDict[rank]
 
-        if typ == 0:
-            result : pd.DataFrame = pd.read_csv(path,sep=';',decimal=',',header=[0,1]) #type: ignore
-            addedRmsResults += 1
-        elif typ == 1:
-            result = loadEMT(path,)
-            if result['time'].iloc[-1] < config.emtMinTime: #type: ignore
-                print(f"Resultfile '{path}' is too short. Skipping.")
-                continue
-            addedEmtResults += 1
+    if resultList == [] or figureList == []:
+        return
+
+    figurePath = join(config.resultsDir, str(rank))
+    nrows = ceil(len(figureList)/config.columns)
+
+    plot = make_subplots(rows = nrows, cols = config.columns)
+    plot.update_layout(title_text = caseDict[rank]) #type: ignore
+    
+    for result in resultList:
+        if result.typ == ResultType.RMS:
+            resultData : pd.DataFrame = pd.read_csv(result.fullpath, sep=';',decimal=',',header=[0,1]) #type: ignore
+        elif result.typ == ResultType.EMT:
+            resultData = loadEMT(result.fullpath)
+        else:
+            continue
         
-        addResultToFig(typ, result, case_setup, figure, project, path, cMap, config.columns, config.pfFlatTIme, config.pscadInitTime) #type: ignore
+        addResults(plot, result.typ, resultData, figureList, result.group, result.fullpath, colorMap, config.columns, config.pfFlatTIme, config.pscadInitTime)
 
+    if config.genHTML:
+        create_html(plot, figurePath, config)
+        
+    if config.genJPEG: 
+        plot.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
+        plot.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
 
-    if config.emtAndRms and addedRmsResults > 0 and addedEmtResults > 0 or not config.emtAndRms and ( addedRmsResults > 0 or addedEmtResults > 0):
-        if config.genHTML:
-            create_html(figure, figurePath, config)
-            
-        if config.genJPEG: 
-            figure.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
-            figure.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns)
+    print(f'Plot for rank {rank} done.')
 
+def create_html(plotlyFigure : go.Figure, path : str, config : ReadConfig):
 
-def create_html(figure, figurePath, config : ReadConfig):
-    # Step 2: Add custom text below the figure
-    additional_text_prefix = """
+    additional_text =  """
             <div style="text-align: left; margin-top: 1px;">"""
 
-    additionel_text_suffix = """</div>"""
-    additional_text = additional_text_prefix
-    i = 1
-    for path in config.simDataDirs:
-        additional_text += f"<p>The path for input path #{i} is: {path}</p>"
-        i += 1
-    additional_text += additionel_text_suffix
-    # Step 3: Generate the HTML string with the figure
-    html_content = figure.to_html(full_html=False, include_plotlyjs='cdn')
-    # Step 4: Combine the HTML content with additional text
+    for group in config.simDataDirs:
+        additional_text += f"<p>{group[0]} = {group[1]}</p>"
+
+    additional_text += """<p><center><a href="https://github.com/Energinet-AIG/MTB">Generated with Energinets Model Testbench</a></center></p></div>"""
+
+    html_content = plotlyFigure.to_html(full_html=False, include_plotlyjs='cdn') #type: ignore
+
     full_html_content = f"""
             <html>
             <head>
@@ -340,37 +474,57 @@ def create_html(figure, figurePath, config : ReadConfig):
             </body>
             </html>
             """
-    with open(f'{figurePath}.html', 'w') as file:
+    
+    with open(f'{path}.html', 'w') as file:
         file.write(full_html_content)
 
+def readCasesheet(casesheetPath : str) -> Dict[int, str]:
+    '''
+    Reads optional casesheets and provides dict mapping rank to case title.
+    '''
+
+    try:
+        pd.read_excel(casesheetPath, sheet_name='RfG cases', header=1) # type: ignore
+    except FileNotFoundError:
+        print(f'Casesheet not found at {casesheetPath}.')
+        return dict()
+    
+    cases : List[Case] = list()
+    for sheet in ['RfG', 'DCC', 'Unit', 'Custom']:
+        dfc = pd.read_excel(casesheetPath, sheet_name=f'{sheet} cases', header=1) # type: ignore
+        for _, case in dfc.iterrows(): # type: ignore
+            cases.append(Case(case)) # type: ignore
+
+    caseDict : Dict[int, str] = defaultdict(lambda: 'Unknown case')
+    for case in cases:
+        caseDict[case.rank] = case.Name
+    return caseDict
 
 def main() -> None:
     config = ReadConfig()
-    figureSetup = readFigureSetup(config.figureSetupfilePath)
     
-    cases, allProjects = mapResultFiles(config.simDataDirs)
+    resultDict = mapResultFiles(config)
+    figureDict = readFigureSetup('figureSetup.csv')
+    caseDict = readCasesheet(config.optionalCasesheet)
 
-    cMap = colorMap(list(allProjects))
+    uniqueGroups : Set[str] = set()
+
+    for rank in resultDict.keys():
+        for result in resultDict[rank]:
+            uniqueGroups.add(result.group)
+
+    colorSchemeMap = colorMap(list(uniqueGroups))
 
     if not exists(config.resultsDir):
         makedirs(config.resultsDir)
 
-    nfig = len(figureSetup)
-    nrows = (nfig + config.columns - nfig%config.columns)//config.columns
-
     threads : List[Thread] = list()
 
-    for caseId in cases.keys():
-        types = 0
-        for simData in cases[caseId]:
-            types += simData[0]
-
-        if len(cases[caseId]) > types > 0 or not config.emtAndRms:
-            figurePath = join(config.resultsDir, str(caseId))
-            if config.threads > 1:
-                threads.append(Thread(target = drawFigure, args = (figurePath, config, nrows, cases, caseId, figureSetup, cMap,)))
-            else:
-                drawFigure(figurePath, config, nrows, cases, caseId, figureSetup, cMap)
+    for rank in resultDict.keys():
+        if config.threads > 1:
+            threads.append(Thread(target = drawPlot, args = (rank, resultDict, figureDict, caseDict, colorSchemeMap, config)))
+        else:
+            drawPlot(rank, resultDict, figureDict, caseDict, colorSchemeMap, config)
     
     NoT = len(threads)
     if NoT > 0:  
@@ -391,3 +545,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+if LOG_FILE:
+    LOG_FILE.close()

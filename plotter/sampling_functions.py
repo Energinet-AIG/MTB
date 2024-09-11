@@ -35,8 +35,8 @@ def down_sample(data_x_axis: List[int], data_y_axis: List[int]) -> Tuple[List[in
     return data_x_axis[downsample], data_y_axis[downsample]
 
 
-def get_down_sampling_method(fSetup: Dict[str, str]):
-    if 'down_sampling_method' in fSetup:
-        return DownSamplingMethod.from_string(str(fSetup['down_sampling_method']))
-    else:
-        return DownSamplingMethod.NO_DOWN_SAMPLING
+#def get_down_sampling_method(fSetup: Dict[str, str]):
+#    if 'down_sampling_method' in fSetup:
+#        return DownSamplingMethod.from_string(str(fSetup['down_sampling_method']))
+#    else:
+#        return DownSamplingMethod.NO_DOWN_SAMPLING
