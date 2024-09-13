@@ -99,12 +99,17 @@ class ReadConfig:
         cp.read('config.ini')
         parsedConf = cp['config']
         self.resultsDir = parsedConf['resultsDir']
-        self.columns = parsedConf.getint('columns')                 
+        self.columns = parsedConf.getint('columns')
+        assert self.columns > 0                 
         self.genHTML = parsedConf.getboolean('genHTML')
-        self.genJPEG = parsedConf.getboolean('genJPEG')
+        self.genImage = parsedConf.getboolean('genImage')
+        self.imageFormat = parsedConf['imageFormat']
         self.threads = parsedConf.getint('threads')
+        assert self.threads > 0
         self.pfFlatTIme = parsedConf.getfloat('pfFlatTime')
+        assert self.pfFlatTIme >= 0.1
         self.pscadInitTime = parsedConf.getfloat('pscadInitTime')
+        assert self.pscadInitTime >= 1.0
         self.optionalCasesheet = parsedConf['optionalCasesheet']
         self.simDataDirs : List[Tuple[str, str]] = list()
         simPaths = cp.items('Simulation data paths')
@@ -188,7 +193,7 @@ def readFigureSetup(filePath : str) -> Dict[int, List[Figure]]:
             for inc in fig.include_in_case:
                 if not inc in figDict.keys():
                     figDict[inc] = defaultSetup.copy()
-                defaultSetup.append(fig)
+                figDict[inc].append(fig)
         else:
             for exc in fig.exclude_in_case:
                 if not exc in figDict.keys():
@@ -305,7 +310,7 @@ def loadEMT(infFile : str) -> pd.DataFrame:
     print(f"Loaded {infFile}, length = {df['time'].iloc[-1]}s") #type: ignore   
     return df
 
-def addResults(    plotlyFigure : go.Figure,
+def addResults(    plots : List[go.Figure],
                    typ: ResultType,
                    data: pd.DataFrame,
                    figures: List[Figure],
@@ -319,11 +324,25 @@ def addResults(    plotlyFigure : go.Figure,
     Add result to plot.
     '''
 
-    for figure in figures:
-        downsampling_method = figure.down_sampling_method
-        rowPos = (figure.id - 1) // nColumns + 1
-        colPos = (figure.id - 1) % nColumns + 1
+    assert len(plots) == len(figures)
+    assert nColumns > 0
 
+    if nColumns > 1:    
+        plotlyFigure = plots[0]
+
+    rowPos = 1
+    colPos = 1
+    fi = -1
+    for figure in figures:
+        fi += 1
+        
+        if nColumns == 1:
+            plotlyFigure = plots[fi]
+        else:
+            rowPos = (fi // nColumns) + 1
+            colPos = (fi % nColumns) + 1
+            
+        downsampling_method = figure.down_sampling_method
         traces = 0
         for sig in range(1,4):
             signalKey = typ.name.lower()
@@ -351,6 +370,7 @@ def addResults(    plotlyFigure : go.Figure,
                     x_value, y_value = sampling_functions.downsample_based_on_gradient(x_value, y_value, figure.gradient_threshold) #type: ignore
                 elif downsampling_method == DownSamplingMethod.AMOUNT:
                     x_value, y_value = sampling_functions.down_sample(x_value, y_value) #type: ignore
+
                 plotlyFigure.add_trace( #type: ignore
                     go.Scatter(
                         x=x_value,
@@ -382,8 +402,13 @@ def addResults(    plotlyFigure : go.Figure,
             title_text='Time[s]',  
             row=rowPos, col=colPos
         )
+        if nColumns == 1:
+            yaxisTitle = f"[{figure.units}]"
+        else:
+            yaxisTitle = f"{figure.title}[{figure.units}]"
+
         plotlyFigure.update_yaxes( #type: ignore
-            title_text=f"{figure.title}[{figure.units}]",  
+            title_text=yaxisTitle ,  
             row=rowPos, col=colPos
         )
 
@@ -426,10 +451,23 @@ def drawPlot( rank : int,
         return
 
     figurePath = join(config.resultsDir, str(rank))
-    nrows = ceil(len(figureList)/config.columns)
 
-    plot = make_subplots(rows = nrows, cols = config.columns)
-    plot.update_layout(title_text = caseDict[rank]) #type: ignore
+    plot : List[go.Figure] = list()
+
+    if config.columns == 1:
+         for fig in figureList:
+            plot.append(make_subplots())
+            plot[-1].update_layout(title_text = fig.title, height = 500, width = 1920, #type: ignore
+                                   legend=dict(
+                                        orientation="h",
+                                        yanchor="top",
+                                        y=1.3,
+                                        xanchor="left",
+                                        x = 0.2,
+                                    )) 
+    elif config.columns > 1:
+        plot.append(make_subplots(rows = ceil(len(figureList)/config.columns), cols = config.columns))
+        plot[-1].update_layout(title_text = caseDict[rank], height = 500 * ceil(len(figureList)/config.columns), width = 1920/config.columns) #type: ignore
     
     for result in resultList:
         if result.typ == ResultType.RMS:
@@ -438,19 +476,20 @@ def drawPlot( rank : int,
             resultData = loadEMT(result.fullpath)
         else:
             continue
-        
-        addResults(plot, result.typ, resultData, figureList, result.group, result.fullpath, colorMap, config.columns, config.pfFlatTIme, config.pscadInitTime)
 
+        addResults(plot, result.typ, resultData, figureList, result.group, result.fullpath, colorMap, config.columns, config.pfFlatTIme, config.pscadInitTime)
+   
     if config.genHTML:
-        create_html(plot, figurePath, config)
+        create_html(plot, figurePath, config, caseDict[rank])
+        print(f'Exported plot for rank {rank} to {figurePath}.html')
         
-    if config.genJPEG: 
-        plot.write_image('{}.jpeg'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
-        plot.write_image('{}.png'.format(figurePath), width=500*nrows, height=500*config.columns) #type: ignore
+    #if config.genImage: 
+    #    plot.write_image(f'{figurePath}.{config.imageFormat}', height=500*nrows, width=500*config.columns) #type: ignore
+    #    print(f'Exported plot for rank {rank} to {figurePath}.{config.imageFormat}')
 
     print(f'Plot for rank {rank} done.')
 
-def create_html(plotlyFigure : go.Figure, path : str, config : ReadConfig):
+def create_html(plots : List[go.Figure], path : str, config : ReadConfig, title : str):
 
     additional_text =  """
             <div style="text-align: left; margin-top: 1px;">"""
@@ -460,7 +499,12 @@ def create_html(plotlyFigure : go.Figure, path : str, config : ReadConfig):
 
     additional_text += """<p><center><a href="https://github.com/Energinet-AIG/MTB">Generated with Energinets Model Testbench</a></center></p></div>"""
 
-    html_content = plotlyFigure.to_html(full_html=False, include_plotlyjs='cdn') #type: ignore
+    if config.columns == 1:
+        html_content = '<h1>' + title + '</h1>'
+    else:
+        html_content = ''
+    for p in plots:
+        html_content += p.to_html(full_html=False, include_plotlyjs='cdn') #type: ignore
 
     full_html_content = f"""
             <html>
@@ -503,6 +547,15 @@ def readCasesheet(casesheetPath : str) -> Dict[int, str]:
 def main() -> None:
     config = ReadConfig()
     
+    print('Starting plotter')
+
+    #Output config
+    print('Configuration:')
+    for setting in config.__dict__:
+        print(f'\t{setting}: {config.__dict__[setting]}')
+
+    print()
+
     resultDict = mapResultFiles(config)
     figureDict = readFigureSetup('figureSetup.csv')
     caseDict = readCasesheet(config.optionalCasesheet)
@@ -534,14 +587,18 @@ def main() -> None:
         while len(sched) > 0:
             for t in inProg:
                 if not t.is_alive():
+                    print(f'Thread {t.native_id} finished')
                     inProg.remove(t)
 
             while len(inProg) < config.threads and len(sched) > 0:
                 nextThread = sched.pop()
                 nextThread.start()
+                print(f'Started thread {nextThread.native_id}')
                 inProg.append(nextThread)
 
             time.sleep(0.5)
+
+    print('Finished plotter')
 
 if __name__ == "__main__":
     main()
