@@ -79,7 +79,7 @@ def script_GetInt(script : pf.ComPython, name : str) -> Optional[int]:
   else:
     return None
 
-def connectPF() -> Tuple[pf.Application, pf.IntPrj, pf.ComPython]:
+def connectPF() -> Tuple[pf.Application, pf.IntPrj, pf.ComPython, Tuple[int, int]]:
   '''
   Connects to the powerfactory application and returns the application, project and this script object.
   '''
@@ -90,6 +90,17 @@ def connectPF() -> Tuple[pf.Application, pf.IntPrj, pf.ComPython]:
   app.ClearOutputWindow()
   app.PrintInfo(f'Powerfactory application connected externally. Executable: {sys.executable}')
   app.PrintInfo(f'Imported powerfactory module from {pf.__file__}')
+
+  installPath : str = app.GetInstallationDirectory()
+  pfDir : str = os.path.basename(os.path.normpath(installPath))
+  pfVersionParts : List[str] = pfDir.strip().split(' ')
+  assert 3 >= len(pfVersionParts) > 1
+  assert pfVersionParts[0] == 'PowerFactory'
+  assert pfVersionParts[1].isnumeric()
+  if len(pfVersionParts) == 3:
+    assert pfVersionParts[2].startswith('SP')
+    assert pfVersionParts[2][2:].isnumeric()
+  pfVersion : Tuple[int, int] = (int(pfVersionParts[1]), int(pfVersionParts[2][2:]))
 
   project : Optional[pf.IntPrj] = app.GetActiveProject() #type: ignore
 
@@ -106,7 +117,7 @@ def connectPF() -> Tuple[pf.Application, pf.IntPrj, pf.ComPython]:
   thisScript : pf.ComPython = networkData.SearchObject('MTB\\MTB\\execute.ComPython') #type: ignore
   assert thisScript is not None
 
-  return app, project, thisScript
+  return app, project, thisScript, pfVersion
 
 def resetProjectUnits(project : pf.IntPrj) -> None:
   '''
@@ -381,7 +392,7 @@ def addCustomSubscribers(thisScript : pf.ComPython, channels : List[si.Channel])
 
 def main():
   # Connect to Powerfactory
-  app, project, thisScript = connectPF()
+  app, project, thisScript, pfVersion = connectPF()
 
   # Check if any studycase is active
   currentStudyCase : Optional[pf.IntCase] = app.GetActiveStudyCase() #type: ignore
@@ -524,12 +535,15 @@ def main():
   if onlySetup == 0:
     taskAuto.Execute() 
   
-  for studycase in studycases:
-    studycase.Activate() 
-    setupPlots(app, root)
-    app.WriteChangesToDb()
-    studycase.Deactivate() 
-    app.WriteChangesToDb()
+  if pfVersion[0] >= 2024:
+    for studycase in studycases:
+      studycase.Activate() 
+      setupPlots(app, root)
+      app.WriteChangesToDb()
+      studycase.Deactivate() 
+      app.WriteChangesToDb()
+  else:
+    app.PrintWarn('Plot setup not supported for PowerFactory versions older than 2024.')
   
   # Create post run backup
   postBackup = script_GetInt(thisScript, 'Post_run_backup')
