@@ -79,7 +79,7 @@ def script_GetInt(script : pf.ComPython, name : str) -> Optional[int]:
   else:
     return None
 
-def connectPF() -> Tuple[pf.Application, pf.IntPrj, pf.ComPython, Tuple[int, int]]:
+def connectPF() -> Tuple[pf.Application, pf.IntPrj, pf.ComPython, int]:
   '''
   Connects to the powerfactory application and returns the application, project and this script object.
   '''
@@ -91,16 +91,9 @@ def connectPF() -> Tuple[pf.Application, pf.IntPrj, pf.ComPython, Tuple[int, int
   app.PrintInfo(f'Powerfactory application connected externally. Executable: {sys.executable}')
   app.PrintInfo(f'Imported powerfactory module from {pf.__file__}')
 
-  installPath : str = app.GetInstallationDirectory()
-  pfDir : str = os.path.basename(os.path.normpath(installPath))
-  pfVersionParts : List[str] = pfDir.strip().split(' ')
-  assert 3 >= len(pfVersionParts) > 1
-  assert pfVersionParts[0] == 'PowerFactory'
-  assert pfVersionParts[1].isnumeric()
-  if len(pfVersionParts) == 3:
-    assert pfVersionParts[2].startswith('SP')
-    assert pfVersionParts[2][2:].isnumeric()
-  pfVersion : Tuple[int, int] = (int(pfVersionParts[1]), int(pfVersionParts[2][2:]))
+  version : str = pf.__version__
+  pfVersion = 2000 + int(version.split('.')[0])
+  app.PrintInfo(f'Powerfactory version registred: {pfVersion}')
 
   project : Optional[pf.IntPrj] = app.GetActiveProject() #type: ignore
 
@@ -161,81 +154,32 @@ def setupResFiles(app : pf.Application, script : pf.ComPython, root : pf.DataObj
   elmRes.AddVariable(measurementBlock, 's:ppoc_pu')  
   elmRes.AddVariable(measurementBlock, 's:qpoc_pu') 
 
-  mtb_s_pref_pu = root.SearchObject('mtb_s_pref_pu.ElmDsl')
-  assert mtb_s_pref_pu is not None
-  elmRes.AddVariable(mtb_s_pref_pu,  's:yo')
+  signals = [
+      'mtb_s_pref_pu.ElmDsl',
+      'mtb_s_qref.ElmDsl',
+      'mtb_s_qref_q_pu.ElmDsl',
+      'mtb_s_qref_qu_pu.ElmDsl',
+      'mtb_s_qref_pf.ElmDsl',
+      'mtb_s_qref_3.ElmDsl',
+      'mtb_s_qref_4.ElmDsl',
+      'mtb_s_qref_5.ElmDsl',
+      'mtb_s_qref_6.ElmDsl',
+      'mtb_s_1.ElmDsl',
+      'mtb_s_2.ElmDsl',
+      'mtb_s_3.ElmDsl',
+      'mtb_s_4.ElmDsl',
+      'mtb_s_5.ElmDsl',
+      'mtb_s_6.ElmDsl',
+      'mtb_s_7.ElmDsl',
+      'mtb_s_8.ElmDsl',
+      'mtb_s_9.ElmDsl',
+      'mtb_s_10.ElmDsl'
+  ]
 
-  mtb_s_qref = root.SearchObject('mtb_s_qref.ElmDsl')
-  assert mtb_s_qref is not None
-  elmRes.AddVariable(mtb_s_qref,  's:yo')
-
-  mtb_s_qref_q_pu = root.SearchObject('mtb_s_qref_q_pu.ElmDsl')
-  assert mtb_s_qref_q_pu is not None
-  elmRes.AddVariable(mtb_s_qref_q_pu,  's:yo')
-
-  mtb_s_qref_qu_pu = root.SearchObject('mtb_s_qref_qu_pu.ElmDsl')
-  assert mtb_s_qref_qu_pu is not None
-  elmRes.AddVariable(mtb_s_qref_qu_pu,  's:yo')
-
-  mtb_s_qref_pf = root.SearchObject('mtb_s_qref_pf.ElmDsl')
-  assert mtb_s_qref_pf is not None
-  elmRes.AddVariable(mtb_s_qref_pf,  's:yo')
-
-  mtb_s_qref_3 = root.SearchObject('mtb_s_qref_3.ElmDsl')
-  assert mtb_s_qref_3 is not None
-  elmRes.AddVariable(mtb_s_qref_3,  's:yo')
-
-  mtb_s_qref_4 = root.SearchObject('mtb_s_qref_4.ElmDsl')
-  assert mtb_s_qref_4 is not None
-  elmRes.AddVariable(mtb_s_qref_4,  's:yo')
-
-  mtb_s_qref_5 = root.SearchObject('mtb_s_qref_5.ElmDsl')
-  assert mtb_s_qref_5 is not None
-  elmRes.AddVariable(mtb_s_qref_5,  's:yo')
-
-  mtb_s_qref_6 = root.SearchObject('mtb_s_qref_6.ElmDsl')
-  assert mtb_s_qref_6 is not None
-  elmRes.AddVariable(mtb_s_qref_6,  's:yo')
-
-  mtb_s_1 = root.SearchObject('mtb_s_1.ElmDsl')
-  assert mtb_s_1 is not None
-  elmRes.AddVariable(mtb_s_1,  's:yo') 
-
-  mtb_s_2 = root.SearchObject('mtb_s_2.ElmDsl') 
-  assert mtb_s_2 is not None
-  elmRes.AddVariable(mtb_s_2,  's:yo') 
-
-  mtb_s_3 = root.SearchObject('mtb_s_3.ElmDsl') 
-  assert mtb_s_3 is not None
-  elmRes.AddVariable(mtb_s_3,  's:yo') 
-
-  mtb_s_4 = root.SearchObject('mtb_s_4.ElmDsl') 
-  assert mtb_s_4 is not None
-  elmRes.AddVariable(mtb_s_4,  's:yo') 
-
-  mtb_s_5 = root.SearchObject('mtb_s_5.ElmDsl') 
-  assert mtb_s_5 is not None
-  elmRes.AddVariable(mtb_s_5,  's:yo') 
-
-  mtb_s_6 = root.SearchObject('mtb_s_6.ElmDsl') 
-  assert mtb_s_6 is not None
-  elmRes.AddVariable(mtb_s_6,  's:yo') 
-
-  mtb_s_7 = root.SearchObject('mtb_s_7.ElmDsl') 
-  assert mtb_s_7 is not None
-  elmRes.AddVariable(mtb_s_7,  's:yo') 
-
-  mtb_s_8 = root.SearchObject('mtb_s_8.ElmDsl') 
-  assert mtb_s_8 is not None
-  elmRes.AddVariable(mtb_s_8,  's:yo') 
-
-  mtb_s_9 = root.SearchObject('mtb_s_9.ElmDsl') 
-  assert mtb_s_9 is not None
-  elmRes.AddVariable(mtb_s_9,  's:yo') 
-
-  mtb_s_10 = root.SearchObject('mtb_s_10.ElmDsl') 
-  assert mtb_s_10 is not None
-  elmRes.AddVariable(mtb_s_10,  's:yo') 
+  for signal in signals:
+    signalObj = root.SearchObject(signal)
+    assert signalObj is not None
+    elmRes.AddVariable(signalObj, 's:yo')
 
   # Include measurement objects and set alias
   for i in range(1, 100):
@@ -535,7 +479,7 @@ def main():
   if onlySetup == 0:
     taskAuto.Execute() 
   
-  if pfVersion[0] >= 2024:
+  if pfVersion >= 2024:
     for studycase in studycases:
       studycase.Activate() 
       setupPlots(app, root)

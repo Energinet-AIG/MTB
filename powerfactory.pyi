@@ -599,3 +599,5 @@ class PltLinebarplot(DataObject):
 
 class PltDataseries(DataObject)
     def AddCurve(self, __element : DataObject, __varname : str, __datasource : Optional[DataObject] = None) -> None: ...
+
+__version__ : str = ''
