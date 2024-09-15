@@ -78,14 +78,14 @@ def outToCsv(srcPath : str, dstPath : str):
             open(dstPath, 'w') as csv:
         csv.writelines(','.join(line.split()) +'\n' for line in out)
 
-def moveFiles(srcPath : str, dstPath : str, types : List[str]) -> None:
+def moveFiles(srcPath : str, dstPath : str, types : List[str], suffix : str = '') -> None:
     '''
     Moves files of the specified types from srcPath to dstPath.
     '''
     for file in os.listdir(srcPath):
         _, typ = os.path.splitext(file)
         if typ in types:
-            shutil.move(os.path.join(srcPath, file), os.path.join(dstPath, file))
+            shutil.move(os.path.join(srcPath, file), os.path.join(dstPath, file + suffix))
 
 def taskIdToRank(csvPath : str, projectName : str, emtCases : List[cs.Case]):
     '''
@@ -94,17 +94,20 @@ def taskIdToRank(csvPath : str, projectName : str, emtCases : List[cs.Case]):
     for file in os.listdir(csvPath):
         _, fileName = os.path.split(file)
         root, typ = os.path.splitext(fileName)
-        if typ == '.csv' or typ == '.inf':
-            parts = root.split('_')
-            if len(parts) > 1 and parts[0] == projectName and parts[1].isnumeric():
-                taskId = int(parts[1])
+        if typ == '.csv_taskid' or typ == '.inf_taskid' and root.startswith(projectName + '_'):
+            suffix = root[len(projectName) + 1:]
+            parts = suffix.split('_')
+            if  len(parts) > 0 and parts[0].isnumeric():
+                taskId = int(parts[0])
                 if taskId - 1 < len(emtCases):
-                    parts[1] = str(emtCases[int(parts[1]) - 1].rank)
-                    newName = '_'.join(parts)
-                    print(f'Renaming {fileName} to {newName + typ}')
-                    os.rename(os.path.join(csvPath, fileName), os.path.join(csvPath, newName + typ))
+                    parts[0] = str(emtCases[taskId  - 1].rank)
+                    newName = projectName + '_' + '_'.join(parts) + typ.replace('_taskid', '')
+                    print(f'Renaming {fileName} to {newName}')
+                    os.rename(os.path.join(csvPath, fileName), os.path.join(csvPath, newName))
                 else:
                     print(f'WARNING: {fileName} has a task ID that is out of bounds. Ignoring file.')
+            else:
+                print(f'WARNING: {fileName} has an invalid task ID. Ignoring file.')
 
 def cleanUpOutFiles(buildPath : str, projectName : str) -> str:
     '''
@@ -136,7 +139,7 @@ def cleanUpOutFiles(buildPath : str, projectName : str) -> str:
     #Move .csv and .inf files away from build folder into output folder
     csvFolder = os.path.join(outputFolder, resultsFolder)
     os.mkdir(csvFolder)
-    moveFiles(buildPath, csvFolder, ['.csv', '.inf'])
+    moveFiles(buildPath, csvFolder, ['.csv', '.inf'], '_taskid')
 
     #Move .out file away from build folder
     outFolder = os.path.join(buildPath, resultsFolder)
@@ -245,7 +248,7 @@ def main():
     print()
     taskIdToRank(csvFolder, plantSettings.Projectname, emtCases)
 
-    print('execute.py finished at:', datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+    print('execute.py finished at: ', datetime.now().strftime('%m-%d %H:%M:%S'))
 
 if __name__ == '__main__':
     main()
