@@ -47,13 +47,6 @@ class ResultType(Enum):
     RMS = 0
     EMT = 1
 
-    @classmethod
-    def from_string(cls, string : str):
-        try:
-            return cls[string.upper()]
-        except KeyError:
-            raise ValueError(f'{string} is not a valid {cls.__name__}')
-
 class Figure:
     def __init__(self, 
                  id : int, 
@@ -85,24 +78,27 @@ class Figure:
         self.exclude_in_case : List[int] = exclude_in_case
 
 class Result:
-    def __init__(self, typ : ResultType, rank : int, name : str, bulkname : str, fullpath : str, group : str) -> None:
+    def __init__(self, typ : ResultType, rank : int, projectName : str, bulkname : str, fullpath : str, group : str) -> None:
         self.typ = typ
         self.rank = rank
-        self.name = name
+        self.projectName = projectName
         self.bulkname = bulkname
         self.fullpath = fullpath
         self.group = group
+        self.shorthand = f'{group}\\{projectName}'
 
 class ReadConfig:
     def __init__(self) -> None:
         cp = ConfigParser()
         cp.read('config.ini')
         parsedConf = cp['config']
-        self.resultsDir = parsedConf['resultsDir']
-        self.columns = parsedConf.getint('columns')
-        assert self.columns > 0                 
+        self.resultsDir = parsedConf['resultsDir']                
         self.genHTML = parsedConf.getboolean('genHTML')
         self.genImage = parsedConf.getboolean('genImage')
+        self.htmlColumns = parsedConf.getint('htmlColumns')
+        assert self.htmlColumns > 0 or not self.genHTML
+        self.imageColumns = parsedConf.getint('imageColumns')
+        assert self.imageColumns > 0 or not self.genImage
         self.imageFormat = parsedConf['imageFormat']
         self.threads = parsedConf.getint('threads')
         assert self.threads > 0
@@ -209,19 +205,19 @@ def idFile(filePath: str) -> Tuple[Union[ResultType, None], Union[int, None], Un
     match = re.match(r'^(\w+?)_([0-9]+).(inf|csv)$', fileName.lower())
     if match:
         rank = int(match.group(2))
-        name = match.group(1)
+        projectName = match.group(1)
         bulkName = join(path, match.group(1))
         fullpath = filePath
         with open(filePath, 'r') as file:
             firstLine = file.readline()
             if match.group(3) == 'inf' and firstLine.startswith('PGB(1)'):
                 fileType = ResultType.EMT
-                return (fileType, rank, name, bulkName, fullpath)
+                return (fileType, rank, projectName, bulkName, fullpath)
             elif match.group(3) == 'csv':
                 secondLine = file.readline()
                 if secondLine.startswith(r'"b:tnow in s"'):
                     fileType = ResultType.RMS
-                    return (fileType, rank, name, bulkName, fullpath)
+                    return (fileType, rank, projectName, bulkName, fullpath)
     return (None, None, None, None, None)
 
 def mapResultFiles(config : ReadConfig) -> Dict[int, List[Result]]:
@@ -238,14 +234,16 @@ def mapResultFiles(config : ReadConfig) -> Dict[int, List[Result]]:
     for file in files:
         group = file[0]
         fullpath = file[1]
-        typ, rank, name, bulkName, fullpath = idFile(fullpath)
+        typ, rank, projectName, bulkName, fullpath = idFile(fullpath)
+
         if typ is None:
             continue
         assert rank is not None
-        assert name is not None
+        assert projectName is not None
         assert bulkName is not None
         assert fullpath is not None
-        newResult = Result(typ, rank, name, bulkName, fullpath, group)
+
+        newResult = Result(typ, rank, projectName, bulkName, fullpath, group)
 
         if rank in results.keys():
             results[rank].append(newResult)
@@ -310,11 +308,38 @@ def loadEMT(infFile : str) -> pd.DataFrame:
     print(f"Loaded {infFile}, length = {df['time'].iloc[-1]}s") #type: ignore   
     return df
 
+def colorMap(results: Dict[int, List[Result]]) -> Dict[str, List[str]]:
+    '''
+    Select colors for the given projects. Return a dictionary with the project name as key and a list of colors as value.
+    '''
+    colors = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990', '#dcbeff', '#9A6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#a9a9a9', '#000000']
+    
+    projects : Set[str] = set()
+
+    for rank in results.keys():
+        for result in results[rank]:
+            projects.add(result.shorthand)
+
+    cMap : Dict[str, List[str]] = dict()
+
+    if len(list(projects)) > 2:
+        i = 0
+        for p in list(projects):
+            cMap[p] = [colors[i % len(colors)]] * 3
+            i += 1
+        return cMap
+    else:
+        i = 0
+        for p in list(projects):
+            cMap[p] = colors[i:i+3]
+            i += 3
+    return cMap
+
 def addResults(    plots : List[go.Figure],
                    typ: ResultType,
                    data: pd.DataFrame,
                    figures: List[Figure],
-                   name: str,
+                   resultName: str,
                    file: str, #Only for error messages
                    colors: Dict[str, List[str]],
                    nColumns: int,
@@ -324,11 +349,12 @@ def addResults(    plots : List[go.Figure],
     Add result to plot.
     '''
 
-    assert len(plots) == len(figures)
     assert nColumns > 0
 
     if nColumns > 1:    
         plotlyFigure = plots[0]
+    else:
+         assert len(plots) == len(figures)
 
     rowPos = 1
     colPos = 1
@@ -346,7 +372,7 @@ def addResults(    plots : List[go.Figure],
         traces = 0
         for sig in range(1,4):
             signalKey = typ.name.lower()
-            rawSigName = getattr(figure, f'{signalKey}_signal_{sig}')
+            rawSigName : str = getattr(figure, f'{signalKey}_signal_{sig}')
             
             if typ == ResultType.RMS:
                 while rawSigName.startswith('#'):
@@ -359,6 +385,8 @@ def addResults(    plots : List[go.Figure],
                     sigColumn = rawSigName
             else:
                 sigColumn = rawSigName
+
+            displayName = f'{resultName}:{rawSigName.split(" ")[0]}'
 
             timeColName = 'time' if typ == ResultType.EMT else data.columns[0]
             timeoffset = pfFlatTIme if typ == ResultType.RMS else pscadInitTime
@@ -375,23 +403,23 @@ def addResults(    plots : List[go.Figure],
                     go.Scatter(
                         x=x_value,
                         y=y_value,
-                        line_color=colors[name][traces],
-                        name=f"{name}:{rawSigName}",
-                        legendgroup=name,
+                        line_color=colors[resultName][traces],
+                        name=displayName,
+                        legendgroup=resultName if nColumns > 1 else displayName,
                         showlegend=True
                     ),
                     row=rowPos, col=colPos
                 )  
                 traces += 1
             elif sigColumn != '':
-                print(f"Signal '{rawSigName}' not recognized in resultfile '{file}'")
+                print(f'Signal "{rawSigName}" not recognized in resultfile: {file}')
                 plotlyFigure.add_trace( #type: ignore
                     go.Scatter(
                     x=None,
                     y=None,
-                    line_color=colors[name][traces], 
-                    name=f"{name}:{rawSigName} (Unknown)",
-                    legendgroup=name,
+                    line_color=colors[resultName][traces], 
+                    name=f'{displayName} (Unknown)',
+                    legendgroup=resultName if nColumns > 1 else displayName,
                     showlegend=True
                 ),
                 row=rowPos, col=colPos
@@ -403,33 +431,14 @@ def addResults(    plots : List[go.Figure],
             row=rowPos, col=colPos
         )
         if nColumns == 1:
-            yaxisTitle = f"[{figure.units}]"
+            yaxisTitle = f'[{figure.units}]'
         else:
-            yaxisTitle = f"{figure.title}[{figure.units}]"
+            yaxisTitle = f'{figure.title}[{figure.units}]'
 
         plotlyFigure.update_yaxes( #type: ignore
             title_text=yaxisTitle ,  
             row=rowPos, col=colPos
         )
-
-def colorMap(names: List[str]) -> Dict[str, List[str]]:
-    '''
-    Select colors for the given projects. Return a dictionary with the project name as key and a list of colors as value.
-    '''
-    colors = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990', '#dcbeff', '#9A6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#a9a9a9', '#000000']
-    cMap : Dict[str, List[str]] = dict()
-    if len(names) > 2:
-        i = 0
-        for p in names:
-            cMap[p] = [colors[i % len(colors)]] * 3
-            i += 1
-        return cMap
-    else:
-        i = 0
-        for p in names:
-            cMap[p] = colors[i:i+3]
-            i += 3
-    return cMap
 
 def drawPlot( rank : int,
                 resultDict : Dict[int, List[Result]],
@@ -439,7 +448,7 @@ def drawPlot( rank : int,
                 config : ReadConfig):
     
     '''
-    Draws plot.    
+    Draws plots for html and static image export.    
     '''
 
     print(f'Drawing plot for rank {rank}.')
@@ -452,23 +461,36 @@ def drawPlot( rank : int,
 
     figurePath = join(config.resultsDir, str(rank))
 
-    plot : List[go.Figure] = list()
+    htmlPlots : List[go.Figure] = list()
+    imagePlots : List[go.Figure] = list()
 
-    if config.columns == 1:
-         for fig in figureList:
-            plot.append(make_subplots())
-            plot[-1].update_layout(title_text = fig.title, height = 500, width = 1920, #type: ignore
-                                   legend=dict(
-                                        orientation="h",
-                                        yanchor="top",
-                                        y=1.3,
-                                        xanchor="left",
-                                        x = 0.2,
-                                    )) 
-    elif config.columns > 1:
-        plot.append(make_subplots(rows = ceil(len(figureList)/config.columns), cols = config.columns))
-        plot[-1].update_layout(title_text = caseDict[rank], height = 500 * ceil(len(figureList)/config.columns), width = 1920/config.columns) #type: ignore
+    lst : List[Tuple[int, List[go.Figure]]]= []
+
+    if config.genHTML:
+        lst.append((config.htmlColumns, htmlPlots))
     
+    if config.genImage:
+        lst.append((config.imageColumns, imagePlots))
+
+    for columnNr, plotList in lst:
+        if columnNr == 1:
+            for fig in figureList:
+                plotList.append(make_subplots())
+                plotList[-1].update_layout(title_text = fig.title, height = 500, #type: ignore
+                                    legend=dict(
+                                            orientation="h",
+                                            yanchor="top",
+                                            y=1.22,
+                                            xanchor="left",
+                                            x = 0.12,
+                                        )) 
+        elif columnNr > 1:
+            plotList.append(make_subplots(rows = ceil(len(figureList)/columnNr), cols = columnNr))
+            plotList[-1].update_layout(height = 500 * ceil(len(figureList)/columnNr)) #type: ignore
+            if plotList == imagePlots:
+                plotList[-1].update_layout(title_text = caseDict[rank]) #type: ignore
+        
+
     for result in resultList:
         if result.typ == ResultType.RMS:
             resultData : pd.DataFrame = pd.read_csv(result.fullpath, sep=';',decimal=',',header=[0,1]) #type: ignore
@@ -476,48 +498,60 @@ def drawPlot( rank : int,
             resultData = loadEMT(result.fullpath)
         else:
             continue
-
-        addResults(plot, result.typ, resultData, figureList, result.group, result.fullpath, colorMap, config.columns, config.pfFlatTIme, config.pscadInitTime)
+        
+        if config.genHTML: 
+            addResults(htmlPlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap, config.htmlColumns, config.pfFlatTIme, config.pscadInitTime)
+        
+        if config.genImage:
+            addResults(imagePlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap, config.imageColumns, config.pfFlatTIme, config.pscadInitTime)
    
     if config.genHTML:
-        create_html(plot, figurePath, config, caseDict[rank])
+        create_html(htmlPlots, figurePath, caseDict[rank], config)
         print(f'Exported plot for rank {rank} to {figurePath}.html')
         
-    #if config.genImage: 
-    #    plot.write_image(f'{figurePath}.{config.imageFormat}', height=500*nrows, width=500*config.columns) #type: ignore
-    #    print(f'Exported plot for rank {rank} to {figurePath}.{config.imageFormat}')
+    if config.genImage: 
+       imagePlots[0].write_image(f'{figurePath}.{config.imageFormat}', height = 500 * ceil(len(figureList)/columnNr), width = 500*config.imageColumns) #type: ignore
+       print(f'Exported plot for rank {rank} to {figurePath}.{config.imageFormat}')
 
     print(f'Plot for rank {rank} done.')
 
-def create_html(plots : List[go.Figure], path : str, config : ReadConfig, title : str):
-
-    additional_text =  """
-            <div style="text-align: left; margin-top: 1px;">"""
+def create_html(plots : List[go.Figure], path : str, title : str, config : ReadConfig) -> None:
+    source_list =  '<div style="text-align: left; margin-top: 1px;">'
+    source_list += '<h4>Source data:</h4>'
 
     for group in config.simDataDirs:
-        additional_text += f"<p>{group[0]} = {group[1]}</p>"
+        source_list += f'<p>{group[0]} = {group[1]}</p>'
 
-    additional_text += """<p><center><a href="https://github.com/Energinet-AIG/MTB">Generated with Energinets Model Testbench</a></center></p></div>"""
+    source_list += '</div>'
 
-    if config.columns == 1:
-        html_content = '<h1>' + title + '</h1>'
+    if config.htmlColumns == 1:
+        figur_links = '<div style="text-align: left; margin-top: 1px;">'
+        figur_links += '<h4>Figures:</h4>'
+        for p in plots:
+            plot_title : str = p['layout']['title']['text'] #type: ignore
+            figur_links += f'<a href="#{plot_title}">{plot_title}</a>&emsp;'
+
+        figur_links += '</div>'
     else:
-        html_content = ''
-    for p in plots:
-        html_content += p.to_html(full_html=False, include_plotlyjs='cdn') #type: ignore
+        figur_links = ''
 
-    full_html_content = f"""
+    html_content = '<h1>' + title + '</h1>'
+
+    html_content += source_list
+    html_content += figur_links
+
+    for p in plots:
+        plot_title : str = p['layout']['title']['text'] #type: ignore
+        html_content += f'<div id="{plot_title}">' +  p.to_html(full_html=False, include_plotlyjs='cdn') + '</div>'#type: ignore
+
+    full_html_content = f'''
             <html>
-            <head>
-                <meta charset="utf-8">
-                <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-            </head>
             <body>
                 {html_content}
-                {additional_text}
+                <p><center><a href="https://github.com/Energinet-AIG/MTB" target="_blank">Generated with Energinets Model Testbench</a></center></p>
             </body>
             </html>
-            """
+            '''
     
     with open(f'{path}.html', 'w') as file:
         file.write(full_html_content)
@@ -547,7 +581,7 @@ def readCasesheet(casesheetPath : str) -> Dict[int, str]:
 def main() -> None:
     config = ReadConfig()
     
-    print('Starting plotter')
+    print('Starting plotter main thread')
 
     #Output config
     print('Configuration:')
@@ -559,14 +593,7 @@ def main() -> None:
     resultDict = mapResultFiles(config)
     figureDict = readFigureSetup('figureSetup.csv')
     caseDict = readCasesheet(config.optionalCasesheet)
-
-    uniqueGroups : Set[str] = set()
-
-    for rank in resultDict.keys():
-        for result in resultDict[rank]:
-            uniqueGroups.add(result.group)
-
-    colorSchemeMap = colorMap(list(uniqueGroups))
+    colorSchemeMap = colorMap(resultDict)
 
     if not exists(config.resultsDir):
         makedirs(config.resultsDir)
@@ -598,7 +625,7 @@ def main() -> None:
 
             time.sleep(0.5)
 
-    print('Finished plotter')
+    print('Finished plotter main thread')
 
 if __name__ == "__main__":
     main()
