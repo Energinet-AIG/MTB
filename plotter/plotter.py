@@ -2,8 +2,12 @@
 Minimal script to plot simulation results from PSCAD and PowerFactory.
 '''
 from __future__ import annotations
-from os import listdir, makedirs
-from os.path import join, split, splitext, exists
+from os import listdir, makedirs, chdir
+from os.path import join, split, splitext, exists, abspath, dirname
+
+#Ensure right working directory
+chdir(dirname(abspath(__file__)))
+
 import re
 import csv
 import pandas as pd
@@ -516,17 +520,16 @@ def drawPlot( rank : int,
     print(f'Plot for rank {rank} done.')
 
 def create_html(plots : List[go.Figure], path : str, title : str, config : ReadConfig) -> None:
+    # Render sourcelist
     source_list =  '<div style="text-align: left; margin-top: 1px;">'
     source_list += '<h4>Source data:</h4>'
-
     for group in config.simDataDirs:
         source_list += f'<p>{group[0]} = {group[1]}</p>'
-
     source_list += '</div>'
 
+    # Render figure links
     if config.htmlColumns == 1:
         figur_links = '<div style="text-align: left; margin-top: 1px;">'
-        figur_links += '<h4>Figures:</h4>'
         for p in plots:
             plot_title : str = p['layout']['title']['text'] #type: ignore
             figur_links += f'<a href="#{plot_title}">{plot_title}</a>&emsp;'
@@ -535,20 +538,25 @@ def create_html(plots : List[go.Figure], path : str, title : str, config : ReadC
     else:
         figur_links = ''
 
+    # Render html content
     html_content = '<h1>' + title + '</h1>'
-
     html_content += source_list
-    html_content += figur_links
+
+    if config.htmlColumns == 1:
+        html_content += '<h4>Figures:</h4>'
 
     for p in plots:
         plot_title : str = p['layout']['title']['text'] #type: ignore
-        html_content += f'<div id="{plot_title}">' +  p.to_html(full_html=False, include_plotlyjs='cdn') + '</div>'#type: ignore
+        html_content += figur_links
+        plot_html : str = p.to_html(full_html=False, include_plotlyjs='cdn') #type: ignore
+        assert isinstance(plot_html, str)
+        html_content += f'<div id="{plot_title}">' + plot_html + '</div>'
 
     full_html_content = f'''
             <html>
             <body>
                 {html_content}
-                <p><center><a href="https://github.com/Energinet-AIG/MTB" target="_blank">Generated with Energinets Model Testbench</a></center></p>
+                <p><center><a href="https://github.com/Energinet-AIG/MTB" target="_blank">Generated with Energinets Model Testbench (GitHub)</a></center></p>
             </body>
             </html>
             '''
