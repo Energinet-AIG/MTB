@@ -5,20 +5,24 @@ from __future__ import annotations
 from os import listdir, makedirs
 from os.path import join, split, splitext, exists
 import re
-import csv
 import pandas as pd
 from plotly.subplots import make_subplots #type: ignore
 import plotly.graph_objects as go #type: ignore
-from configparser import ConfigParser
 from typing import List, Dict, Union, Tuple, Set
 import sampling_functions
 from down_sampling_method import DownSamplingMethod
 from threading import Thread, Lock
 import time
 import sys
-from enum import Enum
 from math import ceil
 from collections import defaultdict
+import plot_cursor_functions
+from read_configs import ReadConfig, readFigureSetup, readRankSetup
+from Figure import Figure
+from Result import ResultType, Result
+from Case import Case
+from Rank import Rank
+
 
 try:
     LOG_FILE = open('plotter.log', 'w')
@@ -43,159 +47,6 @@ def print(*args): #type: ignore
             pass
     gLock.release()
 
-class ResultType(Enum):
-    RMS = 0
-    EMT = 1
-
-class Figure:
-    def __init__(self, 
-                 id : int, 
-                 title : str, 
-                 units : str, 
-                 emt_signal_1 : str, 
-                 emt_signal_2 : str, 
-                 emt_signal_3 : str, 
-                 rms_signal_1 : str, 
-                 rms_signal_2 : str, 
-                 rms_signal_3 : str, 
-                 gradient_threshold : float, 
-                 down_sampling_method : DownSamplingMethod,
-                 include_in_case : List[int],
-                 exclude_in_case : List[int]) -> None:
-        
-        self.id = id
-        self.title = title
-        self.units = units
-        self.emt_signal_1 = emt_signal_1
-        self.emt_signal_2 = emt_signal_2
-        self.emt_signal_3 = emt_signal_3
-        self.rms_signal_1 = rms_signal_1
-        self.rms_signal_2 = rms_signal_2
-        self.rms_signal_3 = rms_signal_3
-        self.gradient_threshold = float(gradient_threshold)
-        self.down_sampling_method = down_sampling_method
-        self.include_in_case : List[int] = include_in_case
-        self.exclude_in_case : List[int] = exclude_in_case
-
-class Result:
-    def __init__(self, typ : ResultType, rank : int, projectName : str, bulkname : str, fullpath : str, group : str) -> None:
-        self.typ = typ
-        self.rank = rank
-        self.projectName = projectName
-        self.bulkname = bulkname
-        self.fullpath = fullpath
-        self.group = group
-        self.shorthand = f'{group}\\{projectName}'
-
-class ReadConfig:
-    def __init__(self) -> None:
-        cp = ConfigParser()
-        cp.read('config.ini')
-        parsedConf = cp['config']
-        self.resultsDir = parsedConf['resultsDir']                
-        self.genHTML = parsedConf.getboolean('genHTML')
-        self.genImage = parsedConf.getboolean('genImage')
-        self.htmlColumns = parsedConf.getint('htmlColumns')
-        assert self.htmlColumns > 0 or not self.genHTML
-        self.imageColumns = parsedConf.getint('imageColumns')
-        assert self.imageColumns > 0 or not self.genImage
-        self.imageFormat = parsedConf['imageFormat']
-        self.threads = parsedConf.getint('threads')
-        assert self.threads > 0
-        self.pfFlatTIme = parsedConf.getfloat('pfFlatTime')
-        assert self.pfFlatTIme >= 0.1
-        self.pscadInitTime = parsedConf.getfloat('pscadInitTime')
-        assert self.pscadInitTime >= 1.0
-        self.optionalCasesheet = parsedConf['optionalCasesheet']
-        self.simDataDirs : List[Tuple[str, str]] = list()
-        simPaths = cp.items('Simulation data paths')
-        for name, path in simPaths:
-            self.simDataDirs.append((name, path))
-
-class Case:
-    def __init__(self, case: 'pd.Series[Union[str, int, float, bool]]') -> None:
-        self.rank: int = int(case['Rank'])
-        self.RMS: bool = bool(case['RMS'])
-        self.EMT: bool = bool(case['EMT'])
-        self.Name: str = str(case['Name'])
-        self.U0: float = float(case['U0'])
-        self.P0: float = float(case['P0'])
-        self.Pmode: str = str(case['Pmode'])
-        self.Qmode: str = str(case['Qmode'])
-        self.Qref0: float = float(case['Qref0'])
-        self.SCR0: float = float(case['SCR0'])
-        self.XR0: float = float(case['XR0'])
-        self.Simulationtime: float = float(case['Simulationtime'])
-        self.Events : List[Tuple[str, float, Union[float, str], Union[float, str]]] = []
-
-        index : pd.Index[str] = case.index # type: ignore
-        i = 0
-        while(True):
-            typeLabel = f'type.{i}' if i > 0 else 'type'
-            timeLabel = f'time.{i}' if i > 0 else 'time'
-            x1Label = f'X1.{i}' if i > 0 else 'X1'
-            x2Label = f'X2.{i}' if i > 0 else 'X2'
-
-            if typeLabel in index and timeLabel in index and x1Label in index and x2Label in index:
-                try:
-                    x1value = float(str(case[x1Label]).replace(' ',''))
-                except ValueError:
-                    x1value = str(case[x1Label])
-
-                try:
-                    x2value = float(str(case[x2Label]).replace(' ',''))
-                except ValueError:
-                    x2value = str(case[x2Label])
-
-                self.Events.append((str(case[typeLabel]), float(case[timeLabel]), x1value, x2value))
-                i += 1
-            else:
-                break
-
-def readFigureSetup(filePath : str) -> Dict[int, List[Figure]]:
-    '''
-    Read figure setup file.
-    '''
-    setup : List[Dict[str, str|List[int]]] = list()
-    with open(filePath, newline='') as setupFile:
-        setupReader = csv.DictReader(setupFile, delimiter = ';')
-        for row in setupReader:
-            row['exclude_in_case'] = list(set([int(item.strip()) for item in row.get('exclude_in_case', '').split(',') if item.strip() != '']))
-            row['include_in_case']  = list(set([int(item.strip())  for item in row.get('include_in_case', '').split(',') if item.strip() != '']))
-            setup.append(row)
-    
-    figureList : List[Figure] = list()
-    for figureStr in setup:
-        figureList.append(
-               Figure(int(figureStr['figure']),                                        #type: ignore
-               figureStr['title'],                                                #type: ignore
-               figureStr['units'],                                                #type: ignore
-               figureStr['emt_signal_1'],                                         #type: ignore
-               figureStr['emt_signal_2'],                                         #type: ignore
-               figureStr['emt_signal_3'],                                         #type: ignore
-               figureStr['rms_signal_1'],                                         #type: ignore
-               figureStr['rms_signal_2'],                                         #type: ignore
-               figureStr['rms_signal_3'],                                         #type: ignore
-               figureStr['gradient_threshold'],                                   #type: ignore
-               DownSamplingMethod.from_string(figureStr['down_sampling_method']), #type: ignore
-               figureStr['include_in_case'],                                      #type: ignore
-               figureStr['exclude_in_case']))                                     #type: ignore
-
-    defaultSetup = [fig for fig in figureList if fig.include_in_case == []]
-    figDict : Dict[int, List[Figure]] = defaultdict(lambda: defaultSetup)
-
-    for fig in figureList:
-        if fig.include_in_case != []:
-            for inc in fig.include_in_case:
-                if not inc in figDict.keys():
-                    figDict[inc] = defaultSetup.copy()
-                figDict[inc].append(fig)
-        else:
-            for exc in fig.exclude_in_case:
-                if not exc in figDict.keys():
-                    figDict[exc] = defaultSetup.copy()
-                figDict[exc].remove(fig)
-    return figDict
 
 def idFile(filePath: str) -> Tuple[Union[ResultType, None], Union[int, None], Union[str, None], Union[str, None], Union[str, None]]:
     '''
@@ -335,6 +186,94 @@ def colorMap(results: Dict[int, List[Result]]) -> Dict[str, List[str]]:
             i += 3
     return cMap
 
+
+def addCursors(htmlPlots: List[go.Figure],
+               typ: ResultType,
+               data: pd.DataFrame,
+               rankDict: List[Rank],
+               pfFlatTIme: float,
+               pscadInitTime: float,
+               rank: int,
+               nColumns: int):
+    rank_settings = [i for i in rankDict if i.id == rank]
+    if len(rank_settings) == 0:
+        return list()
+
+    signalKey = typ.name.lower()
+
+    # Initialize subplot positions
+    fi = -1  # Start index from -1 as it is incremented before use
+
+    # Loop through rank settings
+    for rank_setting in rank_settings:
+        rawSigNames = getattr(rank_setting, f'{signalKey}_signals')
+        threshold = getattr(rank_setting, 'cursor_time_ranges')
+        # Increment plot index
+        fi += 1
+
+        if len(rawSigNames) == 0:
+            continue
+
+        # Update subplot row and column positions based on fi
+        rowPos = (fi // nColumns) + 1
+        colPos = (fi % nColumns) + 1
+
+        # Select the correct plot
+        plot = htmlPlots[fi] if nColumns == 1 else htmlPlots[0]
+
+        x = []
+        y = []
+
+        for rawSigName in rawSigNames:
+            if typ == ResultType.RMS:
+                # Remove hash and split signal name
+                while rawSigName.startswith('#'):
+                    rawSigName = rawSigName[1:]
+                splitSigName = rawSigName.split('\\')
+
+                if len(splitSigName) == 2:
+                    sigColumn = ('##' + splitSigName[0], splitSigName[1])
+                else:
+                    sigColumn = rawSigName
+            else:
+                sigColumn = rawSigName
+
+            # Determine the time column and offset based on the type
+            timeColName = 'time' if typ == ResultType.EMT else data.columns[0]
+            timeoffset = pfFlatTIme if typ == ResultType.RMS else pscadInitTime
+
+            if sigColumn in data.columns:
+                # Get the signal data and time values
+                x.extend(data[timeColName] - timeoffset)  # type: ignore
+                y.extend(data[sigColumn])  # type: ignore
+
+        # Filter the data based on the threshold
+        if len(y) != 0:
+            x = pd.Series(x)
+            y = pd.Series(y)
+
+            if len(threshold) > 0:
+                assert len(threshold) <= 2
+                mask = (x >= threshold[0]) & (x < threshold[1]) if len(threshold) == 2 else (x >= threshold[0])
+                y_filtered = y[mask]
+                x_filtered = x[mask]
+            else:
+                y_filtered = y
+                x_filtered = x
+
+            plot_cursor_functions.add_annotations_subplot(plot, x_filtered, y_filtered, rowPos, colPos)
+
+        else:
+            plot.add_trace(go.Scatter(x=[], y=[], mode='lines', name='No Data'), row=rowPos, col=colPos)
+            # Keep the title for empty plot
+            # Add an annotation to indicate no data
+            plot.update_xaxes(visible=False, row=rowPos, col=colPos)
+            plot.update_yaxes(visible=False, row=rowPos, col=colPos)
+
+    return htmlPlots  # Return updated plots
+
+
+
 def addResults(    plots : List[go.Figure],
                    typ: ResultType,
                    data: pd.DataFrame,
@@ -409,7 +348,8 @@ def addResults(    plots : List[go.Figure],
                         showlegend=True
                     ),
                     row=rowPos, col=colPos
-                )  
+                )
+                #plot_cursor_functions.add_annotations(x_value, y_value, plotlyFigure)
                 traces += 1
             elif sigColumn != '':
                 print(f'Signal "{rawSigName}" not recognized in resultfile: {file}')
@@ -445,6 +385,7 @@ def drawPlot( rank : int,
                 figureDict : Dict[int, List[Figure]],
                 caseDict : Dict[int, str],
                 colorMap : Dict[str, List[str]],
+                rankDict: List[Rank],
                 config : ReadConfig):
     
     '''
@@ -455,6 +396,7 @@ def drawPlot( rank : int,
 
     resultList = resultDict.get(rank, [])
     figureList = figureDict[rank]
+    figureListCursor = [i for i in rankDict if i.id == rank]
 
     if resultList == [] or figureList == []:
         return
@@ -463,34 +405,11 @@ def drawPlot( rank : int,
 
     htmlPlots : List[go.Figure] = list()
     imagePlots : List[go.Figure] = list()
+    htmlPlotsCursors : List[go.Figure] = list()
 
-    lst : List[Tuple[int, List[go.Figure]]]= []
-
-    if config.genHTML:
-        lst.append((config.htmlColumns, htmlPlots))
-    
-    if config.genImage:
-        lst.append((config.imageColumns, imagePlots))
-
-    for columnNr, plotList in lst:
-        if columnNr == 1:
-            for fig in figureList:
-                plotList.append(make_subplots())
-                plotList[-1].update_layout(title_text = fig.title, height = 500, #type: ignore
-                                    legend=dict(
-                                            orientation="h",
-                                            yanchor="top",
-                                            y=1.22,
-                                            xanchor="left",
-                                            x = 0.12,
-                                        )) 
-        elif columnNr > 1:
-            plotList.append(make_subplots(rows = ceil(len(figureList)/columnNr), cols = columnNr))
-            plotList[-1].update_layout(height = 500 * ceil(len(figureList)/columnNr)) #type: ignore
-            if plotList == imagePlots:
-                plotList[-1].update_layout(title_text = caseDict[rank]) #type: ignore
-        
-
+    columnNr = setupPlotLayout(caseDict, config, figureList, htmlPlots, imagePlots, rank)
+    if len(figureListCursor) > 0:
+        setupPlotLayout(caseDict, config, figureListCursor, htmlPlotsCursors, imagePlots, rank, True)
     for result in resultList:
         if result.typ == ResultType.RMS:
             resultData : pd.DataFrame = pd.read_csv(result.fullpath, sep=';',decimal=',',header=[0,1]) #type: ignore
@@ -498,15 +417,15 @@ def drawPlot( rank : int,
             resultData = loadEMT(result.fullpath)
         else:
             continue
-        
-        if config.genHTML: 
+        if config.genHTML:
             addResults(htmlPlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap, config.htmlColumns, config.pfFlatTIme, config.pscadInitTime)
-        
+            addCursors(htmlPlotsCursors, result.typ, resultData, rankDict, config.pfFlatTIme, config.pscadInitTime, rank, config.htmlColumns)
         if config.genImage:
             addResults(imagePlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap, config.imageColumns, config.pfFlatTIme, config.pscadInitTime)
+            # TODO - aax addcursors here
    
     if config.genHTML:
-        create_html(htmlPlots, figurePath, caseDict[rank], config)
+        create_html(htmlPlots, htmlPlotsCursors, figurePath, caseDict[rank], config)
         print(f'Exported plot for rank {rank} to {figurePath}.html')
         
     if config.genImage: 
@@ -515,39 +434,59 @@ def drawPlot( rank : int,
 
     print(f'Plot for rank {rank} done.')
 
-def create_html(plots : List[go.Figure], path : str, title : str, config : ReadConfig) -> None:
+
+def setupPlotLayout(caseDict, config, figureList, htmlPlots, imagePlots, rank, showSubplotTitles = False):
+    lst: List[Tuple[int, List[go.Figure]]] = []
+    if config.genHTML:
+        lst.append((config.htmlColumns, htmlPlots))
+    if config.genImage:
+        lst.append((config.imageColumns, imagePlots))
+
+    for columnNr, plotList in lst:
+        if columnNr == 1:
+            for fig in figureList:
+                # Create a single subplot with a title
+                plotList.append(make_subplots(rows=1, cols=1, subplot_titles=(fig.title,)))  # Ensure title is set
+                plotList[-1].update_layout(height=500,  # type: ignore
+                                           legend=dict(
+                                               orientation="h",
+                                               yanchor="top",
+                                               y=1.22,
+                                               xanchor="left",
+                                               x=0.12,
+                                           ))
+        elif columnNr > 1:
+            if showSubplotTitles:
+                num_rows = ceil(len(figureList) / columnNr)
+                titles = [fig.title for fig in figureList]  # Gather titles for each subplot
+                plotList.append(
+                    make_subplots(rows=num_rows, cols=columnNr, subplot_titles=titles))  # Set titles for subplots
+                plotList[-1].update_layout(height=500 * num_rows)  # type: ignore
+            else:
+                plotList.append(make_subplots(rows=ceil(len(figureList) / columnNr), cols=columnNr))
+                plotList[-1].update_layout(height=500 * ceil(len(figureList) / columnNr))  # type: ignore
+            if plotList == imagePlots:
+                plotList[-1].update_layout(title_text=caseDict[rank])  # type: ignore
+    return columnNr
+
+
+def create_html(plots : List[go.Figure], cursor_plots : List[go.Figure], path : str, title : str, config : ReadConfig) -> None:
     source_list =  '<div style="text-align: left; margin-top: 1px;">'
     source_list += '<h4>Source data:</h4>'
-
     for group in config.simDataDirs:
         source_list += f'<p>{group[0]} = {group[1]}</p>'
 
     source_list += '</div>'
 
-    if config.htmlColumns == 1:
-        figur_links = '<div style="text-align: left; margin-top: 1px;">'
-        figur_links += '<h4>Figures:</h4>'
-        for p in plots:
-            plot_title : str = p['layout']['title']['text'] #type: ignore
-            figur_links += f'<a href="#{plot_title}">{plot_title}</a>&emsp;'
-
-        figur_links += '</div>'
-    else:
-        figur_links = ''
-
-    html_content = '<h1>' + title + '</h1>'
-
-    html_content += source_list
-    html_content += figur_links
-
-    for p in plots:
-        plot_title : str = p['layout']['title']['text'] #type: ignore
-        html_content += f'<div id="{plot_title}">' +  p.to_html(full_html=False, include_plotlyjs='cdn') + '</div>'#type: ignore
+    html_content = create_html_plots(config, plots, title)
+    html_content_cursors = create_html_plots(config, cursor_plots, title)
 
     full_html_content = f'''
             <html>
             <body>
                 {html_content}
+                {html_content_cursors}
+                {source_list}
                 <p><center><a href="https://github.com/Energinet-AIG/MTB" target="_blank">Generated with Energinets Model Testbench</a></center></p>
             </body>
             </html>
@@ -555,6 +494,27 @@ def create_html(plots : List[go.Figure], path : str, title : str, config : ReadC
     
     with open(f'{path}.html', 'w') as file:
         file.write(full_html_content)
+
+
+def create_html_plots(config, plots, title):
+    if config.htmlColumns == 1:
+        figur_links = '<div style="text-align: left; margin-top: 1px;">'
+        figur_links += '<h4>Figures:</h4>'
+        for p in plots:
+            plot_title: str = p['layout']['title']['text']  # type: ignore
+            figur_links += f'<a href="#{plot_title}">{plot_title}</a>&emsp;'
+
+        figur_links += '</div>'
+    else:
+        figur_links = ''
+    html_content = '<h1>' + title + '</h1>'
+    html_content += figur_links
+    for p in plots:
+        plot_title: str = p['layout']['title']['text']  # type: ignore
+        html_content += f'<div id="{plot_title}">' + p.to_html(full_html=False,
+                                                               include_plotlyjs='cdn') + '</div>'  # type: ignore
+    return html_content
+
 
 def readCasesheet(casesheetPath : str) -> Dict[int, str]:
     '''
@@ -592,6 +552,7 @@ def main() -> None:
 
     resultDict = mapResultFiles(config)
     figureDict = readFigureSetup('figureSetup.csv')
+    rankDict = readRankSetup('rankSetup.csv')
     caseDict = readCasesheet(config.optionalCasesheet)
     colorSchemeMap = colorMap(resultDict)
 
@@ -602,9 +563,9 @@ def main() -> None:
 
     for rank in resultDict.keys():
         if config.threads > 1:
-            threads.append(Thread(target = drawPlot, args = (rank, resultDict, figureDict, caseDict, colorSchemeMap, config)))
+            threads.append(Thread(target = drawPlot, args = (rank, resultDict, figureDict, caseDict, colorSchemeMap, rankDict, config)))
         else:
-            drawPlot(rank, resultDict, figureDict, caseDict, colorSchemeMap, config)
+            drawPlot(rank, resultDict, figureDict, caseDict, colorSchemeMap, rankDict, config)
     
     NoT = len(threads)
     if NoT > 0:  

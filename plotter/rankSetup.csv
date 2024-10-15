@@ -1,0 +1,4 @@
+title;rank;cursor_options;emt_signals;rms_signals;cursor_time_ranges
+Plot1;52;max;V_A_RMS_pu_PoC_ENDK,V_B_RMS_pu_PoC_ENDK;;0
+Plot2;52;max;;meas\m:u:bus2:A in p.u.,meas\m:u:bus2:B in p.u.;0,2
+Plot3;52;max;V_neg_pu_PoC_ENDK;;0,2.2
