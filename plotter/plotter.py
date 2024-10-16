@@ -208,6 +208,7 @@ def addCursors(htmlPlots: List[go.Figure],
     for rank_setting in rank_settings:
         rawSigNames = getattr(rank_setting, f'{signalKey}_signals')
         threshold = getattr(rank_setting, 'cursor_time_ranges')
+        cursor_options = getattr(rank_setting, 'cursor_options')
         # Increment plot index
         fi += 1
 
@@ -261,7 +262,7 @@ def addCursors(htmlPlots: List[go.Figure],
                 y_filtered = y
                 x_filtered = x
 
-            plot_cursor_functions.add_annotations_subplot(plot, x_filtered, y_filtered, rowPos, colPos)
+            plot_cursor_functions.add_annotations_subplot(plot, x_filtered, y_filtered, rowPos, colPos, cursor_options)
 
         else:
             plot.add_trace(go.Scatter(x=[], y=[], mode='lines', name='No Data'), row=rowPos, col=colPos)
@@ -406,10 +407,11 @@ def drawPlot( rank : int,
     htmlPlots : List[go.Figure] = list()
     imagePlots : List[go.Figure] = list()
     htmlPlotsCursors : List[go.Figure] = list()
+    imagePlotsCursors : List[go.Figure] = list()
 
     columnNr = setupPlotLayout(caseDict, config, figureList, htmlPlots, imagePlots, rank)
     if len(figureListCursor) > 0:
-        setupPlotLayout(caseDict, config, figureListCursor, htmlPlotsCursors, imagePlots, rank, True)
+        setupPlotLayout(caseDict, config, figureListCursor, htmlPlotsCursors, imagePlotsCursors, rank, True)
     for result in resultList:
         if result.typ == ResultType.RMS:
             resultData : pd.DataFrame = pd.read_csv(result.fullpath, sep=';',decimal=',',header=[0,1]) #type: ignore
@@ -479,7 +481,7 @@ def create_html(plots : List[go.Figure], cursor_plots : List[go.Figure], path : 
     source_list += '</div>'
 
     html_content = create_html_plots(config, plots, title)
-    html_content_cursors = create_html_plots(config, cursor_plots, title)
+    html_content_cursors = create_html_plots(config, cursor_plots, "Relevant signal metrics") if len(cursor_plots) > 0 else ""
 
     full_html_content = f'''
             <html>

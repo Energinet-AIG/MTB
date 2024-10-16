@@ -7,6 +7,7 @@ from Rank import Rank
 from collections import defaultdict
 from configparser import ConfigParser
 from down_sampling_method import DownSamplingMethod
+from cursor_type import CursorType
 
 
 class ReadConfig:
@@ -92,7 +93,7 @@ def readRankSetup(filePath: str) -> List[Rank]:
         setupReader = csv.DictReader(setupFile, delimiter=';')
         for row in setupReader:
             row['cursor_options'] = list(
-                set([str(item.strip()) for item in row.get('cursor_options', '').split(',') if item.strip() != '']))
+                set([CursorType.from_string(str(item.strip())) for item in row.get('cursor_options', '').split(',') if item.strip() != '']))
             row['emt_signals'] = list(
                 set([str(item.strip()) for item in row.get('emt_signals', '').split(',') if item.strip() != '']))
             row['rms_signals'] = list(
