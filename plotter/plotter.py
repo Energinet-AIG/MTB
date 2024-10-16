@@ -6,8 +6,8 @@ from os import listdir, makedirs
 from os.path import join, split, splitext, exists
 import re
 import pandas as pd
-from plotly.subplots import make_subplots #type: ignore
-import plotly.graph_objects as go #type: ignore
+from plotly.subplots import make_subplots  # type: ignore
+import plotly.graph_objects as go  # type: ignore
 from typing import List, Dict, Union, Tuple, Set
 import sampling_functions
 from down_sampling_method import DownSamplingMethod
@@ -16,28 +16,28 @@ import time
 import sys
 from math import ceil
 from collections import defaultdict
-import plot_cursor_functions
+from cursor_image_logic import addCursors, setupPlotLayoutCursors
 from read_configs import ReadConfig, readFigureSetup, readRankSetup
 from Figure import Figure
 from Result import ResultType, Result
 from Case import Case
 from Rank import Rank
 
-
 try:
     LOG_FILE = open('plotter.log', 'w')
 except:
     print('Failed to open log file. Logging to file disabled.')
-    LOG_FILE = None #type: ignore
+    LOG_FILE = None  # type: ignore
 
 gLock = Lock()
 
-def print(*args): #type: ignore
+
+def print(*args):  # type: ignore
     '''
     Overwrites the print function to also write to a log file.
     '''
     gLock.acquire()
-    outputString = ''.join(map(str, args)) + '\n' #type: ignore
+    outputString = ''.join(map(str, args)) + '\n'  # type: ignore
     sys.stdout.write(outputString)
     if LOG_FILE:
         try:
@@ -48,7 +48,8 @@ def print(*args): #type: ignore
     gLock.release()
 
 
-def idFile(filePath: str) -> Tuple[Union[ResultType, None], Union[int, None], Union[str, None], Union[str, None], Union[str, None]]:
+def idFile(filePath: str) -> Tuple[
+    Union[ResultType, None], Union[int, None], Union[str, None], Union[str, None], Union[str, None]]:
     '''
     Identifies the type (EMT or RMS), root and case id of a given file. If the file is not recognized, a none tuple is returned.
     '''
@@ -71,16 +72,17 @@ def idFile(filePath: str) -> Tuple[Union[ResultType, None], Union[int, None], Un
                     return (fileType, rank, projectName, bulkName, fullpath)
     return (None, None, None, None, None)
 
-def mapResultFiles(config : ReadConfig) -> Dict[int, List[Result]]:
+
+def mapResultFiles(config: ReadConfig) -> Dict[int, List[Result]]:
     '''
     Goes through all files in the given directories and maps them to a dictionary of cases.
     '''
-    files : List[Tuple[str, str]] = list()
+    files: List[Tuple[str, str]] = list()
     for dir_ in config.simDataDirs:
         for file_ in listdir(dir_[1]):
             files.append((dir_[0], join(dir_[1], file_)))
 
-    results : Dict[int, List[Result]] = dict()
+    results: Dict[int, List[Result]] = dict()
 
     for file in files:
         group = file[0]
@@ -103,29 +105,33 @@ def mapResultFiles(config : ReadConfig) -> Dict[int, List[Result]]:
 
     return results
 
-def emtColumns(infFilePath : str) -> Dict[int, str]:
+
+def emtColumns(infFilePath: str) -> Dict[int, str]:
     '''
     Reads EMT result columns from the given inf file and returns a dictionary with the column number as key and the column name as value.
     '''
-    columns : Dict[int, str] = dict()
+    columns: Dict[int, str] = dict()
     with open(infFilePath, 'r') as file:
-        for line in file: 
-            rem = re.match(r'^PGB\(([0-9]+)\) +Output +Desc="(\w+)" +Group="(\w+)" +Max=([0-9\-\.]+) +Min=([0-9\-\.]+) +Units="(\w*)" *$', line)
+        for line in file:
+            rem = re.match(
+                r'^PGB\(([0-9]+)\) +Output +Desc="(\w+)" +Group="(\w+)" +Max=([0-9\-\.]+) +Min=([0-9\-\.]+) +Units="(\w*)" *$',
+                line)
             if rem:
-                columns[int(rem.group(1))] = rem.group(2) 
+                columns[int(rem.group(1))] = rem.group(2)
     return columns
 
-def loadEMT(infFile : str) -> pd.DataFrame:
+
+def loadEMT(infFile: str) -> pd.DataFrame:
     '''
     Load EMT results from a collection of csv files defined by the given inf file. Returns a dataframe with index 'time'.
     '''
     folder, filename = split(infFile)
     filename, fileext = splitext(filename)
- 
+
     assert fileext.lower() == '.inf'
 
     adjFiles = listdir(folder)
-    csvMap : Dict[int, str]= dict()
+    csvMap: Dict[int, str] = dict()
     pat = re.compile(r'^' + filename.lower() + r'(?:_([0-9]+))?.csv$')
 
     for file in adjFiles:
@@ -138,40 +144,43 @@ def loadEMT(infFile : str) -> pd.DataFrame:
             csvMap[id] = join(folder, file)
     csvMaps = list(csvMap.keys())
     csvMaps.sort()
-    
+
     df = pd.DataFrame()
     firstFile = True
     loadedColumns = 0
     for map in csvMaps:
-        dfMap = pd.read_csv(csvMap[map], skiprows = 1, header = None) #type: ignore
+        dfMap = pd.read_csv(csvMap[map], skiprows=1, header=None)  # type: ignore
         if not firstFile:
-            dfMap = dfMap.iloc[: , 1:]
+            dfMap = dfMap.iloc[:, 1:]
         else:
             firstFile = False
         dfMap.columns = list(range(loadedColumns, loadedColumns + len(dfMap.columns)))
         loadedColumns = loadedColumns + len(dfMap.columns)
-        df = pd.concat([df, dfMap], axis=1) #type: ignore
+        df = pd.concat([df, dfMap], axis=1)  # type: ignore
 
     columns = emtColumns(infFile)
     columns[0] = 'time'
     df = df[columns.keys()]
     df.rename(columns, inplace=True, axis=1)
-    print(f"Loaded {infFile}, length = {df['time'].iloc[-1]}s") #type: ignore   
+    print(f"Loaded {infFile}, length = {df['time'].iloc[-1]}s")  # type: ignore
     return df
+
 
 def colorMap(results: Dict[int, List[Result]]) -> Dict[str, List[str]]:
     '''
     Select colors for the given projects. Return a dictionary with the project name as key and a list of colors as value.
     '''
-    colors = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45', '#fabed4', '#469990', '#dcbeff', '#9A6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#a9a9a9', '#000000']
-    
-    projects : Set[str] = set()
+    colors = ['#e6194B', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#42d4f4', '#f032e6', '#bfef45',
+              '#fabed4', '#469990', '#dcbeff', '#9A6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1',
+              '#000075', '#a9a9a9', '#000000']
+
+    projects: Set[str] = set()
 
     for rank in results.keys():
         for result in results[rank]:
             projects.add(result.shorthand)
 
-    cMap : Dict[str, List[str]] = dict()
+    cMap: Dict[str, List[str]] = dict()
 
     if len(list(projects)) > 2:
         i = 0
@@ -182,138 +191,50 @@ def colorMap(results: Dict[int, List[Result]]) -> Dict[str, List[str]]:
     else:
         i = 0
         for p in list(projects):
-            cMap[p] = colors[i:i+3]
+            cMap[p] = colors[i:i + 3]
             i += 3
     return cMap
 
 
-def addCursors(htmlPlots: List[go.Figure],
+def addResults(plots: List[go.Figure],
                typ: ResultType,
                data: pd.DataFrame,
-               rankDict: List[Rank],
+               figures: List[Figure],
+               resultName: str,
+               file: str,  # Only for error messages
+               colors: Dict[str, List[str]],
+               nColumns: int,
                pfFlatTIme: float,
-               pscadInitTime: float,
-               rank: int,
-               nColumns: int):
-    rank_settings = [i for i in rankDict if i.id == rank]
-    if len(rank_settings) == 0:
-        return list()
-
-    signalKey = typ.name.lower()
-
-    # Initialize subplot positions
-    fi = -1  # Start index from -1 as it is incremented before use
-
-    # Loop through rank settings
-    for rank_setting in rank_settings:
-        rawSigNames = getattr(rank_setting, f'{signalKey}_signals')
-        threshold = getattr(rank_setting, 'cursor_time_ranges')
-        cursor_options = getattr(rank_setting, 'cursor_options')
-        # Increment plot index
-        fi += 1
-
-        if len(rawSigNames) == 0:
-            continue
-
-        # Update subplot row and column positions based on fi
-        rowPos = (fi // nColumns) + 1
-        colPos = (fi % nColumns) + 1
-
-        # Select the correct plot
-        plot = htmlPlots[fi] if nColumns == 1 else htmlPlots[0]
-
-        x = []
-        y = []
-
-        for rawSigName in rawSigNames:
-            if typ == ResultType.RMS:
-                # Remove hash and split signal name
-                while rawSigName.startswith('#'):
-                    rawSigName = rawSigName[1:]
-                splitSigName = rawSigName.split('\\')
-
-                if len(splitSigName) == 2:
-                    sigColumn = ('##' + splitSigName[0], splitSigName[1])
-                else:
-                    sigColumn = rawSigName
-            else:
-                sigColumn = rawSigName
-
-            # Determine the time column and offset based on the type
-            timeColName = 'time' if typ == ResultType.EMT else data.columns[0]
-            timeoffset = pfFlatTIme if typ == ResultType.RMS else pscadInitTime
-
-            if sigColumn in data.columns:
-                # Get the signal data and time values
-                x.extend(data[timeColName] - timeoffset)  # type: ignore
-                y.extend(data[sigColumn])  # type: ignore
-
-        # Filter the data based on the threshold
-        if len(y) != 0:
-            x = pd.Series(x)
-            y = pd.Series(y)
-
-            if len(threshold) > 0:
-                assert len(threshold) <= 2
-                mask = (x >= threshold[0]) & (x < threshold[1]) if len(threshold) == 2 else (x >= threshold[0])
-                y_filtered = y[mask]
-                x_filtered = x[mask]
-            else:
-                y_filtered = y
-                x_filtered = x
-
-            plot_cursor_functions.add_annotations_subplot(plot, x_filtered, y_filtered, rowPos, colPos, cursor_options)
-
-        else:
-            plot.add_trace(go.Scatter(x=[], y=[], mode='lines', name='No Data'), row=rowPos, col=colPos)
-            # Keep the title for empty plot
-            # Add an annotation to indicate no data
-            plot.update_xaxes(visible=False, row=rowPos, col=colPos)
-            plot.update_yaxes(visible=False, row=rowPos, col=colPos)
-
-    return htmlPlots  # Return updated plots
-
-
-
-def addResults(    plots : List[go.Figure],
-                   typ: ResultType,
-                   data: pd.DataFrame,
-                   figures: List[Figure],
-                   resultName: str,
-                   file: str, #Only for error messages
-                   colors: Dict[str, List[str]],
-                   nColumns: int,
-                   pfFlatTIme : float,
-                   pscadInitTime : float) -> None:
+               pscadInitTime: float) -> None:
     '''
     Add result to plot.
     '''
 
     assert nColumns > 0
 
-    if nColumns > 1:    
+    if nColumns > 1:
         plotlyFigure = plots[0]
     else:
-         assert len(plots) == len(figures)
+        assert len(plots) == len(figures)
 
     rowPos = 1
     colPos = 1
     fi = -1
     for figure in figures:
         fi += 1
-        
+
         if nColumns == 1:
             plotlyFigure = plots[fi]
         else:
             rowPos = (fi // nColumns) + 1
             colPos = (fi % nColumns) + 1
-            
+
         downsampling_method = figure.down_sampling_method
         traces = 0
-        for sig in range(1,4):
+        for sig in range(1, 4):
             signalKey = typ.name.lower()
-            rawSigName : str = getattr(figure, f'{signalKey}_signal_{sig}')
-            
+            rawSigName: str = getattr(figure, f'{signalKey}_signal_{sig}')
+
             if typ == ResultType.RMS:
                 while rawSigName.startswith('#'):
                     rawSigName = rawSigName[1:]
@@ -332,14 +253,15 @@ def addResults(    plots : List[go.Figure],
             timeoffset = pfFlatTIme if typ == ResultType.RMS else pscadInitTime
 
             if sigColumn in data.columns:
-                x_value = data[timeColName] - timeoffset #type: ignore
-                y_value = data[sigColumn] #type: ignore
+                x_value = data[timeColName] - timeoffset  # type: ignore
+                y_value = data[sigColumn]  # type: ignore
                 if downsampling_method == DownSamplingMethod.GRADIENT:
-                    x_value, y_value = sampling_functions.downsample_based_on_gradient(x_value, y_value, figure.gradient_threshold) #type: ignore
+                    x_value, y_value = sampling_functions.downsample_based_on_gradient(x_value, y_value,
+                                                                                       figure.gradient_threshold)  # type: ignore
                 elif downsampling_method == DownSamplingMethod.AMOUNT:
-                    x_value, y_value = sampling_functions.down_sample(x_value, y_value) #type: ignore
+                    x_value, y_value = sampling_functions.down_sample(x_value, y_value)  # type: ignore
 
-                plotlyFigure.add_trace( #type: ignore
+                plotlyFigure.add_trace(  # type: ignore
                     go.Scatter(
                         x=x_value,
                         y=y_value,
@@ -350,25 +272,25 @@ def addResults(    plots : List[go.Figure],
                     ),
                     row=rowPos, col=colPos
                 )
-                #plot_cursor_functions.add_annotations(x_value, y_value, plotlyFigure)
+                # plot_cursor_functions.add_annotations(x_value, y_value, plotlyFigure)
                 traces += 1
             elif sigColumn != '':
                 print(f'Signal "{rawSigName}" not recognized in resultfile: {file}')
-                plotlyFigure.add_trace( #type: ignore
+                plotlyFigure.add_trace(  # type: ignore
                     go.Scatter(
-                    x=None,
-                    y=None,
-                    line_color=colors[resultName][traces], 
-                    name=f'{displayName} (Unknown)',
-                    legendgroup=resultName if nColumns > 1 else displayName,
-                    showlegend=True
-                ),
-                row=rowPos, col=colPos
+                        x=None,
+                        y=None,
+                        line_color=colors[resultName][traces],
+                        name=f'{displayName} (Unknown)',
+                        legendgroup=resultName if nColumns > 1 else displayName,
+                        showlegend=True
+                    ),
+                    row=rowPos, col=colPos
                 )
-                traces += 1               
-        
-        plotlyFigure.update_xaxes( #type: ignore
-            title_text='Time[s]',  
+                traces += 1
+
+        plotlyFigure.update_xaxes(  # type: ignore
+            title_text='Time[s]',
             row=rowPos, col=colPos
         )
         if nColumns == 1:
@@ -376,19 +298,19 @@ def addResults(    plots : List[go.Figure],
         else:
             yaxisTitle = f'{figure.title}[{figure.units}]'
 
-        plotlyFigure.update_yaxes( #type: ignore
-            title_text=yaxisTitle ,  
+        plotlyFigure.update_yaxes(  # type: ignore
+            title_text=yaxisTitle,
             row=rowPos, col=colPos
         )
 
-def drawPlot( rank : int,
-                resultDict : Dict[int, List[Result]],
-                figureDict : Dict[int, List[Figure]],
-                caseDict : Dict[int, str],
-                colorMap : Dict[str, List[str]],
-                rankDict: List[Rank],
-                config : ReadConfig):
-    
+
+def drawPlot(rank: int,
+             resultDict: Dict[int, List[Result]],
+             figureDict: Dict[int, List[Figure]],
+             caseDict: Dict[int, str],
+             colorMap: Dict[str, List[str]],
+             rankDict: List[Rank],
+             config: ReadConfig):
     '''
     Draws plots for html and static image export.    
     '''
@@ -397,47 +319,63 @@ def drawPlot( rank : int,
 
     resultList = resultDict.get(rank, [])
     figureList = figureDict[rank]
-    figureListCursor = [i for i in rankDict if i.id == rank]
+    ranksCursor = [i for i in rankDict if i.id == rank]
 
     if resultList == [] or figureList == []:
         return
 
     figurePath = join(config.resultsDir, str(rank))
 
-    htmlPlots : List[go.Figure] = list()
-    imagePlots : List[go.Figure] = list()
-    htmlPlotsCursors : List[go.Figure] = list()
-    imagePlotsCursors : List[go.Figure] = list()
+    htmlPlots: List[go.Figure] = list()
+    imagePlots: List[go.Figure] = list()
+    htmlPlotsCursors: List[go.Figure] = list()
+    imagePlotsCursors: List[go.Figure] = list()
 
     columnNr = setupPlotLayout(caseDict, config, figureList, htmlPlots, imagePlots, rank)
-    if len(figureListCursor) > 0:
-        setupPlotLayout(caseDict, config, figureListCursor, htmlPlotsCursors, imagePlotsCursors, rank, True)
+    if len(ranksCursor) > 0:
+        setupPlotLayoutCursors(config, ranksCursor, htmlPlotsCursors, imagePlotsCursors)
     for result in resultList:
         if result.typ == ResultType.RMS:
-            resultData : pd.DataFrame = pd.read_csv(result.fullpath, sep=';',decimal=',',header=[0,1]) #type: ignore
+            resultData: pd.DataFrame = pd.read_csv(result.fullpath, sep=';', decimal=',', header=[0, 1])  # type: ignore
         elif result.typ == ResultType.EMT:
             resultData = loadEMT(result.fullpath)
         else:
             continue
         if config.genHTML:
-            addResults(htmlPlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap, config.htmlColumns, config.pfFlatTIme, config.pscadInitTime)
-            addCursors(htmlPlotsCursors, result.typ, resultData, rankDict, config.pfFlatTIme, config.pscadInitTime, rank, config.htmlColumns)
+            addResults(htmlPlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap,
+                       config.htmlColumns, config.pfFlatTIme, config.pscadInitTime)
+            addCursors(htmlPlotsCursors, result.typ, resultData, rankDict, config.pfFlatTIme, config.pscadInitTime,
+                       rank, config.htmlColumns)
         if config.genImage:
-            addResults(imagePlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap, config.imageColumns, config.pfFlatTIme, config.pscadInitTime)
-            # TODO - aax addcursors here
-   
+            addResults(imagePlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap,
+                       config.imageColumns, config.pfFlatTIme, config.pscadInitTime)
+            addCursors(imagePlotsCursors, result.typ, resultData, rankDict, config.pfFlatTIme, config.pscadInitTime,
+                       rank, config.imageColumns)
+
     if config.genHTML:
         create_html(htmlPlots, htmlPlotsCursors, figurePath, caseDict[rank], config)
         print(f'Exported plot for rank {rank} to {figurePath}.html')
-        
-    if config.genImage: 
-       imagePlots[0].write_image(f'{figurePath}.{config.imageFormat}', height = 500 * ceil(len(figureList)/columnNr), width = 500*config.imageColumns) #type: ignore
-       print(f'Exported plot for rank {rank} to {figurePath}.{config.imageFormat}')
+
+    if config.genImage:
+        create_image_plots(columnNr, config, figureList, figurePath, imagePlots, imagePlotsCursors,
+                           ranksCursor)
+        print(f'Exported plot for rank {rank} to {figurePath}.{config.imageFormat}')
 
     print(f'Plot for rank {rank} done.')
 
 
-def setupPlotLayout(caseDict, config, figureList, htmlPlots, imagePlots, rank, showSubplotTitles = False):
+def create_image_plots(columnNr, config, figureList, figurePath, imagePlots, imagePlotsCursors, ranksCursor):
+    imagePlots[0].write_image(f'{figurePath}.{config.imageFormat}', height=500 * ceil(len(figureList) / columnNr),
+                              width=500 * config.imageColumns)  # type: ignore
+    if len(ranksCursor) > 0:
+        cursor_path = figurePath + "_cursor"
+        imagePlotsCursors[0].write_image(f'{cursor_path}.{config.imageFormat}',
+                                         height=500 * ceil(len(ranksCursor) / columnNr),
+                                         width=500 * config.imageColumns)
+
+
+
+def setupPlotLayout(caseDict, config, figureList, htmlPlots, imagePlots, rank):
     lst: List[Tuple[int, List[go.Figure]]] = []
     if config.genHTML:
         lst.append((config.htmlColumns, htmlPlots))
@@ -458,22 +396,16 @@ def setupPlotLayout(caseDict, config, figureList, htmlPlots, imagePlots, rank, s
                                                x=0.12,
                                            ))
         elif columnNr > 1:
-            if showSubplotTitles:
-                num_rows = ceil(len(figureList) / columnNr)
-                titles = [fig.title for fig in figureList]  # Gather titles for each subplot
-                plotList.append(
-                    make_subplots(rows=num_rows, cols=columnNr, subplot_titles=titles))  # Set titles for subplots
-                plotList[-1].update_layout(height=500 * num_rows)  # type: ignore
-            else:
-                plotList.append(make_subplots(rows=ceil(len(figureList) / columnNr), cols=columnNr))
-                plotList[-1].update_layout(height=500 * ceil(len(figureList) / columnNr))  # type: ignore
+            plotList.append(make_subplots(rows=ceil(len(figureList) / columnNr), cols=columnNr))
+            plotList[-1].update_layout(height=500 * ceil(len(figureList) / columnNr))  # type: ignore
             if plotList == imagePlots:
                 plotList[-1].update_layout(title_text=caseDict[rank])  # type: ignore
     return columnNr
 
 
-def create_html(plots : List[go.Figure], cursor_plots : List[go.Figure], path : str, title : str, config : ReadConfig) -> None:
-    source_list =  '<div style="text-align: left; margin-top: 1px;">'
+def create_html(plots: List[go.Figure], cursor_plots: List[go.Figure], path: str, title: str,
+                config: ReadConfig) -> None:
+    source_list = '<div style="text-align: left; margin-top: 1px;">'
     source_list += '<h4>Source data:</h4>'
     for group in config.simDataDirs:
         source_list += f'<p>{group[0]} = {group[1]}</p>'
@@ -481,7 +413,8 @@ def create_html(plots : List[go.Figure], cursor_plots : List[go.Figure], path : 
     source_list += '</div>'
 
     html_content = create_html_plots(config, plots, title)
-    html_content_cursors = create_html_plots(config, cursor_plots, "Relevant signal metrics") if len(cursor_plots) > 0 else ""
+    html_content_cursors = create_html_plots(config, cursor_plots, "Relevant signal metrics") if len(
+        cursor_plots) > 0 else ""
 
     full_html_content = f'''
             <html>
@@ -493,7 +426,7 @@ def create_html(plots : List[go.Figure], cursor_plots : List[go.Figure], path : 
             </body>
             </html>
             '''
-    
+
     with open(f'{path}.html', 'w') as file:
         file.write(full_html_content)
 
@@ -518,34 +451,35 @@ def create_html_plots(config, plots, title):
     return html_content
 
 
-def readCasesheet(casesheetPath : str) -> Dict[int, str]:
+def readCasesheet(casesheetPath: str) -> Dict[int, str]:
     '''
     Reads optional casesheets and provides dict mapping rank to case title.
     '''
 
     try:
-        pd.read_excel(casesheetPath, sheet_name='RfG cases', header=1) # type: ignore
+        pd.read_excel(casesheetPath, sheet_name='RfG cases', header=1)  # type: ignore
     except FileNotFoundError:
         print(f'Casesheet not found at {casesheetPath}.')
         return dict()
-    
-    cases : List[Case] = list()
-    for sheet in ['RfG', 'DCC', 'Unit', 'Custom']:
-        dfc = pd.read_excel(casesheetPath, sheet_name=f'{sheet} cases', header=1) # type: ignore
-        for _, case in dfc.iterrows(): # type: ignore
-            cases.append(Case(case)) # type: ignore
 
-    caseDict : Dict[int, str] = defaultdict(lambda: 'Unknown case')
+    cases: List[Case] = list()
+    for sheet in ['RfG', 'DCC', 'Unit', 'Custom']:
+        dfc = pd.read_excel(casesheetPath, sheet_name=f'{sheet} cases', header=1)  # type: ignore
+        for _, case in dfc.iterrows():  # type: ignore
+            cases.append(Case(case))  # type: ignore
+
+    caseDict: Dict[int, str] = defaultdict(lambda: 'Unknown case')
     for case in cases:
         caseDict[case.rank] = case.Name
     return caseDict
 
+
 def main() -> None:
     config = ReadConfig()
-    
+
     print('Starting plotter main thread')
 
-    #Output config
+    # Output config
     print('Configuration:')
     for setting in config.__dict__:
         print(f'\t{setting}: {config.__dict__[setting]}')
@@ -561,18 +495,19 @@ def main() -> None:
     if not exists(config.resultsDir):
         makedirs(config.resultsDir)
 
-    threads : List[Thread] = list()
+    threads: List[Thread] = list()
 
     for rank in resultDict.keys():
         if config.threads > 1:
-            threads.append(Thread(target = drawPlot, args = (rank, resultDict, figureDict, caseDict, colorSchemeMap, rankDict, config)))
+            threads.append(Thread(target=drawPlot,
+                                  args=(rank, resultDict, figureDict, caseDict, colorSchemeMap, rankDict, config)))
         else:
             drawPlot(rank, resultDict, figureDict, caseDict, colorSchemeMap, rankDict, config)
-    
+
     NoT = len(threads)
-    if NoT > 0:  
+    if NoT > 0:
         sched = threads.copy()
-        inProg : List[Thread] = []
+        inProg: List[Thread] = []
 
         while len(sched) > 0:
             for t in inProg:
@@ -589,6 +524,7 @@ def main() -> None:
             time.sleep(0.5)
 
     print('Finished plotter main thread')
+
 
 if __name__ == "__main__":
     main()

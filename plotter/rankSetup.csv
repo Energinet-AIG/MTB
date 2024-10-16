@@ -1,6 +1,6 @@
 title;rank;cursor_options;emt_signals;rms_signals;cursor_time_ranges
 FancyName;30;min_max;V_neg_pu_PoC_ENDK;;
-FancyName;30;average;Id_neg_pu_PoC_ENDK,V_neg_pu_PoC_ENDK;;
+FancyName2;30;average;Id_neg_pu_PoC_ENDK,V_neg_pu_PoC_ENDK;;
 Plot1;52;min_max,average;V_A_RMS_pu_PoC_ENDK,V_B_RMS_pu_PoC_ENDK;;0
 Plot2;52;min_max,average;;meas\m:u:bus2:A in p.u.,meas\m:u:bus2:B in p.u.;0,2
 Plot3;52;min_max,average;V_neg_pu_PoC_ENDK;;0,2.2
