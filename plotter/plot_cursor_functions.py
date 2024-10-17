@@ -34,15 +34,21 @@ def mean_value_text(x, y, time_ranges):
 
 def signals_text(rawSigNames):
     rawSigNames_text = ""
-    for rawSigName in rawSigNames:
-        rawSigNames_text += f"t{rawSigName} "
+    for i, rawSigName in enumerate(rawSigNames):
+        if i == (len(rawSigNames) - 1):
+            rawSigNames_text += " and "
+        elif i > 0:
+            rawSigNames_text += ", "
+        rawSigNames_text += f"t{rawSigName}"
     return f"Calculated for the signals " + rawSigNames_text
 
 
 def time_ranges_text(time_ranges):
     time_ranges_text = ""
     for i in range(len(time_ranges)):
-        if i > 0:
+        if i == (len(time_ranges) - 1):
+            time_ranges_text += " and "
+        elif i > 0:
             time_ranges_text += ", "
         time_ranges_text += f"{time_ranges[i]} for t{i}"
     return f"Time ranges provided are " + time_ranges_text
