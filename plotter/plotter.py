@@ -366,12 +366,12 @@ def drawPlot(rank: int,
             addResults(htmlPlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap,
                        config.htmlColumns, config.pfFlatTIme, config.pscadInitTime)
             addCursors(htmlPlotsCursors, result.typ, resultData, rankDict, config.pfFlatTIme, config.pscadInitTime,
-                       rank, config.htmlColumns)
+                       rank, config.htmlCursorColumns)
         if config.genImage:
             addResults(imagePlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap,
                        config.imageColumns, config.pfFlatTIme, config.pscadInitTime)
             addCursors(imagePlotsCursors, result.typ, resultData, rankDict, config.pfFlatTIme, config.pscadInitTime,
-                       rank, config.imageColumns)
+                       rank, config.imageCursorColumns)
 
     if config.genHTML:
         create_html(htmlPlots, htmlPlotsCursors, figurePath, caseDict[rank] if caseDict is not None else "", config)
@@ -380,6 +380,7 @@ def drawPlot(rank: int,
     if config.genImage:
         create_image_plots(columnNr, config, figureList, figurePath, imagePlots, imagePlotsCursors,
                            ranksCursor)
+        create_cursor_plots(config.htmlCursorColumns, config, figurePath, imagePlotsCursors, ranksCursor)
         print(f'Exported plot for rank {rank} to {figurePath}.{config.imageFormat}')
 
     print(f'Plot for rank {rank} done.')
@@ -419,6 +420,8 @@ def create_image_plots(columnNr, config, figureList, figurePath, imagePlots, ima
         imagePlots[0].write_image(f'{figurePath}.{config.imageFormat}', height=500 * ceil(len(figureList) / columnNr),
                                   width=500 * config.imageColumns)  # type: ignore
 
+
+def create_cursor_plots(columnNr, config, figurePath, imagePlotsCursors, ranksCursor):
     # Handle the cursor plots (which are tables)
     if len(ranksCursor) > 0:
         cursor_path = figurePath + "_cursor"
@@ -494,8 +497,8 @@ def create_html(plots: List[go.Figure], cursor_plots: List[go.Figure], path: str
 
     source_list += '</div>'
 
-    html_content = create_html_plots(config, plots, title)
-    html_content_cursors = create_html_plots(config, cursor_plots, "Relevant signal metrics") if len(
+    html_content = create_html_plots(config.htmlColumns, plots, title)
+    html_content_cursors = create_html_plots(config.htmlCursorColumns, cursor_plots, "Relevant signal metrics") if len(
         cursor_plots) > 0 else ""
 
     full_html_content = f'''
@@ -513,8 +516,8 @@ def create_html(plots: List[go.Figure], cursor_plots: List[go.Figure], path: str
         file.write(full_html_content)
 
 
-def create_html_plots(config, plots, title):
-    if config.htmlColumns == 1:
+def create_html_plots(columns, plots, title):
+    if columns == 1:
         figur_links = '<div style="text-align: left; margin-top: 1px;">'
         figur_links += '<h4>Figures:</h4>'
         for p in plots:

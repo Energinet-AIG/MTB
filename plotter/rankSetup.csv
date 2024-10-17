@@ -1,4 +1,4 @@
-title;rank;cursor_options;emt_signals;rms_signals;cursor_time_ranges
+title;rank;cursor_options;emt_signals;rms_signals;time_ranges
 FancyName;30;min_max;V_neg_pu_PoC_ENDK;;
 FancyName2;30;average;Id_neg_pu_PoC_ENDK,V_neg_pu_PoC_ENDK;;
 Plot1;52;min_max,average;V_A_RMS_pu_PoC_ENDK,V_B_RMS_pu_PoC_ENDK;;0

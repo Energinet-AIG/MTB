@@ -8,10 +8,10 @@ class Rank:
                  cursor_options: List[str],
                  emt_signals: List[str],
                  rms_signals: List[str],
-                 cursor_time_ranges: List[int]) -> None:
+                 time_ranges: List[int]) -> None:
         self.id = id
         self.title = title
         self.cursor_options = cursor_options
         self.emt_signals = emt_signals
         self.rms_signals = rms_signals
-        self.cursor_time_ranges = cursor_time_ranges
+        self.time_ranges = time_ranges
