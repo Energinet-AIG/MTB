@@ -261,45 +261,66 @@ def addResults(plots: List[go.Figure],
                 elif downsampling_method == DownSamplingMethod.AMOUNT:
                     x_value, y_value = sampling_functions.down_sample(x_value, y_value)  # type: ignore
 
-                plotlyFigure.add_trace(  # type: ignore
-                    go.Scatter(
-                        x=x_value,
-                        y=y_value,
-                        line_color=colors[resultName][traces],
-                        name=displayName,
-                        legendgroup=resultName if nColumns > 1 else displayName,
-                        showlegend=True
-                    ),
-                    row=rowPos, col=colPos
-                )
+                add_scatterplot_for_result(colPos, colors, displayName, nColumns, plotlyFigure, resultName, rowPos,
+                                           traces, x_value, y_value)
+
                 # plot_cursor_functions.add_annotations(x_value, y_value, plotlyFigure)
                 traces += 1
             elif sigColumn != '':
                 print(f'Signal "{rawSigName}" not recognized in resultfile: {file}')
-                plotlyFigure.add_trace(  # type: ignore
-                    go.Scatter(
-                        x=None,
-                        y=None,
-                        line_color=colors[resultName][traces],
-                        name=f'{displayName} (Unknown)',
-                        legendgroup=resultName if nColumns > 1 else displayName,
-                        showlegend=True
-                    ),
-                    row=rowPos, col=colPos
-                )
+                add_scatterplot_for_result(colPos, colors, f'{displayName} (Unknown)', nColumns, plotlyFigure, resultName, rowPos,
+                                           traces, None, None)
                 traces += 1
 
+        update_y_and_x_axis(colPos, figure, nColumns, plotlyFigure, rowPos)
+
+
+def update_y_and_x_axis(colPos, figure, nColumns, plotlyFigure, rowPos):
+    if nColumns == 1:
+        yaxisTitle = f'[{figure.units}]'
+    else:
+        yaxisTitle = f'{figure.title}[{figure.units}]'
+    if nColumns == 1:
+        plotlyFigure.update_xaxes(  # type: ignore
+            title_text='Time[s]'
+        )
+        plotlyFigure.update_yaxes(  # type: ignore
+            title_text=yaxisTitle
+        )
+    else:
         plotlyFigure.update_xaxes(  # type: ignore
             title_text='Time[s]',
             row=rowPos, col=colPos
         )
-        if nColumns == 1:
-            yaxisTitle = f'[{figure.units}]'
-        else:
-            yaxisTitle = f'{figure.title}[{figure.units}]'
-
         plotlyFigure.update_yaxes(  # type: ignore
             title_text=yaxisTitle,
+            row=rowPos, col=colPos
+        )
+
+
+def add_scatterplot_for_result(colPos, colors, displayName, nColumns, plotlyFigure, resultName, rowPos, traces, x_value,
+                               y_value):
+    if nColumns == 1:
+        plotlyFigure.add_trace(  # type: ignore
+            go.Scatter(
+                x=x_value,
+                y=y_value,
+                line_color=colors[resultName][traces],
+                name=displayName,
+                legendgroup=displayName,
+                showlegend=True
+            )
+        )
+    else:
+        plotlyFigure.add_trace(  # type: ignore
+            go.Scatter(
+                x=x_value,
+                y=y_value,
+                line_color=colors[resultName][traces],
+                name=displayName,
+                legendgroup=resultName,
+                showlegend=True
+            ),
             row=rowPos, col=colPos
         )
 
@@ -365,14 +386,71 @@ def drawPlot(rank: int,
 
 
 def create_image_plots(columnNr, config, figureList, figurePath, imagePlots, imagePlotsCursors, ranksCursor):
-    imagePlots[0].write_image(f'{figurePath}.{config.imageFormat}', height=500 * ceil(len(figureList) / columnNr),
-                              width=500 * config.imageColumns)  # type: ignore
+    if columnNr == 1:
+        # Combine all figures into a single plot, same as for nColumns > 1 but no grid needed
+        combined_plot = make_subplots(rows=len(imagePlots), cols=1,
+                                      subplot_titles=[fig.layout.title.text for fig in imagePlots])
+
+        for i, plot in enumerate(imagePlots):
+            for trace in plot['data']:  # Add each trace to the combined plot
+                combined_plot.add_trace(trace, row=i + 1, col=1)
+
+            # Copy over the x and y axis titles from the original plot
+            combined_plot.update_xaxes(title_text=plot.layout.xaxis.title.text, row=i + 1, col=1)
+            combined_plot.update_yaxes(title_text=plot.layout.yaxis.title.text, row=i + 1, col=1)
+
+        # Explicitly set the width and height in the layout
+        combined_plot.update_layout(
+            height=500 * len(imagePlots),  # Height adjusted based on number of plots
+            width=2000,  # Set the desired width here, adjust as needed
+            showlegend=True,
+        )
+
+        # Save the combined plot as a single image
+        combined_plot.write_image(f'{figurePath}.{config.imageFormat}', height=500 * len(imagePlots), width=2000)
+
+    else:
+        # Combine all figures into a grid when nColumns > 1
+        imagePlots[0].update_layout(
+            height=500 * ceil(len(figureList) / columnNr),
+            width=500 * config.imageColumns,  # Adjust width based on column number
+            showlegend=True,
+        )
+        imagePlots[0].write_image(f'{figurePath}.{config.imageFormat}', height=500 * ceil(len(figureList) / columnNr),
+                                  width=500 * config.imageColumns)  # type: ignore
+
+    # Handle the cursor plots (which are tables)
     if len(ranksCursor) > 0:
         cursor_path = figurePath + "_cursor"
-        imagePlotsCursors[0].write_image(f'{cursor_path}.{config.imageFormat}',
-                                         height=500 * ceil(len(ranksCursor) / columnNr),
-                                         width=500 * config.imageColumns)
+        if columnNr == 1:
+            # Create a combined plot for tables using the 'table' spec type
+            combined_cursor_plot = make_subplots(rows=len(imagePlotsCursors), cols=1,
+                                                 specs=[[{"type": "table"}]] * len(imagePlotsCursors),
+                                                 # 'table' type for each subplot
+                                                 subplot_titles=[fig.layout.title.text for fig in imagePlotsCursors])
+            for i, cursor_plot in enumerate(imagePlotsCursors):
+                for trace in cursor_plot['data']:  # Add each trace (table) to the combined cursor plot
+                    combined_cursor_plot.add_trace(trace, row=i + 1, col=1)
 
+            # Explicitly set width and height in the layout for table plots
+            combined_cursor_plot.update_layout(
+                height=500 * len(imagePlotsCursors),
+                width=600,  # Set the desired width for tables
+                showlegend=False,
+            )
+
+            # Save the combined table plot as a single image
+            combined_cursor_plot.write_image(f'{cursor_path}.{config.imageFormat}', height=500 * len(imagePlotsCursors),
+                                             width=600)
+        else:
+            imagePlotsCursors[0].update_layout(
+                height=500 * ceil(len(ranksCursor) / columnNr),
+                width=500 * config.imageColumns,  # Adjust width for multiple columns
+                showlegend=False,
+            )
+            imagePlotsCursors[0].write_image(f'{cursor_path}.{config.imageFormat}',
+                                             height=500 * ceil(len(ranksCursor) / columnNr),
+                                             width=500 * config.imageColumns)
 
 
 def setupPlotLayout(caseDict, config, figureList, htmlPlots, imagePlots, rank):
@@ -385,22 +463,26 @@ def setupPlotLayout(caseDict, config, figureList, htmlPlots, imagePlots, rank):
     for columnNr, plotList in lst:
         if columnNr == 1:
             for fig in figureList:
-                # Create a single subplot with a title
-                plotList.append(make_subplots(rows=1, cols=1, subplot_titles=(fig.title,)))  # Ensure title is set
-                plotList[-1].update_layout(height=500,  # type: ignore
-                                           legend=dict(
-                                               orientation="h",
-                                               yanchor="top",
-                                               y=1.22,
-                                               xanchor="left",
-                                               x=0.12,
-                                           ))
+                # Create a direct Figure instead of subplots when there's only 1 column
+                plotList.append(go.Figure())  # Normal figure, no subplots
+                plotList[-1].update_layout(
+                    title=fig.title,  # Add the figure title directly
+                    height=500,  # Set height for the plot
+                    legend=dict(
+                        orientation="h",
+                        yanchor="top",
+                        y=1.22,
+                        xanchor="left",
+                        x=0.12,
+                    )
+                )
         elif columnNr > 1:
             plotList.append(make_subplots(rows=ceil(len(figureList) / columnNr), cols=columnNr))
             plotList[-1].update_layout(height=500 * ceil(len(figureList) / columnNr))  # type: ignore
             if plotList == imagePlots:
                 plotList[-1].update_layout(title_text=caseDict[rank])  # type: ignore
     return columnNr
+
 
 
 def create_html(plots: List[go.Figure], cursor_plots: List[go.Figure], path: str, title: str,
