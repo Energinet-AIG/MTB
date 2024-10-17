@@ -128,7 +128,7 @@ def create_cursor_table():
     ]
     # Create the table with additional columns in the header and cells
     table = go.Table(
-        header=dict(values=["Cursor type", "Signals", "Provided time values", "Values"],
+        header=dict(values=["Cursor type", "Signals", "Cursor time points", "Values"],
                     fill_color='paleturquoise', align='left'),
         cells=dict(values=list(zip(*table_data)), fill_color='lavender', align='left')
     )
