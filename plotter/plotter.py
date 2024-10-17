@@ -374,7 +374,7 @@ def drawPlot(rank: int,
                        rank, config.imageColumns)
 
     if config.genHTML:
-        create_html(htmlPlots, htmlPlotsCursors, figurePath, caseDict[rank], config)
+        create_html(htmlPlots, htmlPlotsCursors, figurePath, caseDict[rank] if caseDict is not None else "", config)
         print(f'Exported plot for rank {rank} to {figurePath}.html')
 
     if config.genImage:
@@ -479,7 +479,7 @@ def setupPlotLayout(caseDict, config, figureList, htmlPlots, imagePlots, rank):
         elif columnNr > 1:
             plotList.append(make_subplots(rows=ceil(len(figureList) / columnNr), cols=columnNr))
             plotList[-1].update_layout(height=500 * ceil(len(figureList) / columnNr))  # type: ignore
-            if plotList == imagePlots:
+            if plotList == imagePlots and caseDict is not None:
                 plotList[-1].update_layout(title_text=caseDict[rank])  # type: ignore
     return columnNr
 
@@ -537,7 +537,8 @@ def readCasesheet(casesheetPath: str) -> Dict[int, str]:
     '''
     Reads optional casesheets and provides dict mapping rank to case title.
     '''
-
+    if not casesheetPath:
+        return None
     try:
         pd.read_excel(casesheetPath, sheet_name='RfG cases', header=1)  # type: ignore
     except FileNotFoundError:
