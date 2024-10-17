@@ -42,7 +42,9 @@ def signals_text(rawSigNames):
 def time_ranges_text(time_ranges):
     time_ranges_text = ""
     for i in range(len(time_ranges)):
-        time_ranges_text += f"t{i} is {time_ranges[i]} "
+        if i > 0:
+            time_ranges_text += ", "
+        time_ranges_text += f"{time_ranges[i]} for t{i}"
     return f"Time ranges provided are " + time_ranges_text
 
 
