@@ -26,11 +26,6 @@ def mean_annotation_text(y):
 
 # Function to append the text as a scatter trace to the provided figure
 def add_text_subplot(fig: go.Figure, x, y, cursor_types: List[CursorType], index_number):
-    print("length is: ", len(fig.data))
-    print("index is: ", index_number)
-
-    # Update the table cell to include the annotation text
-    # Assuming the table data is stored in the first data trace of the figure
     table_data = fig.data[index_number].cells.values
 
     # Access the values for the specific cell in the table
