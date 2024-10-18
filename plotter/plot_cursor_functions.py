@@ -37,7 +37,7 @@ def signals_text(rawSigNames):
     for i, rawSigName in enumerate(rawSigNames):
         if i > 0:
             rawSigNames_text += "; "
-        rawSigNames_text += f"t{rawSigName}"
+        rawSigNames_text += f"{rawSigName}"
     return rawSigNames_text
 
 
