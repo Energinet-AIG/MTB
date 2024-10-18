@@ -1,7 +1,7 @@
 from typing import List
 
 
-class Rank:
+class Cursor:
     def __init__(self,
                  id: int,
                  title: str,

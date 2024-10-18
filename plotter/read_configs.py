@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Dict, List, Tuple
 import csv
 from Figure import Figure
-from Rank import Rank
+from Cursor import Cursor
 from collections import defaultdict
 from configparser import ConfigParser
 from down_sampling_method import DownSamplingMethod
@@ -88,7 +88,7 @@ def readFigureSetup(filePath: str) -> Dict[int, List[Figure]]:
     return figDict
 
 
-def readRankSetup(filePath: str) -> List[Rank]:
+def readCursorSetup(filePath: str) -> List[Cursor]:
     '''
     Read figure setup file.
     '''
@@ -106,11 +106,11 @@ def readRankSetup(filePath: str) -> List[Rank]:
                 set([float(item.strip()) for item in row.get('time_ranges', '').split(',') if item.strip() != '']))
             setup.append(row)
 
-    rankList: List[Rank] = list()
+    rankList: List[Cursor] = list()
     for rankStr in setup:
         rankList.append(
-            Rank(int(rankStr['rank']),  # type: ignore
-                 str(rankStr['title']),
+            Cursor(int(rankStr['rank']),  # type: ignore
+                   str(rankStr['title']),
                    rankStr['cursor_options'],  # type: ignore
                    rankStr['emt_signals'],
                    rankStr['rms_signals'],

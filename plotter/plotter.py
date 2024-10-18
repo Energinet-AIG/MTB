@@ -17,11 +17,11 @@ import sys
 from math import ceil
 from collections import defaultdict
 from cursor_image_logic import addCursors, setupPlotLayoutCursors
-from read_configs import ReadConfig, readFigureSetup, readRankSetup
+from read_configs import ReadConfig, readFigureSetup, readCursorSetup
 from Figure import Figure
 from Result import ResultType, Result
 from Case import Case
-from Rank import Rank
+from Cursor import Cursor
 
 try:
     LOG_FILE = open('plotter.log', 'w')
@@ -330,7 +330,7 @@ def drawPlot(rank: int,
              figureDict: Dict[int, List[Figure]],
              caseDict: Dict[int, str],
              colorMap: Dict[str, List[str]],
-             rankDict: List[Rank],
+             cursorDict: List[Cursor],
              config: ReadConfig):
     '''
     Draws plots for html and static image export.    
@@ -340,7 +340,7 @@ def drawPlot(rank: int,
 
     resultList = resultDict.get(rank, [])
     figureList = figureDict[rank]
-    ranksCursor = [i for i in rankDict if i.id == rank]
+    ranksCursor = [i for i in cursorDict if i.id == rank]
 
     if resultList == [] or figureList == []:
         return
@@ -365,12 +365,12 @@ def drawPlot(rank: int,
         if config.genHTML:
             addResults(htmlPlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap,
                        config.htmlColumns, config.pfFlatTIme, config.pscadInitTime)
-            addCursors(htmlPlotsCursors, result.typ, resultData, rankDict, config.pfFlatTIme, config.pscadInitTime,
+            addCursors(htmlPlotsCursors, result.typ, resultData, cursorDict, config.pfFlatTIme, config.pscadInitTime,
                        rank, config.htmlCursorColumns)
         if config.genImage:
             addResults(imagePlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap,
                        config.imageColumns, config.pfFlatTIme, config.pscadInitTime)
-            addCursors(imagePlotsCursors, result.typ, resultData, rankDict, config.pfFlatTIme, config.pscadInitTime,
+            addCursors(imagePlotsCursors, result.typ, resultData, cursorDict, config.pfFlatTIme, config.pscadInitTime,
                        rank, config.imageCursorColumns)
 
     if config.genHTML:
@@ -378,15 +378,14 @@ def drawPlot(rank: int,
         print(f'Exported plot for rank {rank} to {figurePath}.html')
 
     if config.genImage:
-        create_image_plots(columnNr, config, figureList, figurePath, imagePlots, imagePlotsCursors,
-                           ranksCursor)
+        create_image_plots(columnNr, config, figureList, figurePath, imagePlots)
         create_cursor_plots(config.htmlCursorColumns, config, figurePath, imagePlotsCursors, ranksCursor)
         print(f'Exported plot for rank {rank} to {figurePath}.{config.imageFormat}')
 
     print(f'Plot for rank {rank} done.')
 
 
-def create_image_plots(columnNr, config, figureList, figurePath, imagePlots, imagePlotsCursors, ranksCursor):
+def create_image_plots(columnNr, config, figureList, figurePath, imagePlots):
     if columnNr == 1:
         # Combine all figures into a single plot, same as for nColumns > 1 but no grid needed
         combined_plot = make_subplots(rows=len(imagePlots), cols=1,
@@ -574,7 +573,7 @@ def main() -> None:
 
     resultDict = mapResultFiles(config)
     figureDict = readFigureSetup('figureSetup.csv')
-    rankDict = readRankSetup('rankSetup.csv')
+    cursorDict = readCursorSetup('cursorSetup.csv')
     caseDict = readCasesheet(config.optionalCasesheet)
     colorSchemeMap = colorMap(resultDict)
 
@@ -586,9 +585,9 @@ def main() -> None:
     for rank in resultDict.keys():
         if config.threads > 1:
             threads.append(Thread(target=drawPlot,
-                                  args=(rank, resultDict, figureDict, caseDict, colorSchemeMap, rankDict, config)))
+                                  args=(rank, resultDict, figureDict, caseDict, colorSchemeMap, cursorDict, config)))
         else:
-            drawPlot(rank, resultDict, figureDict, caseDict, colorSchemeMap, rankDict, config)
+            drawPlot(rank, resultDict, figureDict, caseDict, colorSchemeMap, cursorDict, config)
 
     NoT = len(threads)
     if NoT > 0:

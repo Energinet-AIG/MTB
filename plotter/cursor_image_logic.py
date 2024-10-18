@@ -5,14 +5,14 @@ import plotly.graph_objects as go  # type: ignore
 from typing import List, Tuple
 import plot_cursor_functions
 from Result import ResultType
-from Rank import Rank
+from Cursor import Cursor
 from math import ceil
 
 
 def addCursors(htmlPlots: List[go.Figure],
                typ: ResultType,
                data: pd.DataFrame,
-               rankDict: List[Rank],
+               rankDict: List[Cursor],
                pfFlatTIme: float,
                pscadInitTime: float,
                rank: int,
