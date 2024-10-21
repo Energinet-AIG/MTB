@@ -1,7 +1,7 @@
 from tsdownsample import MinMaxLTTBDownsampler
-from typing import List, Tuple, Dict
+from typing import List, Tuple
 import numpy as np
-from down_sampling_method import DownSamplingMethod
+import pandas as pd
 
 
 def calculate_gradient(time, values):
@@ -12,6 +12,7 @@ def calculate_gradient(time, values):
 
 
 def downsample_based_on_gradient(time, values, gradient_threshold):
+    values = pd.to_numeric(values, errors='coerce')
     gradient = calculate_gradient(time, values)
     low_gradient_indices = np.where(np.abs(gradient) < gradient_threshold)[0]
 
