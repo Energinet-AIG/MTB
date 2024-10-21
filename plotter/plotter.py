@@ -22,6 +22,7 @@ from Figure import Figure
 from Result import ResultType, Result
 from Case import Case
 from Cursor import Cursor
+from read_and_write_functions import loadEMT
 
 try:
     LOG_FILE = open('plotter.log', 'w')
@@ -119,51 +120,6 @@ def emtColumns(infFilePath: str) -> Dict[int, str]:
             if rem:
                 columns[int(rem.group(1))] = rem.group(2)
     return columns
-
-
-def loadEMT(infFile: str) -> pd.DataFrame:
-    '''
-    Load EMT results from a collection of csv files defined by the given inf file. Returns a dataframe with index 'time'.
-    '''
-    folder, filename = split(infFile)
-    filename, fileext = splitext(filename)
-
-    assert fileext.lower() == '.inf'
-
-    adjFiles = listdir(folder)
-    csvMap: Dict[int, str] = dict()
-    pat = re.compile(r'^' + filename.lower() + r'(?:_([0-9]+))?.csv$')
-
-    for file in adjFiles:
-        rem = re.match(pat, file.lower())
-        if rem:
-            if rem.group(1) is None:
-                id = -1
-            else:
-                id = int(rem.group(1))
-            csvMap[id] = join(folder, file)
-    csvMaps = list(csvMap.keys())
-    csvMaps.sort()
-
-    df = pd.DataFrame()
-    firstFile = True
-    loadedColumns = 0
-    for map in csvMaps:
-        dfMap = pd.read_csv(csvMap[map], skiprows=1, header=None)  # type: ignore
-        if not firstFile:
-            dfMap = dfMap.iloc[:, 1:]
-        else:
-            firstFile = False
-        dfMap.columns = list(range(loadedColumns, loadedColumns + len(dfMap.columns)))
-        loadedColumns = loadedColumns + len(dfMap.columns)
-        df = pd.concat([df, dfMap], axis=1)  # type: ignore
-
-    columns = emtColumns(infFile)
-    columns[0] = 'time'
-    df = df[columns.keys()]
-    df.rename(columns, inplace=True, axis=1)
-    print(f"Loaded {infFile}, length = {df['time'].iloc[-1]}s")  # type: ignore
-    return df
 
 
 def colorMap(results: Dict[int, List[Result]]) -> Dict[str, List[str]]:
@@ -356,6 +312,7 @@ def drawPlot(rank: int,
     if len(ranksCursor) > 0:
         setupPlotLayoutCursors(config, ranksCursor, htmlPlotsCursors, imagePlotsCursors)
     for result in resultList:
+        print(result.typ)
         if result.typ == ResultType.RMS:
             resultData: pd.DataFrame = pd.read_csv(result.fullpath, sep=';', decimal=',', header=[0, 1])  # type: ignore
         elif result.typ == ResultType.EMT:
@@ -365,19 +322,19 @@ def drawPlot(rank: int,
         if config.genHTML:
             addResults(htmlPlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap,
                        config.htmlColumns, config.pfFlatTIme, config.pscadInitTime)
-            addCursors(htmlPlotsCursors, result.typ, resultData, cursorDict, config.pfFlatTIme, config.pscadInitTime,
-                       rank, config.htmlCursorColumns)
         if config.genImage:
             addResults(imagePlots, result.typ, resultData, figureList, result.shorthand, result.fullpath, colorMap,
                        config.imageColumns, config.pfFlatTIme, config.pscadInitTime)
-            addCursors(imagePlotsCursors, result.typ, resultData, cursorDict, config.pfFlatTIme, config.pscadInitTime,
-                       rank, config.imageCursorColumns)
 
     if config.genHTML:
+        addCursors(htmlPlotsCursors, resultList, cursorDict, config.pfFlatTIme, config.pscadInitTime,
+                   rank, config.htmlCursorColumns)
         create_html(htmlPlots, htmlPlotsCursors, figurePath, caseDict[rank] if caseDict is not None else "", config)
         print(f'Exported plot for rank {rank} to {figurePath}.html')
 
     if config.genImage:
+        addCursors(imagePlotsCursors, resultList, cursorDict, config.pfFlatTIme, config.pscadInitTime,
+                   rank, config.imageCursorColumns)
         create_image_plots(columnNr, config, figureList, figurePath, imagePlots)
         create_cursor_plots(config.htmlCursorColumns, config, figurePath, imagePlotsCursors, ranksCursor)
         print(f'Exported plot for rank {rank} to {figurePath}.{config.imageFormat}')
