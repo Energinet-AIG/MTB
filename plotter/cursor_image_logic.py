@@ -7,71 +7,78 @@ import plot_cursor_functions
 from Result import ResultType
 from Cursor import Cursor
 from math import ceil
+from Result import Result
+from read_and_write_functions import loadEMT
 
 
 def addCursors(htmlPlots: List[go.Figure],
-               typ: ResultType,
-               data: pd.DataFrame,
-               rankDict: List[Cursor],
+               resultList: List[Result],
+               cursorDict: List[Cursor],
                pfFlatTIme: float,
                pscadInitTime: float,
                rank: int,
                nColumns: int):
-    rank_settings = [i for i in rankDict if i.id == rank]
-    if len(rank_settings) == 0:
+    cursor_settings = [i for i in cursorDict if i.id == rank]
+    if len(cursor_settings) == 0:
         return list()
-
-    signalKey = typ.name.lower()
 
     # Initialize subplot positions
     fi = -1  # Start index from -1 as it is incremented before use
 
     # Loop through rank settings
-    for rank_setting in rank_settings:
-        rawSigNames = getattr(rank_setting, f'{signalKey}_signals')
-        time_ranges = getattr(rank_setting, 'time_ranges')
-        cursor_options = getattr(rank_setting, 'cursor_options')
+    totalRawSigNames = []
+    for cursor_setting in cursor_settings:
+        time_ranges = getattr(cursor_setting, 'time_ranges')
+        cursor_options = getattr(cursor_setting, 'cursor_options')
         # Increment plot index
         fi += 1
-
-        if len(rawSigNames) == 0:
-            continue
 
         # Select the correct plot
         plot = htmlPlots[fi] if nColumns == 1 else htmlPlots[0]
 
         x = []
         y = []
+        for result in resultList:
+            signalKey = result.typ.name.lower()
+            rawSigNames = getattr(cursor_setting, f'{signalKey}_signals')
+            totalRawSigNames.extend(rawSigNames)
+            data = None
+            if result.typ == ResultType.RMS:
+                data: pd.DataFrame = pd.read_csv(result.fullpath, sep=';', decimal=',',
+                                                       header=[0, 1])  # type: ignore
+            elif result.typ == ResultType.EMT:
+                data: pd.DataFrame = loadEMT(result.fullpath)
+            if len(rawSigNames) == 0:
+                continue
+            for rawSigName in rawSigNames:
+                if result.typ == ResultType.RMS:
+                    # Remove hash and split signal name
+                    while rawSigName.startswith('#'):
+                        rawSigName = rawSigName[1:]
+                    splitSigName = rawSigName.split('\\')
 
-        for rawSigName in rawSigNames:
-            if typ == ResultType.RMS:
-                # Remove hash and split signal name
-                while rawSigName.startswith('#'):
-                    rawSigName = rawSigName[1:]
-                splitSigName = rawSigName.split('\\')
-
-                if len(splitSigName) == 2:
-                    sigColumn = ('##' + splitSigName[0], splitSigName[1])
+                    if len(splitSigName) == 2:
+                        sigColumn = ('##' + splitSigName[0], splitSigName[1])
+                    else:
+                        sigColumn = rawSigName
                 else:
                     sigColumn = rawSigName
-            else:
-                sigColumn = rawSigName
 
-            # Determine the time column and offset based on the type
-            timeColName = 'time' if typ == ResultType.EMT else data.columns[0]
-            timeoffset = pfFlatTIme if typ == ResultType.RMS else pscadInitTime
+                # Determine the time column and offset based on the type
+                timeColName = 'time' if result.typ == ResultType.EMT else data.columns[0]
+                timeoffset = pfFlatTIme if result.typ == ResultType.RMS else pscadInitTime
 
-            if sigColumn in data.columns:
-                # Get the signal data and time values
-                x.extend(data[timeColName] - timeoffset)  # type: ignore
-                y.extend(data[sigColumn])  # type: ignore
+                if sigColumn in data.columns:
+                    # Get the signal data and time values
+                    x.extend(data[timeColName] - timeoffset)  # type: ignore
+                    y.extend(data[sigColumn])  # type: ignore
 
         # Filter the data based on the time_ranges
         if len(y) != 0:
             x = pd.Series(x)
             y = pd.Series(y)
             index_number = fi if nColumns != 1 else 0
-            plot_cursor_functions.add_text_subplot(plot, x, y, cursor_options, index_number, time_ranges, rawSigNames)
+            plot_cursor_functions.add_text_subplot(plot, x, y, cursor_options, index_number, time_ranges, totalRawSigNames)
 
     return htmlPlots
 
