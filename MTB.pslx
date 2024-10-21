@@ -23,7 +23,7 @@
     <param name="Warn" value="0" />
     <param name="Check" value="0" />
     <param name="description" value="" />
-    <param name="revisor" value="MKT, 1726239347" />
+    <param name="revisor" value="SBS, 1729254811" />
     <param name="Debug" value="0" />
     <param name="labels" value="" />
     <param name="Preprocessor" value="" />
@@ -33146,6 +33146,64 @@
         <param name="active_1" value="true" />
       </paramlist>
     </Settings>
+    <Settings classid="GraphFrameSettings" id="1125932550" link="955188380">
+      <path>
+        <ref link="855062775" />
+        <ref link="2118952145" />
+      </path>
+      <paramlist>
+        <param name="xmin" value="0.0" />
+        <param name="xmax" value="0.5" />
+      </paramlist>
+    </Settings>
+    <Settings classid="OverlayGraphSettings" id="902481984" link="1245644059">
+      <path>
+        <ref link="855062775" />
+        <ref link="2118952145" />
+      </path>
+      <paramlist>
+        <param name="ymin" value="-1.0" />
+        <param name="ymax" value="1.0" />
+      </paramlist>
+    </Settings>
+    <Settings classid="GraphFrameSettings" id="1205445602" link="415640742">
+      <path>
+        <ref link="855062775" />
+        <ref link="2118952145" />
+      </path>
+      <paramlist>
+        <param name="xmin" value="0.0" />
+        <param name="xmax" value="0.5" />
+      </paramlist>
+    </Settings>
+    <Settings classid="OverlayGraphSettings" id="1598487315" link="1456999284">
+      <path>
+        <ref link="855062775" />
+        <ref link="2118952145" />
+      </path>
+      <paramlist>
+        <param name="ymin" value="-1" />
+        <param name="ymax" value="1" />
+      </paramlist>
+    </Settings>
+    <Settings classid="TraceSettings" id="1617687396" link="1978343084">
+      <path>
+        <ref link="855062775" />
+        <ref link="2118952145" />
+      </path>
+      <paramlist>
+        <param name="active_1" value="true" />
+      </paramlist>
+    </Settings>
+    <Settings classid="TraceSettings" id="1598396722" link="1559893214">
+      <path>
+        <ref link="855062775" />
+        <ref link="2118952145" />
+      </path>
+      <paramlist>
+        <param name="active_1" value="true" />
+      </paramlist>
+    </Settings>
   </List>
   <bookmarks />
   <GlobalSubstitutions name="Default">
@@ -34442,7 +34500,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
         </Wire>
       </schematic>
     </Definition>
-    <Definition classid="UserCmpDefn" name="unit_meas" build="" crc="96778748" view="false" instances="0" date="1724686630" id="771166254" w="320" h="400">
+    <Definition classid="UserCmpDefn" name="unit_meas" build="" crc="24157374" view="false" instances="0" date="1724686630" id="771166254" w="320" h="400">
       <paramlist>
         <param name="Description" value="" />
       </paramlist>
@@ -35086,7 +35144,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
             <param name="Name" value="meas_vllpoc_pu_3" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="305884720" name="master:pgb" x="468" y="720" w="94" h="40" z="530" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="305884720" name="master:pgb" x="468" y="720" w="94" h="40" z="530" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="meas_Vag_pu" />
             <param name="Group" value="meas_Vag_pu" />
@@ -35101,7 +35159,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
             <param name="Min" value="-2.0" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="1706239459" name="master:pgb" x="468" y="756" w="95" h="40" z="520" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="1706239459" name="master:pgb" x="468" y="756" w="95" h="40" z="520" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="meas_Vbg_pu" />
             <param name="Group" value="meas_Vbg_pu" />
@@ -35116,7 +35174,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
             <param name="Min" value="-2.0" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="1787940464" name="master:pgb" x="468" y="792" w="94" h="40" z="510" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="1787940464" name="master:pgb" x="468" y="792" w="94" h="40" z="510" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="meas_Vcg_pu" />
             <param name="Group" value="meas_Vcg_pu" />
@@ -35131,7 +35189,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
             <param name="Min" value="-2.0" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="553645332" name="master:pgb" x="468" y="882" w="94" h="40" z="220" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="553645332" name="master:pgb" x="468" y="882" w="94" h="40" z="220" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="meas_Vab_pu" />
             <param name="Group" value="meas_Vab_pu" />
@@ -35146,7 +35204,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
             <param name="Min" value="-2.0" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="894077139" name="master:pgb" x="468" y="918" w="94" h="40" z="240" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="894077139" name="master:pgb" x="468" y="918" w="94" h="40" z="240" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="meas_Vbc_pu" />
             <param name="Group" value="meas_Vbc_pu" />
@@ -35161,7 +35219,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
             <param name="Min" value="-2.0" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="521155247" name="master:pgb" x="468" y="954" w="93" h="40" z="260" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="521155247" name="master:pgb" x="468" y="954" w="93" h="40" z="260" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="meas_Vca_pu" />
             <param name="Group" value="meas_Vca_pu" />
@@ -35181,7 +35239,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
             <param name="Name" value="meas_ipoc_pu_3" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="350449320" name="master:pgb" x="468" y="1044" w="83" h="40" z="500" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="350449320" name="master:pgb" x="468" y="1044" w="83" h="40" z="500" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="meas_Ia_pu" />
             <param name="Group" value="meas_Ia_pu" />
@@ -35196,7 +35254,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
             <param name="Min" value="-2.0" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="1508676643" name="master:pgb" x="468" y="1080" w="84" h="40" z="490" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="1508676643" name="master:pgb" x="468" y="1080" w="84" h="40" z="490" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="meas_Ib_pu" />
             <param name="Group" value="meas_Ib_pu" />
@@ -35211,7 +35269,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
             <param name="Min" value="-2.0" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="633186533" name="master:pgb" x="468" y="1116" w="83" h="40" z="480" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="633186533" name="master:pgb" x="468" y="1116" w="83" h="40" z="480" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="meas_Ic_pu" />
             <param name="Group" value="meas_Ic_pu" />
@@ -35700,7 +35758,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
           <vertex x="0" y="0" />
           <vertex x="54" y="0" />
         </Wire>
-        <User classid="UserCmp" id="209672349" name="master:pgb" x="1332" y="126" w="113" h="40" z="700" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="209672349" name="master:pgb" x="1332" y="126" w="113" h="40" z="700" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="pll_pos_Vmag_pu" />
             <param name="Group" value="pll_pos_Vmag_pu" />
@@ -35719,7 +35777,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
           <vertex x="0" y="0" />
           <vertex x="72" y="0" />
         </Wire>
-        <User classid="UserCmp" id="92174833" name="master:pgb" x="1440" y="144" w="115" h="40" z="690" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="92174833" name="master:pgb" x="1440" y="144" w="115" h="40" z="690" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="pll_neg_Vmag_pu" />
             <param name="Group" value="pll_neg_Vmag_pu" />
@@ -35738,7 +35796,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
           <vertex x="0" y="0" />
           <vertex x="180" y="0" />
         </Wire>
-        <User classid="UserCmp" id="1500247628" name="master:pgb" x="1332" y="162" w="109" h="40" z="680" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="1500247628" name="master:pgb" x="1332" y="162" w="109" h="40" z="680" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="pll_pos_Imag_pu" />
             <param name="Group" value="pll_pos_Imag_pu" />
@@ -35753,7 +35811,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
             <param name="Min" value="-2.0" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="263462843" name="master:pgb" x="1440" y="180" w="111" h="40" z="670" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="263462843" name="master:pgb" x="1440" y="180" w="111" h="40" z="670" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="pll_neg_Imag_pu" />
             <param name="Group" value="pll_neg_Imag_pu" />
@@ -35776,7 +35834,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
           <vertex x="0" y="0" />
           <vertex x="180" y="0" />
         </Wire>
-        <User classid="UserCmp" id="745752045" name="master:pgb" x="1332" y="198" w="93" h="40" z="660" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="745752045" name="master:pgb" x="1332" y="198" w="93" h="40" z="660" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="pll_pos_Id_pu" />
             <param name="Group" value="pll_pos_Id_pu" />
@@ -35795,7 +35853,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
           <vertex x="0" y="0" />
           <vertex x="72" y="0" />
         </Wire>
-        <User classid="UserCmp" id="1239645015" name="master:pgb" x="1440" y="216" w="93" h="40" z="650" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="1239645015" name="master:pgb" x="1440" y="216" w="93" h="40" z="650" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="pll_pos_Iq_pu" />
             <param name="Group" value="pll_pos_Iq_pu" />
@@ -35814,7 +35872,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
           <vertex x="0" y="0" />
           <vertex x="180" y="0" />
         </Wire>
-        <User classid="UserCmp" id="425847755" name="master:pgb" x="1332" y="234" w="95" h="40" z="640" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="425847755" name="master:pgb" x="1332" y="234" w="95" h="40" z="640" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="pll_neg_Id_pu" />
             <param name="Group" value="pll_neg_Id_pu" />
@@ -35833,7 +35891,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
           <vertex x="0" y="0" />
           <vertex x="72" y="0" />
         </Wire>
-        <User classid="UserCmp" id="162665434" name="master:pgb" x="1332" y="270" w="58" h="40" z="620" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="162665434" name="master:pgb" x="1332" y="270" w="58" h="40" z="620" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="pll_f_hz" />
             <param name="Group" value="pll_f_hz" />
@@ -35852,7 +35910,7 @@ $Ln_h = max($L0_h/3.0, 6e-4)]]></segment>
           <vertex x="0" y="0" />
           <vertex x="72" y="0" />
         </Wire>
-        <User classid="UserCmp" id="262659500" name="master:pgb" x="1440" y="252" w="95" h="40" z="630" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="262659500" name="master:pgb" x="1440" y="252" w="95" h="40" z="630" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="pll_neg_Iq_pu" />
             <param name="Group" value="pll_neg_Iq_pu" />
@@ -40352,7 +40410,7 @@ $out = mtb_return_value
 #ENDIF]]></segment>
       </script>
     </Definition>
-    <Definition classid="UserCmpDefn" name="MTB" build="" crc="84448470" view="false" instances="0" date="1726239157" id="274789173" w="320" h="400" url="" group="">
+    <Definition classid="UserCmpDefn" name="MTB" build="" crc="100545945" view="false" instances="0" date="1726239157" id="274789173" w="320" h="400" url="" group="">
       <paramlist>
         <param name="Description" value="" />
       </paramlist>
@@ -42060,36 +42118,6 @@ $out = mtb_return_value
         <User classid="UserCmp" id="1300237074" name="master:import" x="1944" y="198" w="132" h="25" z="90" orient="0" defn="master:import" link="-1" q="4" disable="false">
           <paramlist name="" link="-1" crc="117509081">
             <param name="Name" value="par_manualrank" />
-          </paramlist>
-        </User>
-        <User classid="UserCmp" id="1036701518" name="master:import" x="90" y="522" w="115" h="25" z="200" orient="0" defn="master:import" link="-1" q="4" disable="false">
-          <paramlist name="" link="-1" crc="117509081">
-            <param name="Name" value="in_vgpoc_kv" />
-          </paramlist>
-        </User>
-        <User classid="UserCmp" id="756009920" name="master:import" x="72" y="666" w="112" h="25" z="290" orient="0" defn="master:import" link="-1" q="4" disable="false">
-          <paramlist name="" link="-1" crc="117509081">
-            <param name="Name" value="in_vllpoc_kv" />
-          </paramlist>
-        </User>
-        <User classid="UserCmp" id="505269636" name="master:import" x="72" y="810" w="104" h="25" z="400" orient="0" defn="master:import" link="-1" q="4" disable="false">
-          <paramlist name="" link="-1" crc="117509081">
-            <param name="Name" value="in_ipoc_ka" />
-          </paramlist>
-        </User>
-        <User classid="UserCmp" id="1788182259" name="master:import" x="414" y="594" w="123" h="25" z="270" orient="0" defn="master:import" link="-1" q="4" disable="false">
-          <paramlist name="" link="-1" crc="117509081">
-            <param name="Name" value="in_qpoc_mvar" />
-          </paramlist>
-        </User>
-        <User classid="UserCmp" id="1035323151" name="master:import" x="414" y="738" w="117" h="25" z="360" orient="0" defn="master:import" link="-1" q="4" disable="false">
-          <paramlist name="" link="-1" crc="117509081">
-            <param name="Name" value="in_ppoc_mw" />
-          </paramlist>
-        </User>
-        <User classid="UserCmp" id="1737076439" name="master:import" x="414" y="882" w="127" h="25" z="430" orient="0" defn="master:import" link="-1" q="4" disable="false">
-          <paramlist name="" link="-1" crc="117509081">
-            <param name="Name" value="in_phipoc_deg" />
           </paramlist>
         </User>
         <User classid="UserCmp" defn="master:unity" id="1382143748" x="1890" y="576" w="44" h="21" z="1330" orient="0" link="-1" layer="" q="4" disable="false">
@@ -44809,7 +44837,7 @@ $out = mtb_return_value
           <vertex x="0" y="0" />
           <vertex x="54" y="0" />
         </Wire>
-        <User classid="UserCmp" id="1626991978" name="master:pgb" x="306" y="540" w="120" h="40" z="2520" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
+        <User classid="UserCmp" id="1626991978" name="master:pgb" x="360" y="540" w="120" h="40" z="2520" orient="0" defn="master:pgb" link="-1" q="4" disable="true">
           <paramlist name="" link="-1" crc="65740200">
             <param name="Name" value="meas_vgpoc_pu_3" />
             <param name="Group" value="" />
@@ -45734,32 +45762,32 @@ $out = mtb_return_value
             <param name="Name" value="mtb_L0_H" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="546679482" name="master:datalabel" x="144" y="540" w="86" h="23" z="1" orient="2" defn="master:datalabel" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="546679482" name="master:datalabel" x="108" y="540" w="86" h="23" z="1" orient="2" defn="master:datalabel" link="-1" q="4" disable="false">
           <paramlist name="" link="-1" crc="127230955">
             <param name="Name" value="mtb_vgpoc_kv" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="2070870187" name="master:datalabel" x="144" y="684" w="84" h="23" z="1" orient="6" defn="master:datalabel" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="2070870187" name="master:datalabel" x="108" y="684" w="84" h="23" z="1" orient="6" defn="master:datalabel" link="-1" q="4" disable="false">
           <paramlist name="" link="-1" crc="127230955">
             <param name="Name" value="mtb_vllpoc_kv" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="1718485809" name="master:datalabel" x="162" y="828" w="76" h="23" z="1" orient="6" defn="master:datalabel" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="1718485809" name="master:datalabel" x="108" y="828" w="76" h="23" z="1" orient="6" defn="master:datalabel" link="-1" q="4" disable="false">
           <paramlist name="" link="-1" crc="127230955">
             <param name="Name" value="mtb_ipoc_ka" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="1713195713" name="master:datalabel" x="504" y="756" w="88" h="23" z="1" orient="0" defn="master:datalabel" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="1713195713" name="master:datalabel" x="450" y="756" w="88" h="23" z="1" orient="0" defn="master:datalabel" link="-1" q="4" disable="false">
           <paramlist name="" link="-1" crc="127230955">
             <param name="Name" value="mtb_ppoc_mw" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="1317510031" name="master:datalabel" x="504" y="612" w="94" h="23" z="1" orient="0" defn="master:datalabel" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="1317510031" name="master:datalabel" x="450" y="612" w="94" h="23" z="1" orient="0" defn="master:datalabel" link="-1" q="4" disable="false">
           <paramlist name="" link="-1" crc="127230955">
             <param name="Name" value="mtb_qpoc_mvar" />
           </paramlist>
         </User>
-        <User classid="UserCmp" id="1536461122" name="master:datalabel" x="504" y="900" w="98" h="23" z="1" orient="0" defn="master:datalabel" link="-1" q="4" disable="false">
+        <User classid="UserCmp" id="1536461122" name="master:datalabel" x="450" y="900" w="98" h="23" z="1" orient="0" defn="master:datalabel" link="-1" q="4" disable="false">
           <paramlist name="" link="-1" crc="127230955">
             <param name="Name" value="mtb_phipoc_deg" />
           </paramlist>
@@ -46625,6 +46653,210 @@ $out = mtb_return_value
           <vertex x="0" y="0" />
           <vertex x="18" y="0" />
         </Wire>
+        <User classid="UserCmp" id="1433523153" name="master:datalabel" x="558" y="1278" w="86" h="23" z="-1" orient="0" defn="master:datalabel" link="-1" q="4" disable="false">
+          <paramlist name="" link="-1" crc="127230955">
+            <param name="Name" value="mtb_vgpoc_kv" />
+          </paramlist>
+        </User>
+        <User classid="UserCmp" id="1729677841" name="master:datalabel" x="558" y="1350" w="76" h="23" z="-1" orient="0" defn="master:datalabel" link="-1" q="4" disable="false">
+          <paramlist name="" link="-1" crc="127230955">
+            <param name="Name" value="mtb_ipoc_ka" />
+          </paramlist>
+        </User>
+        <User classid="UserCmp" id="1674208097" name="master:pgb" x="648" y="1278" w="98" h="40" z="300" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+          <paramlist name="" link="-1" crc="65740200">
+            <param name="Name" value="mtb_vgpoc_kv" />
+            <param name="Group" value="" />
+            <param name="UseSignalName" value="1" />
+            <param name="enab" value="1" />
+            <param name="Display" value="1" />
+            <param name="Scale" value="1.0" />
+            <param name="Units" value="" />
+            <param name="mrun" value="0" />
+            <param name="Pol" value="0" />
+            <param name="Max" value="2.0" />
+            <param name="Min" value="-2.0" />
+          </paramlist>
+        </User>
+        <User classid="UserCmp" id="1775492840" name="master:pgb" x="648" y="1350" w="87" h="40" z="410" orient="0" defn="master:pgb" link="-1" q="4" disable="false">
+          <paramlist name="" link="-1" crc="65740200">
+            <param name="Name" value="mtb_ipoc_ka" />
+            <param name="Group" value="" />
+            <param name="UseSignalName" value="1" />
+            <param name="enab" value="1" />
+            <param name="Display" value="1" />
+            <param name="Scale" value="1.0" />
+            <param name="Units" value="" />
+            <param name="mrun" value="0" />
+            <param name="Pol" value="0" />
+            <param name="Max" value="2.0" />
+            <param name="Min" value="-2.0" />
+          </paramlist>
+        </User>
+        <Wire classid="WireOrthogonal" id="1280236921" name="" x="558" y="1278" w="118" h="10" orient="0" disable="false">
+          <vertex x="0" y="0" />
+          <vertex x="108" y="0" />
+        </Wire>
+        <Wire classid="WireOrthogonal" id="1108157613" name="" x="558" y="1350" w="100" h="10" orient="0" disable="false">
+          <vertex x="0" y="0" />
+          <vertex x="90" y="0" />
+        </Wire>
+        <Frame classid="GraphFrame" id="955188380" name="frame" link="-1" x="36" y="2214" w="900" h="486">
+          <paramlist link="-1" name="">
+            <param name="Icon" value="-1,0" />
+            <param name="state" value="1" />
+            <param name="title" value="$(GROUP) : Graphs" />
+            <param name="XLabel" value="sec" />
+            <param name="Pan" value="false" />
+            <param name="pan_enable" value="false" />
+            <param name="pan_amount" value="75" />
+            <param name="markers" value="false" />
+            <param name="glyphs" value="false" />
+            <param name="ticks" value="false" />
+            <param name="grid" value="false" />
+            <param name="yinter" value="false" />
+            <param name="xinter" value="false" />
+            <param name="semilog" value="false" />
+            <param name="snapaperture" value="false" />
+            <param name="dynaperture" value="true" />
+            <param name="minorgrids" value="false" />
+            <param name="lockmarkers" value="false" />
+            <param name="deltareadout" value="false" />
+            <param name="xmarker" value="0" />
+            <param name="omarker" value="0" />
+            <param name="xfont" value="Tahoma, 12world" />
+            <param name="xangle" value="0" />
+            <param name="xtitle" value="sec" />
+            <param name="xgridauto" value="true" />
+            <param name="xgrid" value="0.1" />
+          </paramlist>
+          <paramlist name="" link="955188380">
+            <param name="xmin" value="0.000000" />
+            <param name="xmax" value="1.000000" />
+          </paramlist>
+          <Graph classid="OverlayGraph" id="1245644059" link="-1">
+            <paramlist link="-1" name="">
+              <param name="title" value="" />
+              <param name="units" value="" />
+              <param name="gridvalue" value="0.1" />
+              <param name="yintervalue" value="0" />
+              <param name="grid" value="true" />
+              <param name="ticks" value="false" />
+              <param name="glyphs" value="false" />
+              <param name="yinter" value="true" />
+              <param name="xinter" value="true" />
+              <param name="marker" value="false" />
+              <param name="trigger" value="false" />
+              <param name="invertcolor" value="false" />
+              <param name="crosshair" value="false" />
+              <param name="manualscale" value="false" />
+              <param name="autoframe" value="10" />
+              <param name="grid_color" value="#FF95908C" />
+              <param name="curve_colours" value="Navy;Green;Maroon;Teal;Purple;Brown" />
+              <param name="curve_colours2" value="Blue;Lime;Red;Aqua;Fuchsia;Yellow" />
+            </paramlist>
+            <paramlist name="" link="1245644059">
+              <param name="ymin" value="-1" />
+              <param name="ymax" value="1" />
+            </paramlist>
+            <Curve classid="Curve" id="1559893214" name="mtb_vgpoc_kv" link="1674208097" color="0" bold="0" show="-1" mode="0" gradient="false" transparency="255" thresh="0.5" above="High" below="Low" style="0">
+              <path />
+            </Curve>
+          </Graph>
+        </Frame>
+        <Frame classid="GraphFrame" id="415640742" name="frame" link="-1" x="1026" y="2214" w="900" h="486">
+          <paramlist link="-1" name="">
+            <param name="Icon" value="-1,0" />
+            <param name="state" value="1" />
+            <param name="title" value="$(GROUP) : Graphs" />
+            <param name="XLabel" value="sec" />
+            <param name="Pan" value="false" />
+            <param name="pan_enable" value="false" />
+            <param name="pan_amount" value="75" />
+            <param name="markers" value="false" />
+            <param name="glyphs" value="false" />
+            <param name="ticks" value="false" />
+            <param name="grid" value="false" />
+            <param name="yinter" value="false" />
+            <param name="xinter" value="false" />
+            <param name="semilog" value="false" />
+            <param name="snapaperture" value="false" />
+            <param name="dynaperture" value="true" />
+            <param name="minorgrids" value="false" />
+            <param name="lockmarkers" value="false" />
+            <param name="deltareadout" value="false" />
+            <param name="xmarker" value="0" />
+            <param name="omarker" value="0" />
+            <param name="xfont" value="Tahoma, 12world" />
+            <param name="xangle" value="0" />
+            <param name="xtitle" value="sec" />
+            <param name="xgridauto" value="true" />
+            <param name="xgrid" value="0.1" />
+          </paramlist>
+          <paramlist name="" link="415640742">
+            <param name="xmin" value="0.000000" />
+            <param name="xmax" value="1.000000" />
+          </paramlist>
+          <Graph classid="OverlayGraph" id="1456999284" link="-1">
+            <paramlist link="-1" name="">
+              <param name="title" value="" />
+              <param name="units" value="" />
+              <param name="gridvalue" value="0.1" />
+              <param name="yintervalue" value="0" />
+              <param name="grid" value="true" />
+              <param name="ticks" value="false" />
+              <param name="glyphs" value="false" />
+              <param name="yinter" value="true" />
+              <param name="xinter" value="true" />
+              <param name="marker" value="false" />
+              <param name="trigger" value="false" />
+              <param name="invertcolor" value="false" />
+              <param name="crosshair" value="false" />
+              <param name="manualscale" value="false" />
+              <param name="autoframe" value="10" />
+              <param name="grid_color" value="#FF95908C" />
+              <param name="curve_colours" value="Navy;Green;Maroon;Teal;Purple;Brown" />
+              <param name="curve_colours2" value="Blue;Lime;Red;Aqua;Fuchsia;Yellow" />
+            </paramlist>
+            <paramlist name="" link="1456999284">
+              <param name="ymin" value="-1" />
+              <param name="ymax" value="1" />
+            </paramlist>
+            <Curve classid="Curve" id="1978343084" name="mtb_ipoc_ka" link="1775492840" color="0" bold="0" show="-1" mode="0" gradient="false" transparency="255" thresh="0.5" above="High" below="Low" style="0">
+              <path />
+            </Curve>
+          </Graph>
+        </Frame>
+        <User classid="UserCmp" id="658202278" name="master:import" x="72" y="792" w="104" h="25" z="400" orient="0" defn="master:import" link="-1" q="4" disable="false">
+          <paramlist name="" link="-1" crc="117509081">
+            <param name="Name" value="in_ipoc_ka" />
+          </paramlist>
+        </User>
+        <User classid="UserCmp" id="27216372" name="master:import" x="72" y="648" w="112" h="25" z="290" orient="0" defn="master:import" link="-1" q="4" disable="false">
+          <paramlist name="" link="-1" crc="117509081">
+            <param name="Name" value="in_vllpoc_kv" />
+          </paramlist>
+        </User>
+        <User classid="UserCmp" id="598258832" name="master:import" x="90" y="504" w="115" h="25" z="200" orient="0" defn="master:import" link="-1" q="4" disable="false">
+          <paramlist name="" link="-1" crc="117509081">
+            <param name="Name" value="in_vgpoc_kv" />
+          </paramlist>
+        </User>
+        <User classid="UserCmp" id="1549799963" name="master:import" x="414" y="576" w="123" h="25" z="270" orient="0" defn="master:import" link="-1" q="4" disable="false">
+          <paramlist name="" link="-1" crc="117509081">
+            <param name="Name" value="in_qpoc_mvar" />
+          </paramlist>
+        </User>
+        <User classid="UserCmp" id="1802466444" name="master:import" x="414" y="720" w="117" h="25" z="360" orient="0" defn="master:import" link="-1" q="4" disable="false">
+          <paramlist name="" link="-1" crc="117509081">
+            <param name="Name" value="in_ppoc_mw" />
+          </paramlist>
+        </User>
+        <User classid="UserCmp" id="1098951873" name="master:import" x="414" y="864" w="127" h="25" z="430" orient="0" defn="master:import" link="-1" q="4" disable="false">
+          <paramlist name="" link="-1" crc="117509081">
+            <param name="Name" value="in_phipoc_deg" />
+          </paramlist>
+        </User>
       </schematic>
     </Definition>
     <Definition classid="UserCmpDefn" name="PLL_ADAPTIVE" build="" crc="74269577" view="false" instances="0" date="1724944745" id="1042010625" w="320" h="400" url="" group="">
@@ -59795,21 +60027,21 @@ $iqneg = $ineg * Sin(v_neg_p-i_neg_p)]]></segment>
     </Resource>
   </List>
   <hierarchy>
-    <call link="581244505" name="MTB:DS" z="-1" view="false" instance="0">
-      <call link="855062775" name="MTB:Main" z="-1" view="false" instance="0">
-        <call link="1029603519" name="MTB:unit_meas" z="-1" view="false" instance="0">
-          <call link="1517696666" name="MTB:PLL_seq" z="470" view="false" instance="0">
-            <call link="1742400640" name="MTB:PLL_ADAPTIVE" z="60" view="false" instance="0" />
-            <call link="1637378826" name="MTB:PLL_ADAPTIVE" z="70" view="false" instance="1" />
-          </call>
-        </call>
-        <call link="2118952145" name="MTB:MTB" z="-1" view="true" instance="0">
+    <call link="1288349524" name="MTB:DS" z="-1" view="false" instance="0">
+      <call link="855062775" name="MTB:Main" z="-1" view="true" instance="0">
+        <call link="2118952145" name="MTB:MTB" z="-1" view="false" instance="0">
           <call link="168397858" name="MTB:ThreePhaseCtrl" z="1820" view="false" instance="0" />
           <call link="1075289416" name="MTB:PLL_seq_src" z="1920" view="false" instance="0">
             <call link="212921357" name="MTB:PLL_ADAPTIVE_src" z="60" view="false" instance="0" />
             <call link="1690585494" name="MTB:PLL_ADAPTIVE_src" z="70" view="false" instance="1" />
           </call>
           <call link="131918621" name="MTB:Fault" z="2370" view="false" instance="0" />
+        </call>
+        <call link="1029603519" name="MTB:unit_meas" z="-1" view="false" instance="0">
+          <call link="1517696666" name="MTB:PLL_seq" z="470" view="false" instance="0">
+            <call link="1742400640" name="MTB:PLL_ADAPTIVE" z="60" view="false" instance="0" />
+            <call link="1637378826" name="MTB:PLL_ADAPTIVE" z="70" view="false" instance="1" />
+          </call>
         </call>
       </call>
     </call>
