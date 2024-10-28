@@ -24,10 +24,9 @@ def addCursors(htmlPlots: List[go.Figure],
 
     # Initialize subplot positions
     fi = -1  # Start index from -1 as it is incremented before use
-
-    # Loop through rank settings
-    totalRawSigNames = []
     for cursor_setting in cursor_settings:
+        # Loop through rank settings
+        totalRawSigNames = []
         time_ranges = getattr(cursor_setting, 'time_ranges')
         cursor_options = getattr(cursor_setting, 'cursor_options')
         # Increment plot index
