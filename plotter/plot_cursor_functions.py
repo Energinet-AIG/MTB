@@ -17,8 +17,8 @@ def min_max_value_text(x, y, time_ranges):
     max_x = x[y.idxmax()]  # x-value where y is maximum
 
     # Construct the text
-    annotation_text = (f"Max: {max_y:.2f} at x = {max_x}<br>"
-                       f"Min: {min_y:.2f} at x = {min_x}<br>")
+    annotation_text = (f"Max: {max_y:.2f} at t = {max_x}<br>"
+                       f"Min: {min_y:.2f} at t = {min_x}<br>")
     return annotation_text
 
 
