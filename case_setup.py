@@ -117,10 +117,10 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
     '''
     Sets up the simulation channels and cases from the given casesheet. Returns plant settings, channels, cases, max rank and emtCases.
     '''
-    def impedance_uk_pcu(scr : float, xr : float, pn : float, un : float) -> Tuple[float, float]:
+    def impedance_uk_pcu(scr : float, xr : float, pn : float, un : float, uc : float) -> Tuple[float, float]:
         scr_ = max(scr, 0.001)
-        pcu = pn/sqrt(xr*xr + 1)/scr_ if scr >= 0.0 else 0.0
-        uk = 1/scr_ if scr >= 0.0 else 0.0
+        pcu = (uc*uc)/(un*un)*pn/sqrt(xr*xr + 1)/scr_ if scr >= 0.0 else 0.0
+        uk = (uc*uc)/(un*un)/scr_ if scr >= 0.0 else 0.0
         return 100.0 * uk, 1000.0 * pcu
 
     def signal(name : str, pscad : bool = True, defaultConnection : bool = True, measFile : bool = False) -> si.Signal:
@@ -439,7 +439,7 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
         mtb_s_scr[case.rank] = case.SCR0
         mtb_s_xr[case.rank] = case.XR0
 
-        ldf_t_uk[case.rank], ldf_t_pcu_kw[case.rank] = impedance_uk_pcu(case.SCR0, case.XR0, plantSettings.Pn, plantSettings.Un)
+        ldf_t_uk[case.rank], ldf_t_pcu_kw[case.rank] = impedance_uk_pcu(case.SCR0, case.XR0, plantSettings.Pn, plantSettings.Un, plantSettings.Uc)
 
         mtb_t_r0_ohm[case.rank] = plantSettings.R0
         mtb_t_x0_ohm[case.rank] = plantSettings.X0
