@@ -19,7 +19,7 @@ For the latest release notes, please visit the [Releases page](https://github.co
 *Example comparative study between RMS (red) and EMT (blue) models.*
 ## Getting Started
 
-To start using the MTB, refer to the Quickstart Guides available on the [MTB wiki Home page](https://github.com/Energinet-IG/MTB/wiki) on GitHub. These guides provide instructions on using the Casesheet, PowerFactory, PSCAD, and the plotter tool.
+To start using the MTB, refer to the Quickstart Guides available on the [MTB wiki Home page](https://github.com/Energinet-AIG/MTB/wiki) on GitHub. These guides provide instructions on using the Casesheet, PowerFactory, PSCAD, and the plotter tool.
 
 ## Requirements
 
