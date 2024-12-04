@@ -9,14 +9,14 @@ from math import isnan, sqrt
 from warnings import warn
 
 FAULT_TYPES = { 
-    '3p fault' : 7,
-    '2p-g fault' : 5,
-    '2p fault' : 3,
-    '1p fault' : 1,
-    '3p fault (ohm)' : 8,
-    '2p-g fault (ohm)' : 6,
-    '2p fault (ohm)' : 4,
-    '1p fault (ohm)' : 2 
+    '3p fault' : 7.0,
+    '2p-g fault' : 5.0,
+    '2p fault' : 3.0,
+    '1p fault' : 1.0,
+    '3p fault (ohm)' : 8.0,
+    '2p-g fault (ohm)' : 6.0,
+    '2p fault (ohm)' : 4.0,
+    '1p fault (ohm)' : 2.0 
 }
     
 QMODES = {
@@ -469,7 +469,7 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
         flt_s_rf_ohm[case.rank] = 0.0
         flt_s_resxf[case.rank] = 0.0
         
-        # Dault custom signal values
+        # Default custom signal values
         mtb_s[0][case.rank] = 0.0
         mtb_s[1][case.rank] = 0.0
         mtb_s[2][case.rank] = 0.0
