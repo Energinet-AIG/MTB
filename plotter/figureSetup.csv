@@ -11,5 +11,5 @@ figure;title;units;emt_signal_1;emt_signal_2;emt_signal_3;rms_signal_1;rms_signa
 10;Id_pll;pu;pll_pos_Id_pu;pll_neg_Id_pu;;;;;gradient;0.5;;
 11;Iq_pll;pu;pll_pos_Iq_pu;pll_neg_Iq_pu;;;;;gradient;0.5;;
 12;Terminal;pu;unit_fft_pos_Id_pu;unit_fft_pos_Iq_pu;unit_fft_pos_Vmag_pu;Unit_1\m:i1P:bus1 in p.u.;Unit_1\m:i1Q:bus1 in p.u.;Unit_1\n:u1:bus1 in p.u.;gradient;0.5;;
-13;Instantinous voltage(pg);kV;meas_Vag_kV;meas_Vbg_kV;meas_Vcg_kV;;;;gradient;0.5;71,72,73,74,75,76,77,78,79,80;
-14;Instantinous current (kA);kA;meas_Ia_kA;meas_Ib_kA;meas_Ic_kA;;;;gradient;0.5;71,72,73,74,75,76,77,78,79,80;
+13;Instantinous voltage(pg);kV;meas_Vag_kV;meas_Vbg_kV;meas_Vcg_kV;;;;gradient;0.5;1,2,3,4,5,6,7,8,9,10,96;
+14;Instantinous current (kA);kA;meas_Ia_kA;meas_Ib_kA;meas_Ic_kA;;;;gradient;0.5;1,2,3,4,5,6,7,8,9,10,96;

@@ -287,7 +287,8 @@ def drawPlot(rank: int,
              caseDict: Dict[int, str],
              colorMap: Dict[str, List[str]],
              cursorDict: List[Cursor],
-             config: ReadConfig):
+             config: ReadConfig,
+             rank_list):
     '''
     Draws plots for html and static image export.    
     '''
@@ -329,7 +330,7 @@ def drawPlot(rank: int,
     if config.genHTML:
         addCursors(htmlPlotsCursors, resultList, cursorDict, config.pfFlatTIme, config.pscadInitTime,
                    rank, config.htmlCursorColumns)
-        create_html(htmlPlots, htmlPlotsCursors, figurePath, caseDict[rank] if caseDict is not None else "", config)
+        create_html(htmlPlots, htmlPlotsCursors, figurePath, caseDict[rank] if caseDict is not None else "", rank, config, rank_list)
         print(f'Exported plot for rank {rank} to {figurePath}.html')
 
     if config.genImage:
@@ -443,9 +444,88 @@ def setupPlotLayout(caseDict, config, figureList, htmlPlots, imagePlots, rank):
     return columnNr
 
 
+def create_css(resultsDir):
 
-def create_html(plots: List[go.Figure], cursor_plots: List[go.Figure], path: str, title: str,
-                config: ReadConfig) -> None:
+    css_path = join(resultsDir, "mtb.css")
+    
+    css_content = r'''body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+		
+.navbar {
+  overflow: hidden;
+  background-color: #028B76;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.navbar {
+  overflow: hidden;
+  background-color: #028B76;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.navbar a {
+  float: left;
+  font-size: 16px;
+  color: white;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+.dropdown {
+  float: left;
+  overflow: hidden;
+}
+
+.dropdown .dropbtn {
+  font-size: 16px;  
+  border: none;
+  outline: none;
+  color: white;
+  padding: 14px 16px;
+  background-color: inherit;
+  font-family: inherit;
+  margin: 0;
+}
+
+.navbar a:hover, .dropdown:hover .dropbtn {
+  background-color: #ddd;
+  color: black;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f9f9f9;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1;
+}
+
+.dropdown-content a {
+  float: none;
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  text-align: left;
+}
+
+.dropdown-content a:hover {
+  background-color: #ddd;
+}
+
+.dropdown:hover .dropdown-content {
+  display: block;'''
+    
+    with open(f'{css_path}', 'w') as file:
+        file.write(css_content)        
+        
+        
+def create_html(plots: List[go.Figure], cursor_plots: List[go.Figure], path: str, title: str, rank: int,
+                config: ReadConfig, rank_list) -> None:
+                
     source_list = '<div style="text-align: left; margin-top: 1px;">'
     source_list += '<h4>Source data:</h4>'
     for group in config.simDataDirs:
@@ -453,26 +533,53 @@ def create_html(plots: List[go.Figure], cursor_plots: List[go.Figure], path: str
 
     source_list += '</div>'
 
-    html_content = create_html_plots(config.htmlColumns, plots, title)
-    html_content_cursors = create_html_plots(config.htmlCursorColumns, cursor_plots, "Relevant signal metrics") if len(
+    html_content = create_html_plots(config.htmlColumns, plots, title, rank)
+    html_content_cursors = create_html_plots(config.htmlCursorColumns, cursor_plots, "Relevant signal metrics", rank) if len(
         cursor_plots) > 0 else ""
-
-    full_html_content = f'''
-            <html>
-            <body>
-                {html_content}
-                {html_content_cursors}
-                {source_list}
-                <p><center><a href="https://github.com/Energinet-AIG/MTB" target="_blank">Generated with Energinets Model Testbench</a></center></p>
-            </body>
-            </html>
-            '''
+    
+    # Create Dropdown Content for the Navbar
+    idx = 0
+    dropdown_content = ''
+    while idx < len(rank_list):
+        dropdown_content = dropdown_content + f'<a href="{rank_list[idx]}.html">Rank {rank_list[idx]}</a>\n'
+        idx += 5
+    
+    # Determine the Previous and Next Rank html page for the Navbar
+    idx = rank_list.index(rank)
+    rank_prev = rank_list[idx-1]
+    rank_next = rank_list[idx+1 if idx+1 < len(rank_list) else 0]
+    
+    full_html_content = f'''<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="mtb.css"
+  </head>
+  <body>
+	<div class="navbar">
+	  <a href="{rank_prev}.html" > &laquo; Previous Rank</a>
+	  <a href="{rank_next}.html" > Next Rank &raquo;</a>
+	  <div class="dropdown">
+		<button class="dropbtn">More Ranks
+		  <i class="fa fa-caret-down"></i>
+		</button>
+		<div class="dropdown-content">
+		  {dropdown_content}
+		</div>
+	  </div> 
+	</div>
+    {html_content}
+    {html_content_cursors}
+    {source_list}
+    <p><center><a href="https://github.com/Energinet-AIG/MTB" target="_blank">Generated with Energinets Model Testbench</a></center></p>
+  </body>
+</html>'''
 
     with open(f'{path}.html', 'w') as file:
         file.write(full_html_content)
 
 
-def create_html_plots(columns, plots, title):
+def create_html_plots(columns, plots, title, rank):
     if columns == 1:
         figur_links = '<div style="text-align: left; margin-top: 1px;">'
         figur_links += '<h4>Figures:</h4>'
@@ -483,7 +590,7 @@ def create_html_plots(columns, plots, title):
         figur_links += '</div>'
     else:
         figur_links = ''
-    html_content = '<h1>' + title + '</h1>'
+    html_content = f'<h1>Rank {rank}: {title}</h1>'
     html_content += figur_links
     for p in plots:
         plot_title: str = p['layout']['title']['text']  # type: ignore
@@ -533,18 +640,31 @@ def main() -> None:
     cursorDict = readCursorSetup('cursorSetup.csv')
     caseDict = readCasesheet(config.optionalCasesheet)
     colorSchemeMap = colorMap(resultDict)
-
+    
     if not exists(config.resultsDir):
         makedirs(config.resultsDir)
 
+    create_css(config.resultsDir)
+    
+    # Create a Rank List of all the Ranks that are True
+    SettingsDF = pd.read_excel(config.optionalCasesheet, sheet_name="Settings", header=0)
+    casegroup = SettingsDF["Value"][0] # RfG, DCC, Unit or Custom
+    CasesDF = pd.read_excel(config.optionalCasesheet, sheet_name=f"{casegroup} cases", header=1)
+    if (SettingsDF["Value"][0] != "Custom" and SettingsDF["Value"][1] == True):
+        CustomCasesDF = pd.read_excel(config.optionalCasesheet, sheet_name="Custom cases", header=1)
+        CasesDF = pd.concat([CasesDF, CustomCasesDF],ignore_index=True)
+        
+    rank_list = list(CasesDF["Rank"][CasesDF["RMS"]==True])
+    rank_list.sort()
+    
     threads: List[Thread] = list()
 
     for rank in resultDict.keys():
         if config.threads > 1:
             threads.append(Thread(target=drawPlot,
-                                  args=(rank, resultDict, figureDict, caseDict, colorSchemeMap, cursorDict, config)))
+                                  args=(rank, resultDict, figureDict, caseDict, colorSchemeMap, cursorDict, config, rank_list)))
         else:
-            drawPlot(rank, resultDict, figureDict, caseDict, colorSchemeMap, cursorDict, config)
+            drawPlot(rank, resultDict, figureDict, caseDict, colorSchemeMap, cursorDict, config, rank_list)
 
     NoT = len(threads)
     if NoT > 0:
