@@ -175,10 +175,6 @@ def findMTB(pscad : mhi.pscad.PSCAD) -> mhi.pscad.UserCmp:
 
     if not MTBcand:
         exit('No MTB block found in workspace.')
-    assert MTBcand is not None
-
-    print(f'Setting {MTBcand} to volley mode')
-    MTBcand.parameters(par_mode = 1) #type: ignore
     return MTBcand
 
 def addInterfaceFile(project : mhi.pscad.Project):
@@ -209,12 +205,25 @@ def main():
     #Set MTB to volley mode
     MTB = findMTB(pscad)
     project = pscad.project(MTB.project_name)
-    print()
-
-    #Output ranks in relation to task id
-    print('Rank / Task ID / Casename:')
+    caseList = []
     for case in emtCases:
-        print(f'{case.rank} / {emtCases.index(case) + 1} / {case.Name}')
+        caseList.append(case.rank)
+    
+    if MTB.parameters()['par_mode'] == 'MANUAL' and MTB.parameters()['par_manualrank'] in caseList:
+        #Output rank in relation to task id
+        singleRank = MTB.parameters()['par_manualrank']
+        singleName = emtCases[MTB.parameters()['par_manualrank']].Name
+        print(f'Excecuting only Rank {singleRank}: {singleName}')
+    else:
+        #Set MTB to volley mode if rank does not have a corresponding case
+        if MTB.parameters()['par_mode'] == 'MANUAL':
+            print(f'Setting MTB to volley mode since specified rank does not have a corresponding case in testcases.')
+            MTB.parameters(par_mode = 1) #type: ignore
+            print()
+        #Output ranks in relation to task id
+        print('Rank / Task ID / Casename:')
+        for case in emtCases:
+            print(f'{case.rank} / {emtCases.index(case) + 1} / {case.Name}')
 
     print()
     si.renderFortran('interface.f', channels)
@@ -239,7 +248,7 @@ def main():
     pmr = pscad.create_simulation_set('MTB')
     pmr.add_tasks(MTB.project_name)
     project_pmr = pmr.task(MTB.project_name)
-    project_pmr.parameters(ammunition = len(emtCases), volley = config.volley, affinity_type = '2') #type: ignore
+    project_pmr.parameters(ammunition = len(emtCases) if MTB.parameters()['par_mode'] == 'VOLLEY' else 1 , volley = config.volley, affinity_type = '2') #type: ignore
 
     pscad.run_simulation_sets('MTB') #type: ignore ??? By sideeffect changes current working directory ???
     os.chdir(executeFolder)
