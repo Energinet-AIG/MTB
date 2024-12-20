@@ -248,7 +248,7 @@ def main():
     pmr = pscad.create_simulation_set('MTB')
     pmr.add_tasks(MTB.project_name)
     project_pmr = pmr.task(MTB.project_name)
-    project_pmr.parameters(ammunition = len(emtCases) if MTB.parameters()['par_mode'] == 1 else 1 , volley = config.volley, affinity_type = '2') #type: ignore
+    project_pmr.parameters(ammunition = len(emtCases) if MTB.parameters()['par_mode'] == 'VOLLEY' else 1 , volley = config.volley, affinity_type = '2') #type: ignore
 
     pscad.run_simulation_sets('MTB') #type: ignore ??? By sideeffect changes current working directory ???
     os.chdir(executeFolder)
