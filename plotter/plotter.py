@@ -287,8 +287,7 @@ def drawPlot(rank: int,
              caseDict: Dict[int, str],
              colorMap: Dict[str, List[str]],
              cursorDict: List[Cursor],
-             config: ReadConfig,
-             rank_list):
+             config: ReadConfig):
     '''
     Draws plots for html and static image export.    
     '''
@@ -296,6 +295,8 @@ def drawPlot(rank: int,
     print(f'Drawing plot for rank {rank}.')
 
     resultList = resultDict.get(rank, [])
+    rankList = list(resultDict.keys())
+    rankList.sort()
     figureList = figureDict[rank]
     ranksCursor = [i for i in cursorDict if i.id == rank]
 
@@ -330,7 +331,7 @@ def drawPlot(rank: int,
     if config.genHTML:
         addCursors(htmlPlotsCursors, resultList, cursorDict, config.pfFlatTIme, config.pscadInitTime,
                    rank, config.htmlCursorColumns)
-        create_html(htmlPlots, htmlPlotsCursors, figurePath, caseDict[rank] if caseDict is not None else "", rank, config, rank_list)
+        create_html(htmlPlots, htmlPlotsCursors, figurePath, caseDict[rank] if caseDict is not None else "", rank, config, rankList)
         print(f'Exported plot for rank {rank} to {figurePath}.html')
 
     if config.genImage:
@@ -524,7 +525,7 @@ def create_css(resultsDir):
         
         
 def create_html(plots: List[go.Figure], cursor_plots: List[go.Figure], path: str, title: str, rank: int,
-                config: ReadConfig, rank_list) -> None:
+                config: ReadConfig, rankList) -> None:
                 
     source_list = '<div style="text-align: left; margin-top: 1px;">'
     source_list += '<h4>Source data:</h4>'
@@ -540,14 +541,14 @@ def create_html(plots: List[go.Figure], cursor_plots: List[go.Figure], path: str
     # Create Dropdown Content for the Navbar
     idx = 0
     dropdown_content = ''
-    while idx < len(rank_list):
-        dropdown_content = dropdown_content + f'<a href="{rank_list[idx]}.html">Rank {rank_list[idx]}</a>\n'
+    while idx < len(rankList):
+        dropdown_content += f'<a href="{rankList[idx]}.html">Rank {rankList[idx]}</a>\n'
         idx += 5
     
     # Determine the Previous and Next Rank html page for the Navbar
-    idx = rank_list.index(rank)
-    rank_prev = rank_list[idx-1]
-    rank_next = rank_list[idx+1 if idx+1 < len(rank_list) else 0]
+    idx = rankList.index(rank)
+    rankPrev = rankList[idx-1]
+    rankNext = rankList[idx+1 if idx+1 < len(rankList) else 0]
     
     full_html_content = f'''<html>
   <head>
@@ -557,17 +558,36 @@ def create_html(plots: List[go.Figure], cursor_plots: List[go.Figure], path: str
   </head>
   <body>
 	<div class="navbar">
-	  <a href="{rank_prev}.html" > &laquo; Previous Rank</a>
-	  <a href="{rank_next}.html" > Next Rank &raquo;</a>
+	  <a href="{rankPrev}.html" > &laquo; Previous Rank</a>
+	  <a href="{rankNext}.html" > Next Rank &raquo;</a>
 	  <div class="dropdown">
 		<button class="dropbtn">More Ranks
 		  <i class="fa fa-caret-down"></i>
 		</button>
 		<div class="dropdown-content">
-		  {dropdown_content}
+          {dropdown_content}
 		</div>
 	  </div> 
 	</div>
+    <script>
+        function showHelp() {{
+        alert("Use Alt+PageUp to go to the previous rank\\nAnd Alt+PageDown to go to the next rank");
+        }}
+        document
+            .addEventListener("keydown",
+                function (event) {{
+                    if (event.altKey && event.key === "PageUp") {{
+                        event.preventDefault();
+                        window.location.href = "{rankPrev}.html";
+                    }} else if (event.altKey && event.key === "PageDown") {{
+                        event.preventDefault();
+                        window.location.href = "{rankNext}.html";
+                    }} else if (event.altKey && event.key === "h") {{
+                        event.preventDefault();
+                        showHelp();
+                    }}
+                }});
+    </script>
     {html_content}
     {html_content_cursors}
     {source_list}
@@ -645,26 +665,15 @@ def main() -> None:
         makedirs(config.resultsDir)
 
     create_css(config.resultsDir)
-    
-    # Create a Rank List of all the Ranks that are True
-    SettingsDF = pd.read_excel(config.optionalCasesheet, sheet_name="Settings", header=0)
-    casegroup = SettingsDF["Value"][0] # RfG, DCC, Unit or Custom
-    CasesDF = pd.read_excel(config.optionalCasesheet, sheet_name=f"{casegroup} cases", header=1)
-    if (SettingsDF["Value"][0] != "Custom" and SettingsDF["Value"][1] == True):
-        CustomCasesDF = pd.read_excel(config.optionalCasesheet, sheet_name="Custom cases", header=1)
-        CasesDF = pd.concat([CasesDF, CustomCasesDF],ignore_index=True)
-        
-    rank_list = list(CasesDF["Rank"][CasesDF["RMS"]==True])
-    rank_list.sort()
-    
+
     threads: List[Thread] = list()
 
     for rank in resultDict.keys():
         if config.threads > 1:
             threads.append(Thread(target=drawPlot,
-                                  args=(rank, resultDict, figureDict, caseDict, colorSchemeMap, cursorDict, config, rank_list)))
+                                  args=(rank, resultDict, figureDict, caseDict, colorSchemeMap, cursorDict, config)))
         else:
-            drawPlot(rank, resultDict, figureDict, caseDict, colorSchemeMap, cursorDict, config, rank_list)
+            drawPlot(rank, resultDict, figureDict, caseDict, colorSchemeMap, cursorDict, config)
 
     NoT = len(threads)
     if NoT > 0:

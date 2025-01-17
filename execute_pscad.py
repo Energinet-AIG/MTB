@@ -202,28 +202,27 @@ def main():
         print(f'{setting} : {plantSettings.__dict__[setting]}')
     print()
     
-    #Set MTB to volley mode
+    #Prepare MTB based on execution mode
     MTB = findMTB(pscad)
     project = pscad.project(MTB.project_name)
     caseList = []
     for case in emtCases:
         caseList.append(case.rank)
     
-    if MTB.parameters()['par_mode'] == 'MANUAL' and MTB.parameters()['par_manualrank'] in caseList:
-        #Output rank in relation to task id
-        singleRank = MTB.parameters()['par_manualrank']
-        singleName = emtCases[MTB.parameters()['par_manualrank']].Name
-        print(f'Excecuting only Rank {singleRank}: {singleName}')
-    else:
-        #Set MTB to volley mode if rank does not have a corresponding case
-        if MTB.parameters()['par_mode'] == 'MANUAL':
-            print(f'Setting MTB to volley mode since specified rank does not have a corresponding case in testcases.')
-            MTB.parameters(par_mode = 1) #type: ignore
-            print()
-        #Output ranks in relation to task id
+    if MTB.parameters()['par_mode'] == 'VOLLEY':
+        #Output ranks in relation to task 
+        print('---------EXECUTING VOLLEY MODE---------')
         print('Rank / Task ID / Casename:')
         for case in emtCases:
             print(f'{case.rank} / {emtCases.index(case) + 1} / {case.Name}')
+    elif MTB.parameters()['par_mode'] == 'MANUAL' and MTB.parameters()['par_manualrank'] in caseList:
+        #Output rank in relation to task id
+        singleRank = MTB.parameters()['par_manualrank']
+        singleName = emtCases[caseList.index(MTB.parameters()['par_manualrank'])].Name
+        print('---------EXECUTING MANUAL MODE---------')
+        print(f'Excecuting only Rank {singleRank}: {singleName}')
+    else:
+        raise ValueError('Invalid rank selected for par_manualrank in MTB block.')
 
     print()
     si.renderFortran('interface.f', channels)
