@@ -335,10 +335,11 @@ def drawPlot(rank: int,
         print(f'Exported plot for rank {rank} to {figurePath}.html')
 
     if config.genImage:
-        addCursors(imagePlotsCursors, resultList, cursorDict, config.pfFlatTIme, config.pscadInitTime,
-                   rank, config.imageCursorColumns)
+        # Cursor plots are not currently supported for image export and commented out
+        # addCursors(imagePlotsCursors, resultList, cursorDict, config.pfFlatTIme, config.pscadInitTime,
+        #           rank, config.imageCursorColumns)
         create_image_plots(columnNr, config, figureList, figurePath, imagePlots)
-        create_cursor_plots(config.htmlCursorColumns, config, figurePath, imagePlotsCursors, ranksCursor)
+        # create_cursor_plots(config.htmlCursorColumns, config, figurePath, imagePlotsCursors, ranksCursor)
         print(f'Exported plot for rank {rank} to {figurePath}.{config.imageFormat}')
 
     print(f'Plot for rank {rank} done.')
