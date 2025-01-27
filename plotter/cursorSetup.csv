@@ -606,3 +606,11 @@ Active power - EMT;150;min_max,average;P_pu_PoC;;0
 Active power - RMS;150;min_max,average;;meas\s:ppoc_pu;0
 Reactive power - EMT;150;min_max,average;Q_pu_PoC;;0
 Reactive power - RMS;150;min_max,average;;meas\s:qpoc_pu;0
+Active power - EMT;151;min_max,average;P_pu_PoC;;0
+Active power - RMS;151;min_max,average;;meas\s:ppoc_pu;0
+Reactive power - EMT;151;min_max,average;Q_pu_PoC;;0
+Reactive power - RMS;151;min_max,average;;meas\s:qpoc_pu;0
+Active power - EMT;152;min_max,average;P_pu_PoC;;0
+Active power - RMS;152;min_max,average;;meas\s:ppoc_pu;0
+Reactive power - EMT;152;min_max,average;Q_pu_PoC;;0
+Reactive power - RMS;152;min_max,average;;meas\s:qpoc_pu;0
