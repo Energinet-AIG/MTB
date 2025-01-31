@@ -227,6 +227,7 @@ def main():
         print('Rank / Task ID / Casename:')
         for case in emtCases:
             print(f'{case.rank} / {emtCases.index(case) + 1} / {case.Name}')
+        singleRank = None
     elif MTB.parameters()['par_mode'] == 'MANUAL' and MTB.parameters()['par_manualrank'] in caseList:
         #Output rank in relation to task id
         singleRank = MTB.parameters()['par_manualrank']
@@ -264,9 +265,9 @@ def main():
     pscad.run_simulation_sets('MTB') #type: ignore ??? By sideeffect changes current working directory ???
     os.chdir(executeFolder)
 
-    csvFolder = cleanUpOutFiles(buildFolder, plantSettings.Projectname)
+    csvFolder = cleanUpOutFiles(buildFolder, config.exportPath, plantSettings.Projectname)
     print()
-    taskIdToRank(csvFolder, plantSettings.Projectname, emtCases)
+    taskIdToRank(csvFolder, plantSettings.Projectname, emtCases, singleRank)
 
     print('execute.py finished at: ', datetime.now().strftime('%m-%d %H:%M:%S'))
 
