@@ -398,6 +398,9 @@ def setup(casesheetPath : str, pscad : bool, pfEncapsulation : Optional[si.PFint
     inc_c_iopt_lt = constant('inc_c_iopt_lt', 0, pscad = False)
     inc_c_iopt_lt.addPFsub('$studycase$\\ComInc', 'iopt_lt')
 
+    inc_c_errseq = constant('inc_c_errseq', 0.01, pscad = False)
+    inc_c_errseq.addPFsub('$studycase$\\ComInc', 'errseq')
+
     inc_c_autocomp = constant('inc_c_autocomp', 0, pscad = False)
     inc_c_autocomp.addPFsub('$studycase$\\ComInc', 'automaticCompilation')
 
