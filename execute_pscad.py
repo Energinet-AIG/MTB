@@ -45,6 +45,7 @@ class readConfig:
     self.sheetPath = str(self.parsedConf['Casesheet path'])
     self.pythonPath = str(self.parsedConf['Python path'])
     self.volley = int(self.parsedConf['Volley'])
+    self.exportPath = str(self.parsedConf['Export folder'])
 
 config = readConfig()
 sys.path.append(config.pythonPath)
@@ -87,29 +88,41 @@ def moveFiles(srcPath : str, dstPath : str, types : List[str], suffix : str = ''
         if typ in types:
             shutil.move(os.path.join(srcPath, file), os.path.join(dstPath, file + suffix))
 
-def taskIdToRank(csvPath : str, projectName : str, emtCases : List[cs.Case]):
+def taskIdToRank(csvPath : str, projectName : str, emtCases : List[cs.Case], rank: int):
     '''
     Changes task ID to rank in the .csv and .inf files in csvPath.
     '''
     for file in os.listdir(csvPath):
         _, fileName = os.path.split(file)
         root, typ = os.path.splitext(fileName)
-        if typ == '.csv_taskid' or typ == '.inf_taskid' and root.startswith(projectName + '_'):
-            suffix = root[len(projectName) + 1:]
-            parts = suffix.split('_')
-            if  len(parts) > 0 and parts[0].isnumeric():
-                taskId = int(parts[0])
-                if taskId - 1 < len(emtCases):
-                    parts[0] = str(emtCases[taskId  - 1].rank)
-                    newName = projectName + '_' + '_'.join(parts) + typ.replace('_taskid', '')
-                    print(f'Renaming {fileName} to {newName}')
-                    os.rename(os.path.join(csvPath, fileName), os.path.join(csvPath, newName))
+        if rank is None:
+            if typ == '.csv_taskid' or typ == '.inf_taskid' and root.startswith(projectName + '_'):
+                suffix = root[len(projectName) + 1:]
+                parts = suffix.split('_')
+                if  len(parts) > 0 and parts[0].isnumeric():
+                    taskId = int(parts[0])
+                    if taskId - 1 < len(emtCases):
+                        parts[0] = str(emtCases[taskId  - 1].rank)
+                        newName = projectName + '_' + '_'.join(parts) + typ.replace('_taskid', '')
+                        print(f'Renaming {fileName} to {newName}')
+                        os.rename(os.path.join(csvPath, fileName), os.path.join(csvPath, newName))
+                    else:
+                        print(f'WARNING: {fileName} has a task ID that is out of bounds. Ignoring file.')
                 else:
-                    print(f'WARNING: {fileName} has a task ID that is out of bounds. Ignoring file.')
+                    print(f'WARNING: {fileName} has an invalid task ID. Ignoring file.')
+        else:
+            if typ == '.inf_taskid':
+                newName = f'{projectName}_{rank}.inf'
+            elif typ == '.csv_taskid':
+                part = root.split('_')[1]
+                newName = f'{projectName}_{rank}_{part}.csv'
             else:
-                print(f'WARNING: {fileName} has an invalid task ID. Ignoring file.')
-
-def cleanUpOutFiles(buildPath : str, projectName : str) -> str:
+                print(f'WARNING: {fileName} is of unknown type. Ignoring file.')
+                continue
+            print(f'Renaming {fileName} to {newName}')
+            os.rename(os.path.join(csvPath, fileName), os.path.join(csvPath, newName))
+            
+def cleanUpOutFiles(buildPath : str, exportPath : str, projectName : str) -> str:
     '''
     Cleans up the build folder by moving .out and .csv files to an 'Output' folder in the current working directory.
     Return path to results folder.
@@ -122,26 +135,25 @@ def cleanUpOutFiles(buildPath : str, projectName : str) -> str:
             print(f'Converting {file} to .csv')
             outToCsv(os.path.join(buildPath, fileName), os.path.join(buildPath, f'{root}.csv'))
 
-    # Move desired files to an 'Output' folder in the current working directory
-    outputFolder = 'output'
-
-    if not os.path.exists(outputFolder):
-        os.mkdir(outputFolder)
+    # Move desired files to the exportPath in the current working directory
+    if not os.path.exists(exportPath):
+        os.mkdir(exportPath)
     else:
-        for dir in os.listdir(outputFolder):
-            _dir = os.path.join(outputFolder, dir)
+        for dir in os.listdir(exportPath):
+            _dir = os.path.join(exportPath, dir)
             if os.path.isdir(_dir) and dir.startswith('MTB_'):
                 if os.listdir(_dir) == []:
                     shutil.rmtree(_dir)
 
+    #Creating a datetime stamped subfolder
     resultsFolder = f'MTB_{datetime.now().strftime(r"%d%m%Y%H%M%S")}'
 
-    #Move .csv and .inf files away from build folder into output folder
-    csvFolder = os.path.join(outputFolder, resultsFolder)
+    #Move .csv and .inf files away from build folder into exportPath folder
+    csvFolder = os.path.join(exportPath, resultsFolder)
     os.mkdir(csvFolder)
     moveFiles(buildPath, csvFolder, ['.csv', '.inf'], '_taskid')
 
-    #Move .out file away from build folder
+    #Move .out file away from build folder into buildPath folder
     outFolder = os.path.join(buildPath, resultsFolder)
     os.mkdir(outFolder)
     moveFiles(buildPath, outFolder, ['.out'])
